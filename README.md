@@ -16,10 +16,20 @@ A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistan
 
 ## Usage
 
-1. Add PDFs to the repository.
-2. Load the PDF and convert it to markdown using `src.pdf_to_markdown.load_pdf_as_markdown` or `load_pdf_pages_as_markdown_documents`.
+1. Add PDFs under `data/pdfs/`.
+2. Convert them to markdown with `src/pdf_ingest.py`.
 3. Chunk the resulting document(s) with `src.chunker.chunk_document` or `src.chunker.chunk_documents`.
 4. Generate embeddings using `src.embedder.Embedder`.
+
+### Convert PDFs into markdown
+
+Run:
+
+```bash
+python -m src.pdf_ingest
+```
+
+This scans `data/pdfs/` recursively and writes `.md` output files into `data/mds/`, preserving subdirectory structure.
 
 ## Notes
 
