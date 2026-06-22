@@ -1,0 +1,37 @@
+
+## Asking the agent questions
+
+A minimal interactive CLI is provided at `src/cli.py`. It:
+
+- Loads Markdown files from `data/mds/`.
+- Indexes them into the RAG agent (chunking + embedding + Chroma storage).
+- Starts an interactive prompt for questions.
+
+Run the CLI:
+
+```bash
+python -m src.cli
+```
+
+Environment variables (optional):
+
+- `DEEPSEEK_URL` — URL of a DeepSeek or compatible generation endpoint that accepts JSON `{ "prompt": "..." }` and returns JSON with `answer` or `text`.
+- `DEEPSEEK_API_KEY` — API key for the remote DeepSeek service.
+
+If `DEEPSEEK_URL` is not set the CLI prints the prompt it would send and returns "I don't know." as a safe default.
+
+Example quick test (Python):
+
+```python
+from pathlib import Path
+from src.markdown_loader import load_markdown_documents
+from src.rag_agent import RagAgent
+
+# load and index
+docs = load_markdown_documents(Path('data/mds'))
+agent = RagAgent()
+agent.index_documents(docs)
+
+# ask
+print(agent.answer('What is computational linguistics?', lambda p: 'I dont know'))
+```
