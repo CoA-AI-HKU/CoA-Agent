@@ -40,7 +40,8 @@ class RagAgent:
         k = k or self.top_k
         if self.vector_store is None:
             self.vector_store = get_default_vector_store()
-        search_results = self.vector_store.query(query, n_results=k)
+        query_embedding = self.embedder.encode([query])[0]
+        search_results = self.vector_store.query(query, n_results=k, query_embedding=query_embedding)
         return [Document(text=result['text'], metadata=result['metadata']) for result in search_results]
 
     def build_prompt(self, query: str, retrieved_docs: List[Document]) -> str:
@@ -61,7 +62,10 @@ class RagAgent:
 
         return (
             "You are a helpful assistant.\n"
-            "Answer the question using the provided context. If the context does not contain enough information to answer, say \"I don't know.\"\n\n"
+            "Answer the question using the provided context.\n"
+            "If the provided context supports an answer, give a direct answer in your own words.\n"
+            "Do not invent information from outside the context.\n"
+            "If the context does not contain enough information to answer, say \"I don't know.\"\n\n"
             "Context:\n"
             f"{context}\n\n"
             "Question:\n"
@@ -71,5 +75,13 @@ class RagAgent:
 
     def answer(self, query: str, deepseek_callable, k: Optional[int] = None) -> str:
         retrieved = self.retrieve(query, k=k)
+        if not retrieved:
+            return "No relevant context was retrieved for that question."
         prompt = self.build_prompt(query, retrieved)
         return deepseek_callable(prompt)
+
+    def answer_with_top_chunk(self, query: str, k: Optional[int] = None) -> str:
+        retrieved = self.retrieve(query, k=k)
+        if not retrieved:
+            return "No relevant context was retrieved."
+        return retrieved[0].text

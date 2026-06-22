@@ -2,15 +2,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from src.chunker import chunk_document
 from src.document import Document
+from src.embedder import Embedder
 from src.pdf_ingest import convert_pdf_file
 from src.pdf_to_markdown import load_pdf_as_markdown
 from src.rag_agent import RagAgent
-from src.vector_store import ChromaVectorStore
+from src.vector_store import get_default_vector_store
 
 
 def test_pdf_ingest_creates_markdown(tmp_path: Path) -> None:
+    if not _has_pdf_extractor():
+        pytest.skip("PDF extraction requires PyMuPDF or pypdf")
+
     pdf_source = Path("data/pdfs/Introducing_computational_linguistics.pdf")
     markdown_path = tmp_path / "data" / "mds" / "test.md"
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
@@ -33,8 +39,8 @@ def test_chunk_document_creates_chunks() -> None:
 
 def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     documents = [Document(text="This is a sample document.", metadata={"source": "test.md"})]
-    store = ChromaVectorStore(persist_directory=tmp_path / "chroma_test", collection_name="test_collection")
-    agent = RagAgent(vector_store=store)
+    store = get_default_vector_store(persist_directory=tmp_path / "chroma_test", collection_name="test_collection")
+    agent = RagAgent(embedder=Embedder(provider="dummy"), vector_store=store)
     agent.index_documents(documents)
 
     retrieved = agent.retrieve("sample")
@@ -42,14 +48,14 @@ def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     assert "sample document" in retrieved[0].text
 
     prompt = agent.build_prompt("What is this?", retrieved)
-    assert "Answer using only the provided context" in prompt
+    assert "Answer the question using the provided context" in prompt
     assert "What is this?" in prompt
 
 
 def test_rag_agent_answer_uses_deepseek_callable(tmp_path: Path) -> None:
     documents = [Document(text="The answer is 42.", metadata={"source": "test.md"})]
-    store = ChromaVectorStore(persist_directory=tmp_path / "chroma_test2", collection_name="test_collection2")
-    agent = RagAgent(vector_store=store)
+    store = get_default_vector_store(persist_directory=tmp_path / "chroma_test2", collection_name="test_collection2")
+    agent = RagAgent(embedder=Embedder(provider="dummy"), vector_store=store)
     agent.index_documents(documents)
 
     def fake_deepseek(prompt: str) -> str:
@@ -58,3 +64,29 @@ def test_rag_agent_answer_uses_deepseek_callable(tmp_path: Path) -> None:
 
     answer = agent.answer("What is the answer?", fake_deepseek)
     assert answer == "42"
+
+
+def test_rag_agent_answer_with_top_chunk_returns_text(tmp_path: Path) -> None:
+    documents = [Document(text="The answer is 42.", metadata={"source": "test.md"})]
+    store = get_default_vector_store(persist_directory=tmp_path / "chroma_test3", collection_name="test_collection3")
+    agent = RagAgent(embedder=Embedder(provider="dummy"), vector_store=store)
+    agent.index_documents(documents)
+
+    answer = agent.answer_with_top_chunk("What is the answer?")
+    assert answer == "The answer is 42."
+
+
+def _has_pdf_extractor() -> bool:
+    try:
+        import fitz  # noqa: F401
+
+        return True
+    except ImportError:
+        pass
+
+    try:
+        import pypdf  # noqa: F401
+
+        return True
+    except ImportError:
+        return False

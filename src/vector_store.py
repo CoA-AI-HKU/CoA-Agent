@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
+from uuid import uuid4
 
 from .document import Document
 
@@ -24,20 +25,28 @@ class InMemoryVectorStore:
             self.metadatas.append(doc.metadata)
             self.embeddings.append(list(emb))
 
-    def query(self, query_text: str, n_results: int = 5) -> List[Dict[str, Any]]:
+    def query(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        query_embedding: Optional[List[float]] = None,
+    ) -> List[Dict[str, Any]]:
         # naive nearest by dot product (works for small tests)
         if not self.embeddings:
             return []
 
-        # build an embedding for the query using a simple hash-based method
-        import hashlib
+        if query_embedding is None:
+            # Fallback for callers that do not provide an embedder-backed query vector.
+            import hashlib
 
-        digest = hashlib.md5(query_text.encode("utf-8")).hexdigest()
-        qvec: List[float] = []
-        for i in range(0, 32, 4):
-            chunk = digest[i : i + 4]
-            num = int(chunk, 16)
-            qvec.append(num / 65535.0)
+            digest = hashlib.md5(query_text.encode("utf-8")).hexdigest()
+            qvec: List[float] = []
+            for i in range(0, 32, 4):
+                chunk = digest[i : i + 4]
+                num = int(chunk, 16)
+                qvec.append(num / 65535.0)
+        else:
+            qvec = query_embedding
 
         def dot(a: List[float], b: List[float]) -> float:
             # pad to same length
@@ -64,64 +73,81 @@ class InMemoryVectorStore:
         return
 
 
-def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):
-    try:
-        from chromadb import Client
+class ChromaVectorStore:
+    def __init__(
+        self,
+        persist_directory: Optional[Path] = None,
+        collection_name: str = "ling_rag",
+        client_settings: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        from chromadb import PersistentClient
         from chromadb.config import Settings
 
-        # if chromadb is importable, use it
-        class ChromaVectorStore:
-            def __init__(self, persist_directory: Optional[Path] = None, collection_name: str = "ling_rag", client_settings: Optional[Dict[str, Any]] = None) -> None:
-                self.persist_directory = persist_directory
-                self.collection_name = collection_name
-                self.client_settings = client_settings or {}
-                self.client = Client(Settings(**self.client_settings))
-                self.collection = self._get_or_create_collection()
+        self.persist_directory = persist_directory
+        self.collection_name = collection_name
+        self.client_settings = client_settings or {}
+        settings = Settings(**self.client_settings)
+        if self.persist_directory is not None:
+            self.client = PersistentClient(path=str(self.persist_directory), settings=settings)
+        else:
+            from chromadb import Client
 
-            def _get_or_create_collection(self):
-                if self.persist_directory is not None:
-                    return self.client.get_or_create_collection(
-                        name=self.collection_name,
-                        metadata={"persist_directory": str(self.persist_directory)},
-                    )
-                return self.client.get_or_create_collection(name=self.collection_name)
+            self.client = Client(settings)
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
 
-            def add_documents(self, documents: Iterable[Document], embeddings: List[List[float]]) -> None:
-                items = [doc.text for doc in documents]
-                metadatas = [doc.metadata for doc in documents]
-                ids = [f"doc-{i}" for i, _ in enumerate(documents, start=1)]
+    def add_documents(self, documents: Iterable[Document], embeddings: List[List[float]]) -> None:
+        docs = list(documents)
+        items = [doc.text for doc in docs]
+        metadatas = [doc.metadata for doc in docs]
+        ids = [
+            f"{doc.metadata.get('source', 'doc')}-{doc.metadata.get('chunk_index', index)}-{uuid4().hex}"
+            for index, doc in enumerate(docs, start=1)
+        ]
 
-                self.collection.add(
-                    documents=items,
-                    metadatas=metadatas,
-                    ids=ids,
-                    embeddings=embeddings,
-                )
+        self.collection.add(
+            documents=items,
+            metadatas=metadatas,
+            ids=ids,
+            embeddings=embeddings,
+        )
 
-            def query(self, query_text: str, n_results: int = 5) -> List[Dict[str, Any]]:
-                results = self.collection.query(
-                    query_texts=[query_text],
-                    n_results=n_results,
-                    include=["documents", "metadatas", "distances"],
-                )
-                output: List[Dict[str, Any]] = []
-                if results["documents"]:
-                    for doc, metadata, distance in zip(
-                        results["documents"][0],
-                        results["metadatas"][0],
-                        results["distances"][0],
-                    ):
-                        output.append({
-                            "text": doc,
-                            "metadata": metadata,
-                            "distance": distance,
-                        })
-                return output
+    def query(
+        self,
+        query_text: str,
+        n_results: int = 5,
+        query_embedding: Optional[List[float]] = None,
+    ) -> List[Dict[str, Any]]:
+        query_args: Dict[str, Any] = {
+            "n_results": n_results,
+            "include": ["documents", "metadatas", "distances"],
+        }
+        if query_embedding is not None:
+            query_args["query_embeddings"] = [query_embedding]
+        else:
+            query_args["query_texts"] = [query_text]
 
-            def persist(self) -> None:
-                if hasattr(self.client, "persist"):
-                    self.client.persist()
+        results = self.collection.query(**query_args)
+        output: List[Dict[str, Any]] = []
+        if results["documents"]:
+            for doc, metadata, distance in zip(
+                results["documents"][0],
+                results["metadatas"][0],
+                results["distances"][0],
+            ):
+                output.append({
+                    "text": doc,
+                    "metadata": metadata,
+                    "distance": distance,
+                })
+        return output
 
+    def persist(self) -> None:
+        if hasattr(self.client, "persist"):
+            self.client.persist()
+
+
+def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):
+    try:
         return ChromaVectorStore(persist_directory=persist_directory, collection_name=collection_name)
     except Exception:
         return InMemoryVectorStore(persist_directory=persist_directory, collection_name=collection_name)
