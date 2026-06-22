@@ -36,12 +36,34 @@ class Embedder:
             except ImportError:
                 pass
 
+        if self.provider == "dummy":
+            # use deterministic lightweight dummy backend
+            self._local_model = None
+            self._openai_client = None
+            return
+
         raise RuntimeError(
             "No embedding backend is available. Install `sentence-transformers` for local embedding "
-            "or `openai` for OpenAI-compatible embedding."
+            "or `openai` for OpenAI-compatible embedding, or set provider='dummy' for a fast test backend."
         )
 
     def encode(self, texts: Sequence[str]) -> List[List[float]]:
+        if self.provider == "dummy":
+            # deterministic, small vectors based on md5 digest
+            import hashlib
+
+            out: List[List[float]] = []
+            for t in texts:
+                digest = hashlib.md5(t.encode("utf-8")).hexdigest()
+                vec: List[float] = []
+                # split digest into 8 chunks of 4 hex chars
+                for i in range(0, 32, 4):
+                    chunk = digest[i : i + 4]
+                    num = int(chunk, 16)
+                    vec.append(num / 65535.0)
+                out.append(vec)
+            return out
+
         if self._local_model is not None:
             embeddings = self._local_model.encode(list(texts), show_progress_bar=False, convert_to_numpy=True)
             return [embedding.tolist() for embedding in embeddings]

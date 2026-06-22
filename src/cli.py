@@ -15,14 +15,23 @@ def default_deepseek_callable(prompt: str) -> str:
     return "I don't know."
 
 
-def build_agent(data_dir: Path | str = "data/mds") -> "RagAgent":
+def build_agent(
+    data_dir: Path | str = "data/mds", embedder_provider: str = "auto", skip_index: bool = False
+) -> "RagAgent":
     # import RagAgent lazily to avoid heavy dependencies at import time
     from .rag_agent import RagAgent
+    from .embedder import Embedder
 
     docs: List[Document] = load_markdown_documents(Path(data_dir))
-    agent = RagAgent()
+    embedder = Embedder(model_name=None, provider=embedder_provider)
+    agent = RagAgent(embedder=embedder)
+
+    if skip_index:
+        print("Skipping indexing as requested; agent has empty/previous index.")
+        return agent
+
     if docs:
-        print(f"Indexing {len(docs)} markdown document(s) from {data_dir}...")
+        print(f"Indexing {len(docs)} markdown document(s) from {data_dir} using provider={embedder_provider}...")
         agent.index_documents(docs)
         print("Indexing complete.")
     else:
@@ -44,8 +53,18 @@ def interactive_loop(agent: RagAgent, deepseek_callable: Callable[[str], str]) -
 
 
 def main() -> None:
-    deepseek_url = os.getenv("DEEPSEEK_URL")
-    deepseek_api_key = os.getenv("DEEPSEEK_API_KEY")
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Interactive RAG CLI")
+    parser.add_argument("--data-dir", default="data/mds", help="Path to markdown documents")
+    parser.add_argument("--skip-index", action="store_true", help="Skip indexing step (fast start)")
+    parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "auto"), help="Embedder provider: auto|local|openai|dummy")
+    parser.add_argument("--deepseek-url", default=os.getenv("DEEPSEEK_URL"), help="DeepSeek endpoint URL")
+    parser.add_argument("--deepseek-key", default=os.getenv("DEEPSEEK_API_KEY"), help="DeepSeek API key")
+    args = parser.parse_args()
+
+    deepseek_url = args.deepseek_url
+    deepseek_api_key = args.deepseek_key
 
     if deepseek_url and deepseek_api_key:
         try:
@@ -69,7 +88,7 @@ def main() -> None:
     else:
         deepseek_callable = default_deepseek_callable
 
-    agent = build_agent()
+    agent = build_agent(data_dir=args.data_dir, embedder_provider=args.embedder_provider, skip_index=args.skip_index)
     interactive_loop(agent, deepseek_callable)
 
 

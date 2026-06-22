@@ -6,7 +6,7 @@ from typing import List, Optional
 from .chunker import chunk_documents
 from .document import Document
 from .embedder import Embedder
-from .vector_store import ChromaVectorStore
+from .vector_store import get_default_vector_store
 
 
 class RagAgent:
@@ -21,7 +21,7 @@ class RagAgent:
         per_chunk_chars: int = 1000,
     ) -> None:
         self.embedder = embedder or Embedder()
-        self.vector_store = vector_store or ChromaVectorStore()
+        self.vector_store = vector_store  # lazily created when needed
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.top_k = top_k
@@ -29,6 +29,8 @@ class RagAgent:
         self.per_chunk_chars = per_chunk_chars
 
     def index_documents(self, documents: List[Document]) -> None:
+        if self.vector_store is None:
+            self.vector_store = get_default_vector_store()
         chunks = chunk_documents(documents, chunk_size=self.chunk_size, chunk_overlap=self.chunk_overlap)
         embeddings = self.embedder.encode_documents(chunks)
         self.vector_store.add_documents(chunks, embeddings)
@@ -36,6 +38,8 @@ class RagAgent:
 
     def retrieve(self, query: str, k: Optional[int] = None) -> List[Document]:
         k = k or self.top_k
+        if self.vector_store is None:
+            self.vector_store = get_default_vector_store()
         search_results = self.vector_store.query(query, n_results=k)
         return [Document(text=result['text'], metadata=result['metadata']) for result in search_results]
 
