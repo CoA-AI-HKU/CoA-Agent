@@ -14,19 +14,35 @@ class RagAgent:
         self,
         embedder: Optional[Embedder] = None,
         vector_store: Optional[ChromaVectorStore] = None,
+        embedder_model_name: Optional[str] = None,
+        embedder_provider: str = "auto",
+        offline_embeddings: bool = False,
         chunk_size: int = 1000,
         chunk_overlap: int = 200,
         top_k: int = 5,
         max_context_chars: int = 3000,
         per_chunk_chars: int = 1000,
     ) -> None:
-        self.embedder = embedder or Embedder()
+        self._embedder = embedder
+        self.embedder_model_name = embedder_model_name
+        self.embedder_provider = embedder_provider
+        self.offline_embeddings = offline_embeddings
         self.vector_store = vector_store  # lazily created when needed
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
         self.top_k = top_k
         self.max_context_chars = max_context_chars
         self.per_chunk_chars = per_chunk_chars
+
+    @property
+    def embedder(self) -> Embedder:
+        if self._embedder is None:
+            self._embedder = Embedder(
+                model_name=self.embedder_model_name,
+                provider=self.embedder_provider,
+                offline=self.offline_embeddings,
+            )
+        return self._embedder
 
     def index_documents(self, documents: List[Document]) -> None:
         if self.vector_store is None:

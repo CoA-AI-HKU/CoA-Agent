@@ -72,6 +72,14 @@ class InMemoryVectorStore:
     def persist(self) -> None:
         return
 
+    def count(self) -> int:
+        return len(self.items)
+
+    def clear(self) -> None:
+        self.items.clear()
+        self.metadatas.clear()
+        self.embeddings.clear()
+
 
 class ChromaVectorStore:
     def __init__(
@@ -144,6 +152,13 @@ class ChromaVectorStore:
     def persist(self) -> None:
         if hasattr(self.client, "persist"):
             self.client.persist()
+
+    def count(self) -> int:
+        return self.collection.count()
+
+    def clear(self) -> None:
+        self.client.delete_collection(name=self.collection_name)
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
 
 
 def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):

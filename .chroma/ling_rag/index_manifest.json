@@ -1,0 +1,13 @@
+{
+  "chunk_overlap": 200,
+  "chunk_size": 1000,
+  "documents": [
+    {
+      "chars": 24328,
+      "sha256": "84e18e3234cccd8aad4578988c65b3d240b835b6238c5eeaf2256cf386d42de9",
+      "source": "data/mds/Introducing_computational_linguistics.md"
+    }
+  ],
+  "embedder_model": "all-MiniLM-L6-v2",
+  "embedder_provider": "auto"
+}
