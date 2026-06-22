@@ -46,18 +46,16 @@ class ChromaVectorStore:
         results = self.collection.query(
             query_texts=[query_text],
             n_results=n_results,
-            include=['documents', 'metadatas', 'distances', 'ids'],
+            include=['documents', 'metadatas', 'distances'],
         )
         output: List[Dict[str, Any]] = []
         if results['documents']:
-            for doc, metadata, distance, id_ in zip(
+            for doc, metadata, distance in zip(
                 results['documents'][0],
                 results['metadatas'][0],
                 results['distances'][0],
-                results['ids'][0],
             ):
                 output.append({
-                    'id': id_,
                     'text': doc,
                     'metadata': metadata,
                     'distance': distance,
