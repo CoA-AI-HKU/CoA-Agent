@@ -6,15 +6,44 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urldefrag, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from .document import Document
 
 
-DEFAULT_USER_AGENT = "CoA-Agent-RAG/1.0 (+https://example.local)"
+DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; CoA-Agent-RAG/1.0; +https://example.local)"
 DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_BYTES = 2_000_000
+SKIPPED_LINK_EXTENSIONS = {
+    ".7z",
+    ".avi",
+    ".css",
+    ".csv",
+    ".doc",
+    ".docx",
+    ".gif",
+    ".gz",
+    ".ico",
+    ".jpeg",
+    ".jpg",
+    ".js",
+    ".json",
+    ".mp3",
+    ".mp4",
+    ".pdf",
+    ".png",
+    ".ppt",
+    ".pptx",
+    ".rar",
+    ".svg",
+    ".tar",
+    ".webm",
+    ".webp",
+    ".xls",
+    ".xlsx",
+    ".zip",
+}
 
 
 def _normalize_markdown(text: str) -> str:
@@ -53,7 +82,14 @@ def fetch_website_html(
     if not _is_usable_url(url):
         raise ValueError(f"Expected an http(s) URL, got: {url}")
 
-    request = Request(url, headers={"User-Agent": user_agent, "Accept": "text/html,application/xhtml+xml"})
+    request = Request(
+        url,
+        headers={
+            "User-Agent": user_agent,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+    )
     try:
         with urlopen(request, timeout=timeout) as response:
             content_type = response.headers.get("Content-Type")
@@ -68,6 +104,43 @@ def fetch_website_html(
         raise RuntimeError(f"Failed to fetch {url}: HTTP {exc.code}") from exc
     except URLError as exc:
         raise RuntimeError(f"Failed to fetch {url}: {exc.reason}") from exc
+
+
+def _is_probably_html_link(url: str) -> bool:
+    path = urlparse(url).path.lower()
+    return not any(path.endswith(extension) for extension in SKIPPED_LINK_EXTENSIONS)
+
+
+class _LinkExtractor(HTMLParser):
+    def __init__(self, base_url: str) -> None:
+        super().__init__(convert_charrefs=True)
+        self.base_url = base_url
+        self.links: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "a":
+            return
+
+        attr_map = {name.lower(): value or "" for name, value in attrs}
+        href = attr_map.get("href", "").strip()
+        if not href or href.startswith(("#", "javascript:", "mailto:", "tel:")):
+            return
+
+        absolute_url = urljoin(self.base_url, href)
+        absolute_url = urldefrag(absolute_url).url
+        parsed = urlparse(absolute_url)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            return
+        if not _is_probably_html_link(absolute_url):
+            return
+        self.links.append(absolute_url)
+
+
+def extract_links(html: str, base_url: str) -> list[str]:
+    parser = _LinkExtractor(base_url=base_url)
+    parser.feed(html)
+    parser.close()
+    return list(dict.fromkeys(parser.links))
 
 
 class _ReadableMarkdownParser(HTMLParser):
@@ -263,18 +336,36 @@ def html_to_markdown(html: str, base_url: str | None = None) -> str:
     return markdown
 
 
-def load_website_as_markdown_document(url: str) -> Document:
-    """Fetch a website and return one markdown document for downstream chunking."""
-    html, final_url, content_type = fetch_website_html(url)
+def website_html_to_markdown_document(
+    html: str,
+    final_url: str,
+    requested_url: str | None = None,
+    content_type: str | None = None,
+) -> Document:
     markdown = html_to_markdown(html, base_url=final_url)
     return Document(
         text=markdown,
         metadata={
             "source": final_url,
-            "requested_url": url,
+            "requested_url": requested_url or final_url,
             "type": "website",
             "content_type": content_type,
         },
+    )
+
+
+def load_website_as_markdown_document(
+    url: str,
+    timeout: int = DEFAULT_TIMEOUT_SECONDS,
+    max_bytes: int = DEFAULT_MAX_BYTES,
+) -> Document:
+    """Fetch a website and return one markdown document for downstream chunking."""
+    html, final_url, content_type = fetch_website_html(url, timeout=timeout, max_bytes=max_bytes)
+    return website_html_to_markdown_document(
+        html,
+        final_url=final_url,
+        requested_url=url,
+        content_type=content_type,
     )
 
 

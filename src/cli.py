@@ -106,7 +106,33 @@ def build_agent(
             vector_store.clear()
 
         print(f"Indexing {len(docs)} markdown document(s) from {data_dir} using provider={embedder_provider}...")
-        agent.index_documents(docs)
+        try:
+            agent.index_documents(docs)
+        except RuntimeError as exc:
+            if embedder_provider != "auto" or "No real embedding backend is available" not in str(exc):
+                raise
+
+            print(str(exc))
+            print("Falling back to provider=dummy so the local RAG client can still run.")
+            print("For production-quality retrieval, install/cache sentence-transformers or configure OPENAI_API_KEY.")
+            embedder_provider = "dummy"
+            current_manifest = _document_signature(
+                docs,
+                agent.chunk_size,
+                agent.chunk_overlap,
+                embedder_provider,
+                embedder_model,
+            )
+            if hasattr(vector_store, "clear"):
+                vector_store.clear()
+            agent = RagAgent(
+                embedder_provider=embedder_provider,
+                embedder_model_name=embedder_model,
+                offline_embeddings=offline_embeddings,
+                vector_store=vector_store,
+                min_shared_query_terms=min_shared_query_terms,
+            )
+            agent.index_documents(docs)
         _save_manifest(manifest_path, current_manifest)
         print("Indexing complete.")
     else:

@@ -3,11 +3,11 @@
   "chunk_size": 450,
   "documents": [
     {
-      "chars": 24328,
-      "sha256": "84e18e3234cccd8aad4578988c65b3d240b835b6238c5eeaf2256cf386d42de9",
-      "source": "data/mds/Introducing_computational_linguistics.md"
+      "chars": 10471,
+      "sha256": "5b04a08af29d79a0e933d19171d55db7a10be9da5880f850f15d956b8a037db9",
+      "source": "data/mds/web/www-jccpa-org-hk-en-188ef8877a.md"
     }
   ],
   "embedder_model": "all-MiniLM-L6-v2",
-  "embedder_provider": "auto"
+  "embedder_provider": "dummy"
 }

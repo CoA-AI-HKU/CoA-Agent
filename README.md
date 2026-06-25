@@ -41,11 +41,15 @@ python -m src.web_ingest
 
 This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
 
-You can also pass URLs directly or use another list file:
+By default, website ingestion crawls same-site links from each starting URL. It skips obvious non-HTML assets and stops at bounded limits so large sites do not run forever.
+
+You can also pass URLs directly, use another list file, or disable crawling:
 
 ```bash
 python -m src.web_ingest https://example.org/article
 python -m src.web_ingest --url-file urls.txt --overwrite
+python -m src.web_ingest --no-crawl https://example.org/article
+python -m src.web_ingest --max-pages-per-site 250 --max-depth 6
 ```
 
 ## Notes
@@ -74,6 +78,8 @@ Run the CLI:
 ```bash
 python -m src.cli
 ```
+
+If no real embedding backend is available, the CLI falls back to the deterministic `dummy` embedder so local indexing can still run. Use `--embedder-provider local` with a cached sentence-transformers model, or configure `OPENAI_API_KEY`, for better retrieval quality.
 
 Environment variables (optional):
 

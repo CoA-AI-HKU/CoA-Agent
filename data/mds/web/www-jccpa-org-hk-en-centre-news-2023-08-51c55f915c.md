@@ -1,0 +1,160 @@
+<!-- source: https://www.jccpa.org.hk/en/centre-news/2023-08/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/centre-news/2023-08/ -->
+<!-- type: website -->
+
+# 2023-08 - Jockey Club Centre for Positive Ageing | Professional Support for Dementia
+
+Menu
+
+- 繁
+- 简
+- EN
+
+A A A
+
+參
+觀
+申
+請
+
+# 2023-08
+
+##
+
+## Media Coverage
+
+South Morning China Post
+
+(For more details please refer to[ Media Coverage](https://www.jccpa.org.hk/en/media/))
+
+## Jockey Club Younger Onset Dementia Support Project – Sharing Session: Positive Caregiving for People with Younger Onset Dementia with DemenTitude®- the Heterogeneity in Clinical Practice Made Great Difference
+
+With the generous donation by The Hong Kong Jockey Club Charities Trust, Jockey Club Centre for Positive Ageing (JCCPA) has launched the first pilot project in Hong Kong which strives to deliver quality service of dementia care for People with younger onset dementia. This 3-year innovative pilot project aims to support people who are suspected/diagnosed with younger onset dementia and also their family caregivers.
+
+To enhance the understanding of younger onset dementia among the professional workers in the field, an online sharing session was held on 25 August. Over 590 professional workers actively participated, engaging in thorough discussion about difficulties and challenges faced by individuals with younger onset dementia, and exploring ways to provide support.
+
+Our Deputy General Manager and Dementia Care Specialist, Dr. Kenny Chui, and Nursing Officer and Case Manager , Mr. Kingsley Pun, delivered informative presentations. They provided clear explanations on the needs of individuals with younger onset dementia, supplemented by theoretical insights and real-life clinical cases. In addition, they emphasized how differences in care and support can make significantly impacts.
+
+We would like to express our gratitude again to professional workers who attended this sharing session. Let us continue to prioritize and show unwavering attention to people with younger onset dementia and accompany them in every step of their journey!
+
+Jockey Club Younger Onset Dementia Support Project
+
+[https://www.jccpa.org.hk/en/projects/yod/](https://www.jccpa.org.hk/en/projects/yod/)
+
+Slide Title
+
+Slide Title
+
+## Training Courses for Dementia Care
+
+With the support from the Hong Kong Jockey Club Community Project Grant, JCCPA has launched a new programme “Training Courses for Dementia Care”.
+
+The half-day intensive training course was successfully held on 19 Aug. Dr. Chan, has shared with over 130 caregivers regarding the psychological symptoms of people with dementia and how to tackle it in aspect of psychiatry. He also addressed various enquiries from caregivers exhaustively and supplemented with case sharing for easier understanding.
+
+The next training session is scheduled on 9 Sep (Sat) 10am. Dr Jenny Lee will share with us about end-of-life care. For more details and registration, please click the link: [https://www.jccpa.org.hk/s/2023-S3-CG-training](https://www.jccpa.org.hk/s/2023-S3-CG-training)
+
+Slide Title
+
+Dementia Risk Factor Survey
+
+[Learn More](https://dementia.org.hk/)
+
+About Us
+
+- [About Us](https://www.jccpa.org.hk/en/about-us/)
+- [Our Journey](https://www.jccpa.org.hk/en/about-us/#timeline)
+- [Professional Team](https://www.jccpa.org.hk/en/about-us/team/)
+- [Organisation Chart](https://www.jccpa.org.hk/en/about-us/organisation-chart/)
+- [Ambassadors](https://www.jccpa.org.hk/en/about-us/ambassadors/)
+
+About Dementia
+
+- [About Dementia](https://www.jccpa.org.hk/en/about-dementia/)
+- [What is Dementia?](https://www.jccpa.org.hk/en/about-dementia/what-is-dementia/)
+- [Caring Tips](https://www.jccpa.org.hk/en/about-dementia/caring-tips/)
+- [1. Tips for Caregivers](https://www.jccpa.org.hk/en/about-dementia/caring-tips/tips-for-caregivers/)
+- [2. Understanding People with Dementia](https://www.jccpa.org.hk/en/about-dementia/caring-tips/understanding-people-with-dementia/)
+- [3. Communication](https://www.jccpa.org.hk/en/about-dementia/caring-tips/communication/)
+- [4. Home Safety](https://www.jccpa.org.hk/en/about-dementia/caring-tips/home-safety/)
+- [5. Eating and Swallowing](https://www.jccpa.org.hk/en/about-dementia/caring-tips/eating-and-swallowing/)
+- [6. Food and Nutrition](https://www.jccpa.org.hk/en/about-dementia/caring-tips/food-and-nutrition/)
+- [7. Oral Care](https://www.jccpa.org.hk/en/about-dementia/caring-tips/oral-care/)
+- [8. Minimize the Risk of Getting Lost](https://www.jccpa.org.hk/en/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
+- [9. Fall Prevention Tips](https://www.jccpa.org.hk/en/about-dementia/caring-tips/fall-prevention-tips/)
+- [10. Incontinence Prevention Tips](https://www.jccpa.org.hk/en/about-dementia/caring-tips/incontinence-prevention-tips/)
+- [11. Distressed Behaviour and Dementia Related Response](https://www.jccpa.org.hk/en/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
+- [12. Safety for Caregivers](https://www.jccpa.org.hk/en/about-dementia/caring-tips/safety-for-caregivers/)
+- [13. Safe Lifting](https://www.jccpa.org.hk/en/about-dementia/caring-tips/safe-lifting/)
+- [14. Wheelchair Safety Tips](https://www.jccpa.org.hk/en/about-dementia/caring-tips/wheelchair-safety-tips/)
+- [15. Medical, Care and Financial Arrangement](https://www.jccpa.org.hk/en/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
+- [16. Dementia Medications](https://www.jccpa.org.hk/en/about-dementia/caring-tips/dementia-medications/)
+- [Tips for Domestic Helpers](https://www.jccpa.org.hk/en/about-dementia/tips-for-domestic-helpers/)
+- [FAQ](https://www.jccpa.org.hk/en/about-dementia/faq/)
+- [Brain Health Tips](https://www.jccpa.org.hk/en/about-dementia/brain-health-tips/)
+- [Dementia Screening Test](https://www.jccpa.org.hk/en/about-dementia/dementia-screening-test/)
+- [Find Your Suitable Service](https://www.jccpa.org.hk/en/about-dementia/find-your-suitable-services/)
+- [Community Resources](https://www.jccpa.org.hk/en/about-dementia/community-resources/)
+- [Download Useful Information](https://www.jccpa.org.hk/en/about-dementia/useful-information/)
+
+Core Services
+
+- [Core Services](https://www.jccpa.org.hk/en/services/)
+- [Memory Clinic](https://www.jccpa.org.hk/en/services/memory-clinic/)
+- [Day Care Service](https://www.jccpa.org.hk/en/services/day-care-service/)
+- [Residential Service](https://www.jccpa.org.hk/en/services/residential-service/)
+- [Environment and Facilities](https://www.jccpa.org.hk/en/services/environment-and-facilities/)
+- [Visit Guideline](https://www.jccpa.org.hk/en/services/environment-and-facilities/#application)
+
+Key Projects
+
+- [Key Projects](https://www.jccpa.org.hk/en/key-projects/)
+- [Jockey Club "Brain Health" Dementia Screening and Community Support Project](https://www.jccpa.org.hk/en/projects/dscs/)
+- [Jockey Club Caring Communities for Dementia Campaign](https://www.jccpa.org.hk/en/projects/ccd/)
+- [Jockey Club Discharge Support and Rehabilitation Programme](https://www.jccpa.org.hk/en/projects/pdp/)
+
+Training
+
+- [Training](https://www.jccpa.org.hk/en/training/)
+- [Family Caregivers](https://www.jccpa.org.hk/en/training/family-caregivers/)
+- [Professional Workers](https://www.jccpa.org.hk/en/training/professional-workers/)
+- [Domestic Helpers](https://www.jccpa.org.hk/en/training/domestic-helpers/)
+- [Corporates and Organisations](https://www.jccpa.org.hk/en/training/corporates-and-organisations/)
+- [Public Education](https://www.jccpa.org.hk/en/training/public-education/)
+- [Dementia E-learning Platform](https://edu.jccpa.org.hk/)
+- [Advanced Diploma Programme in Dementia Care](https://www.jccpa.org.hk/en/training/advanced-diploma/)
+
+Research
+
+- [Research](https://www.jccpa.org.hk/en/research/)
+- [Current Research](https://www.jccpa.org.hk/en/research/#sec01)
+- [Research Report](https://www.jccpa.org.hk/en/research/#sec02)
+- [Dementia Research In-focus](https://www.jccpa.org.hk/en/research/#sec03)
+- [Dementia Risk Factor Survey](https://dementia.org.hk/)
+
+Menu
+
+MenuMenu
+
+Menu
+
+Menu
+
+Menu
+
+1
+
+Menu
+
+[
+
+[
+
+[
+
+Menu
+
+Jockey Club Centre for Positive Ageing is a wholly owned subsidiary of The Chinese University of Hong Kong
+
+Menu
+
+h
