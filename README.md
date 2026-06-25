@@ -83,3 +83,11 @@ print(agent.answer('What is computational linguistics?', lambda p: 'I dont know'
 
 # agent running
 python -m src.cli
+
+## Nanobot and Telegram integration
+
+See `docs/nanobot_integration.md` for:
+
+- the `dementia_rag` MCP server config snippet,
+- Telegram channel config using `TELEGRAM_BOT_TOKEN` from the environment,
+- agent policy instructions for document-grounded dementia questions.
