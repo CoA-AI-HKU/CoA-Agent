@@ -31,6 +31,23 @@ python -m src.pdf_ingest
 
 This scans `data/pdfs/` recursively and writes `.md` output files into `data/mds/`, preserving subdirectory structure.
 
+### Convert websites into markdown
+
+Add one URL per line in `data/websites.txt`, then run:
+
+```bash
+python -m src.web_ingest
+```
+
+This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
+
+You can also pass URLs directly or use another list file:
+
+```bash
+python -m src.web_ingest https://example.org/article
+python -m src.web_ingest --url-file urls.txt --overwrite
+```
+
 ## Notes
 
 - PDF extraction supports `PyMuPDF` first, and falls back to `pypdf` if needed.

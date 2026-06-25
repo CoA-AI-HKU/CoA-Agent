@@ -1,0 +1,5 @@
+# Add one website URL per line.
+# Lines starting with # are ignored.
+#
+# Example:
+# https://example.org/article
