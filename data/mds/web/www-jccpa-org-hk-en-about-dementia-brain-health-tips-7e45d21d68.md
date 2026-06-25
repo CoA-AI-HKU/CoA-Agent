@@ -6,16 +6,7 @@
 
 Menu
 
-- 繁
-- 简
-- EN
 
-A A A
-
-參
-觀
-申
-請
 
 # Brain Health Tips
 

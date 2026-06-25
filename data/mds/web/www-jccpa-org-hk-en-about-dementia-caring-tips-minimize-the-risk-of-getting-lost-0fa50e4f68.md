@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/minimize-the-risk-of-getting-lost -->
 <!-- type: website -->
 
 # Minimize The Risk of Getting Lost - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

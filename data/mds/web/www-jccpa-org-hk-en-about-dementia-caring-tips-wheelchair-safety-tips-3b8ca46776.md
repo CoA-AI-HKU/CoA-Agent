@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/wheelchair-safety-tips/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/wheelchair-safety-tips/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring_tips/wheelchair-safety-tips -->
 <!-- type: website -->
 
 # Wheelchair Safety Tips - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

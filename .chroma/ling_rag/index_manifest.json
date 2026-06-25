@@ -3,9 +3,159 @@
   "chunk_size": 450,
   "documents": [
     {
-      "chars": 10471,
-      "sha256": "5b04a08af29d79a0e933d19171d55db7a10be9da5880f850f15d956b8a037db9",
-      "source": "data/mds/web/www-jccpa-org-hk-en-188ef8877a.md"
+      "chars": 9108,
+      "sha256": "1119cc9e21b4fb882a0e4e0d1c8a3830d9bd19dcd2b32ff77f241edcb2e5dd13",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-brain-health-tips-7e45d21d68.md"
+    },
+    {
+      "chars": 8297,
+      "sha256": "e4cd8addb619c0d6553643c2955f3cd4b99f3c88ddf82afb7e0db27f4f5ad5e5",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-3d13317d8f.md"
+    },
+    {
+      "chars": 9515,
+      "sha256": "d2d54114d98da5ebc044917fb644f345e188d7ad26abfa6c8fbad440bbcaaf19",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-communication-9483d7d36b.md"
+    },
+    {
+      "chars": 10730,
+      "sha256": "c3b088b6152bec02ce8e9ed576542ec9a9c997fd8c38fe874f42925407a57dcf",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-dementia-medications-eb785f9416.md"
+    },
+    {
+      "chars": 8000,
+      "sha256": "fbdf26cc2bba3cf55597bdf310ea90152f27b1b7e613a3a199dab2524397bbfe",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-distressed-behaviour-and-dementia-related-responses-06a402d840.md"
+    },
+    {
+      "chars": 9747,
+      "sha256": "3c66b55f6a96af31d63c3cdc29e73fc384c1c904ed1b87cabac69c6b153111e1",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-eating-and-swallowing-f8eb558fc7.md"
+    },
+    {
+      "chars": 6898,
+      "sha256": "a80f3829b2af975a562de066b976698122991e4701cbcb745b2b77d966bc1929",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-fall-prevention-tips-fcc9db4536.md"
+    },
+    {
+      "chars": 9567,
+      "sha256": "bebef4cb1d2c2eea0cc15438ba45cec300af91573e195698787d1ea498498781",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-food-and-nutrition-d818ff7fa8.md"
+    },
+    {
+      "chars": 6772,
+      "sha256": "8637928039d4317101cb16f90d843563ca965b7182e21f33ee42fe564f744f11",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-bathroom-baa5ad49f1.md"
+    },
+    {
+      "chars": 6600,
+      "sha256": "027739aae5130fb802d71f3dc94db708f1beb0ed5ee222b7a8d2e5d702bc599d",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-bedroom-273a38a722.md"
+    },
+    {
+      "chars": 10605,
+      "sha256": "eb8b985853d0c66a62621c3c587af204256491997266081d7862e52e9e518730",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-d2d9c0fbf9.md"
+    },
+    {
+      "chars": 7548,
+      "sha256": "c806956c6ac451f4a8fd84fd740dd1ed609b1ba9c2d45d81f8b188ce3f11323f",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-dining-room-be164e4441.md"
+    },
+    {
+      "chars": 6470,
+      "sha256": "0d31dd6ce79993e1dd1e895c0b49a0948f4dda89a8eda2d729e29ceeb83b5962",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-kitchen-1f833a085e.md"
+    },
+    {
+      "chars": 9305,
+      "sha256": "2686af5b9b4036770f93ac15f1172d9bcb930e9e29d65f9208cf064de0b8187a",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-incontinence-prevention-tips-534fd36256.md"
+    },
+    {
+      "chars": 10806,
+      "sha256": "ed6382dc01ddb36c400229fd87adbb9c187f767d78472766af54884718b87750",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-medical-care-and-financial-arrangement-c7dbe87c45.md"
+    },
+    {
+      "chars": 10688,
+      "sha256": "058a592744ced080e202cd947dbf461dfb5b1d23d0a87bbf20ea6a23858dbb70",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-minimize-the-risk-of-getting-lost-0fa50e4f68.md"
+    },
+    {
+      "chars": 8946,
+      "sha256": "4b9ade3f01d11dfdccb046231380ce61771e59448c4b9636d52acdf5744321e3",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-oral-care-605b7b19f5.md"
+    },
+    {
+      "chars": 7522,
+      "sha256": "3f45d3505afcd3c12491be5b9b056548e6016c615cb00ff86a20802ba234418c",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-safe-lifting-2b375663e9.md"
+    },
+    {
+      "chars": 7056,
+      "sha256": "dc2ff4b0e2dc37c0fc8971802a9399784936c1ce351cf8400cd8c8be2f6cea7a",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-safety-for-caregivers-a9e2fc41e4.md"
+    },
+    {
+      "chars": 11237,
+      "sha256": "b296528aa701913394f7c99bdcd80e4198325f605556d9d0743eb840edfc690e",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-tips-for-caregivers-865f5486a9.md"
+    },
+    {
+      "chars": 12006,
+      "sha256": "e9068a203f5d0e9156ed9623277d1274211b3ef6c137ff67ec813cf5e31cbb9c",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-understanding-people-with-dementia-912bdce1eb.md"
+    },
+    {
+      "chars": 6877,
+      "sha256": "54a704c93a58442305cd641fea13c72275ad87f5076517616b0e6a55c6287094",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-wheelchair-safety-tips-3b8ca46776.md"
+    },
+    {
+      "chars": 5720,
+      "sha256": "75ac74deeca84f87226bb7c922a498ff25f214d1ea1522274d27065b969da565",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-community-resources-9d82365a06.md"
+    },
+    {
+      "chars": 6544,
+      "sha256": "f2133f3725dce4ea8c946bfce44ad8893d96dc446616ada8249c8c40d5af70da",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-dementia-screening-test-9caf49220a.md"
+    },
+    {
+      "chars": 11946,
+      "sha256": "314c38431f1dbdeb2763837b643f78ecdaece274e7ba44d1c6f47775f014c286",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-dementia-screening-test-survey-cc4073bd55.md"
+    },
+    {
+      "chars": 7555,
+      "sha256": "966c05e77ecc3d2aff9b2ceeff227805b45c25bb8501fcb444cf23abbde4a25e",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-f22f39ccd5.md"
+    },
+    {
+      "chars": 15573,
+      "sha256": "3163792eb8eaf380c536f086e7f96119bad85cddc2202632edeef2c230d9e4c0",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-faq-29120a9e43.md"
+    },
+    {
+      "chars": 11551,
+      "sha256": "a4bebc941ff3467fabeedc086890c6c0cff3fe3b2e0ef756e4bf19c4163205cc",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-find-your-suitable-services-360c6fb878.md"
+    },
+    {
+      "chars": 8218,
+      "sha256": "392e15c8fe9b49ae1ce197893066a791b37d72b23e779eb414dfd15935b2404b",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-tips-for-domestic-helpers-6290186afd.md"
+    },
+    {
+      "chars": 13580,
+      "sha256": "16bf77b48ffe3f7a0b0a28a2abe57bd6a6d6ef9230e78b4c9664cd327a22faa6",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-useful-information-3599cbf564.md"
+    },
+    {
+      "chars": 15642,
+      "sha256": "3bddfeb2199f7c311b9f1c945cec1615998bc197f4c48c866f85deb341a02deb",
+      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-what-is-dementia-4352cf3b40.md"
     }
   ],
   "embedder_model": "all-MiniLM-L6-v2",

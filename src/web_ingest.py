@@ -21,6 +21,7 @@ DEFAULT_WEB_MARKDOWN_ROOT = Path(__file__).resolve().parents[1] / "data" / "mds"
 DEFAULT_WEBSITE_LIST_PATH = Path(__file__).resolve().parents[1] / "data" / "websites.txt"
 DEFAULT_MAX_CRAWL_PAGES = 100
 DEFAULT_MAX_CRAWL_DEPTH = 4
+DEFAULT_CRAWL_SCOPE = "path-prefix"
 
 
 def _slugify(value: str) -> str:
@@ -50,6 +51,31 @@ def _same_site(url: str, root_url: str) -> bool:
     parsed_url = urlparse(url)
     parsed_root = urlparse(root_url)
     return parsed_url.scheme in {"http", "https"} and parsed_url.netloc.lower() == parsed_root.netloc.lower()
+
+
+def _path_prefix(url: str) -> str:
+    path = urlparse(url).path
+    if not path or path == "/":
+        return "/"
+    if path.endswith("/"):
+        return path
+    return f"{path.rsplit('/', 1)[0]}/"
+
+
+def _within_crawl_scope(url: str, root_url: str, crawl_scope: str) -> bool:
+    if not _same_site(url, root_url):
+        return False
+    if crawl_scope == "same-site":
+        return True
+    if crawl_scope == "path-prefix":
+        prefix = _path_prefix(root_url)
+        path = urlparse(url).path
+        if not path.startswith(prefix):
+            return False
+        if prefix != "/" and path.count(prefix) > 1:
+            return False
+        return True
+    raise ValueError(f"Unknown crawl scope: {crawl_scope}")
 
 
 def _metadata_header(source: str, requested_url: str) -> list[str]:
@@ -98,6 +124,7 @@ def crawl_website(
     max_depth: int = DEFAULT_MAX_CRAWL_DEPTH,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
+    crawl_scope: str = DEFAULT_CRAWL_SCOPE,
 ) -> list[Path]:
     start_url = _normalized_url(start_url)
     queue = deque([(start_url, 0)])
@@ -133,7 +160,7 @@ def crawl_website(
 
         for link in extract_links(html, base_url=final_url):
             normalized_link = _normalized_url(link)
-            if normalized_link in seen or not _same_site(normalized_link, start_url):
+            if normalized_link in seen or not _within_crawl_scope(normalized_link, start_url, crawl_scope):
                 continue
             seen.add(normalized_link)
             queue.append((normalized_link, depth + 1))
@@ -149,6 +176,7 @@ def crawl_website_urls(
     max_depth: int = DEFAULT_MAX_CRAWL_DEPTH,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
+    crawl_scope: str = DEFAULT_CRAWL_SCOPE,
 ) -> list[Path]:
     converted: list[Path] = []
     for url in urls:
@@ -161,6 +189,7 @@ def crawl_website_urls(
                 max_depth=max_depth,
                 timeout=timeout,
                 max_bytes=max_bytes,
+                crawl_scope=crawl_scope,
             )
         )
     return converted
@@ -187,6 +216,12 @@ def main() -> None:
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_CRAWL_DEPTH, help="Maximum link depth to crawl from each starting website")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS, help="Fetch timeout in seconds per page")
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES, help="Maximum bytes to read per page")
+    parser.add_argument(
+        "--crawl-scope",
+        choices=["path-prefix", "same-site"],
+        default=DEFAULT_CRAWL_SCOPE,
+        help="Limit crawling to the starting URL path prefix, or allow the whole same site",
+    )
     args = parser.parse_args()
 
     urls = list(args.urls)
@@ -213,6 +248,7 @@ def main() -> None:
             max_depth=args.max_depth,
             timeout=args.timeout,
             max_bytes=args.max_bytes,
+            crawl_scope=args.crawl_scope,
         )
     print(f"Converted {len(converted)} website page(s) to markdown under {args.markdown_root}")
     for path in converted:

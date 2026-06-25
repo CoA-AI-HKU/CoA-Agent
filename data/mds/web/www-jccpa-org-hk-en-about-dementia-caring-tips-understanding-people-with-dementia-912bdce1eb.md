@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/understanding-people-with-dementia/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/understanding-people-with-dementia/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/understanding-people-with-dementia -->
 <!-- type: website -->
 
 # Understanding People with Dementia - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/oral-care/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/oral-care/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/oral-care -->
 <!-- type: website -->
 
 # Oral Care - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

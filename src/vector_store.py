@@ -7,6 +7,9 @@ from uuid import uuid4
 from .document import Document
 
 
+DEFAULT_CHROMA_BATCH_SIZE = 1000
+
+
 class InMemoryVectorStore:
     """A tiny in-memory fallback vector store for testing without chromadb.
 
@@ -102,6 +105,13 @@ class ChromaVectorStore:
 
             self.client = Client(settings)
         self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        self.max_batch_size = self._detect_max_batch_size()
+
+    def _detect_max_batch_size(self) -> int:
+        max_batch_size = getattr(self.client, "max_batch_size", None)
+        if isinstance(max_batch_size, int) and max_batch_size > 0:
+            return min(max_batch_size, DEFAULT_CHROMA_BATCH_SIZE)
+        return DEFAULT_CHROMA_BATCH_SIZE
 
     def add_documents(self, documents: Iterable[Document], embeddings: List[List[float]]) -> None:
         docs = list(documents)
@@ -112,12 +122,14 @@ class ChromaVectorStore:
             for index, doc in enumerate(docs, start=1)
         ]
 
-        self.collection.add(
-            documents=items,
-            metadatas=metadatas,
-            ids=ids,
-            embeddings=embeddings,
-        )
+        for start in range(0, len(docs), self.max_batch_size):
+            end = start + self.max_batch_size
+            self.collection.add(
+                documents=items[start:end],
+                metadatas=metadatas[start:end],
+                ids=ids[start:end],
+                embeddings=embeddings[start:end],
+            )
 
     def query(
         self,

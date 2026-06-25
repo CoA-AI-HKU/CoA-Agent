@@ -61,8 +61,10 @@ def _is_usable_url(url: str) -> bool:
 
 def _decode_html(raw: bytes, content_type: str | None) -> str:
     charset_match = re.search(r"charset=([^;\s]+)", content_type or "", flags=re.IGNORECASE)
-    encodings = [charset_match.group(1)] if charset_match else []
-    encodings.extend(["utf-8", "windows-1252"])
+    encodings = ["utf-8"]
+    if charset_match and charset_match.group(1).lower() != "utf-8":
+        encodings.append(charset_match.group(1))
+    encodings.append("windows-1252")
 
     for encoding in encodings:
         try:

@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/incontinence-prevention-tips/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/incontinence-prevention-tips/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/incontinence-prevention-tips -->
 <!-- type: website -->
 
 # Incontinence Prevention Tips - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

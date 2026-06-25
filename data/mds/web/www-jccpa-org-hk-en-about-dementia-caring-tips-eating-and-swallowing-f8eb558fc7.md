@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/eating-and-swallowing/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/eating-and-swallowing/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/eating-and-swallowing -->
 <!-- type: website -->
 
 # Eating and Swallowing - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

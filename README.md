@@ -41,7 +41,7 @@ python -m src.web_ingest
 
 This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
 
-By default, website ingestion crawls same-site links from each starting URL. It skips obvious non-HTML assets and stops at bounded limits so large sites do not run forever.
+By default, website ingestion crawls links under the starting URL path prefix. For example, starting from `https://www.jccpa.org.hk/en/about-dementia/` keeps the crawl focused under `/en/about-dementia/` instead of pulling in news, services, training, and other unrelated site sections. It skips obvious non-HTML assets and stops at bounded limits so large sites do not run forever.
 
 You can also pass URLs directly, use another list file, or disable crawling:
 
@@ -50,6 +50,7 @@ python -m src.web_ingest https://example.org/article
 python -m src.web_ingest --url-file urls.txt --overwrite
 python -m src.web_ingest --no-crawl https://example.org/article
 python -m src.web_ingest --max-pages-per-site 250 --max-depth 6
+python -m src.web_ingest --crawl-scope same-site
 ```
 
 ## Notes

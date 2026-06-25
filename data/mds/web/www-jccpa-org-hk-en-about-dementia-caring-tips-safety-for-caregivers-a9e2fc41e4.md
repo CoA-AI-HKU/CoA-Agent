@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safety-for-caregivers/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safety-for-caregivers/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safety-for-caregivers -->
 <!-- type: website -->
 
 # Safety for Caregivers - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

@@ -1,9 +1,82 @@
 from __future__ import annotations
 
+import hashlib
+import math
 import os
+import re
 from typing import List, Optional, Sequence
 
 from .document import Document
+
+
+DUMMY_EMBEDDING_DIMENSIONS = 384
+DUMMY_STOPWORDS = {
+    "about",
+    "after",
+    "again",
+    "also",
+    "and",
+    "any",
+    "are",
+    "can",
+    "could",
+    "does",
+    "for",
+    "from",
+    "has",
+    "have",
+    "how",
+    "into",
+    "its",
+    "may",
+    "more",
+    "not",
+    "our",
+    "out",
+    "should",
+    "than",
+    "that",
+    "the",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "was",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "why",
+    "will",
+    "with",
+    "would",
+    "you",
+    "your",
+}
+
+
+def _dummy_terms(text: str) -> list[str]:
+    terms = []
+    for term in re.findall(r"[A-Za-z][A-Za-z0-9'-]*", text.lower()):
+        if len(term) < 3 or term in DUMMY_STOPWORDS:
+            continue
+        terms.append(term)
+    return terms
+
+
+def _dummy_vector(text: str) -> list[float]:
+    vector = [0.0] * DUMMY_EMBEDDING_DIMENSIONS
+    for term in _dummy_terms(text):
+        digest = hashlib.md5(term.encode("utf-8")).digest()
+        index = int.from_bytes(digest[:4], "big") % DUMMY_EMBEDDING_DIMENSIONS
+        vector[index] += 1.0
+
+    length = math.sqrt(sum(value * value for value in vector))
+    if length == 0:
+        return vector
+    return [value / length for value in vector]
 
 
 class Embedder:
@@ -67,20 +140,7 @@ class Embedder:
 
     def encode(self, texts: Sequence[str]) -> List[List[float]]:
         if self.provider == "dummy":
-            # deterministic, small vectors based on md5 digest
-            import hashlib
-
-            out: List[List[float]] = []
-            for t in texts:
-                digest = hashlib.md5(t.encode("utf-8")).hexdigest()
-                vec: List[float] = []
-                # split digest into 8 chunks of 4 hex chars
-                for i in range(0, 32, 4):
-                    chunk = digest[i : i + 4]
-                    num = int(chunk, 16)
-                    vec.append(num / 65535.0)
-                out.append(vec)
-            return out
+            return [_dummy_vector(text) for text in texts]
 
         if self._local_model is not None:
             embeddings = self._local_model.encode(list(texts), show_progress_bar=False, convert_to_numpy=True)

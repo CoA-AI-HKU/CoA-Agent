@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/communication/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/communication/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/communication -->
 <!-- type: website -->
 
 # Communication - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

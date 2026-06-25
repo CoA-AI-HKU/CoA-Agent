@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safe-lifting/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safe-lifting/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/safe-lifting -->
 <!-- type: website -->
 
 # Safe Lifting - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

@@ -70,6 +70,50 @@ def _content_terms(text: str) -> set[str]:
     return terms
 
 
+def _normalized_words(text: str) -> str:
+    return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
+
+
+def _query_phrase(query: str) -> str:
+    return _normalized_words(query)
+
+
+def _document_relevance_score(query: str, document: Document) -> float:
+    query_terms = _content_terms(query)
+    document_terms = _content_terms(document.text)
+    source_text = _normalized_words(str(document.metadata.get("source", "")))
+    body_text = _normalized_words(document.text)
+    query_phrase = _query_phrase(query)
+
+    shared_terms = query_terms & document_terms
+    score = float(len(shared_terms) * 3)
+
+    if query_phrase:
+        if query_phrase in body_text:
+            score += 12.0
+        if query_phrase in source_text:
+            score += 18.0
+
+    if query_terms and all(term in source_text for term in query_terms):
+        score += 8.0
+
+    first_heading = ""
+    for line in document.text.splitlines():
+        if line.lstrip().startswith("#"):
+            first_heading = _normalized_words(line)
+            break
+    if query_phrase and query_phrase in first_heading:
+        score += 16.0
+    elif query_terms and all(term in first_heading for term in query_terms):
+        score += 6.0
+
+    distance = document.metadata.get("distance")
+    if isinstance(distance, (int, float)):
+        score -= float(distance) * 0.05
+
+    return score
+
+
 class RagAgent:
     def __init__(
         self,
@@ -120,14 +164,20 @@ class RagAgent:
         if self.vector_store is None:
             self.vector_store = get_default_vector_store()
         query_embedding = self.embedder.encode([query])[0]
-        search_results = self.vector_store.query(query, n_results=k, query_embedding=query_embedding)
+        candidate_count = max(k * 10, 25)
+        search_results = self.vector_store.query(query, n_results=candidate_count, query_embedding=query_embedding)
         documents = []
         for result in search_results:
             metadata = dict(result["metadata"])
             if "distance" in result:
                 metadata["distance"] = result["distance"]
             documents.append(Document(text=result["text"], metadata=metadata))
-        return self._filter_supported_documents(query, documents)
+        supported_documents = self._filter_supported_documents(query, documents)
+        return sorted(
+            supported_documents,
+            key=lambda document: _document_relevance_score(query, document),
+            reverse=True,
+        )[:k]
 
     def _filter_supported_documents(self, query: str, documents: List[Document]) -> List[Document]:
         query_terms = _content_terms(query)

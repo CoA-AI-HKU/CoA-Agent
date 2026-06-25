@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses -->
 <!-- type: website -->
 
 # Distressed Behaviour and Dementia Related Response - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

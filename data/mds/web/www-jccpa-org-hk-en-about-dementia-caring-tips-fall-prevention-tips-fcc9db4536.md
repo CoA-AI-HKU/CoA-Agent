@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/fall-prevention-tips/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/fall-prevention-tips/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/fall-prevention-tips -->
 <!-- type: website -->
 
 # Fall Prevention Tips - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

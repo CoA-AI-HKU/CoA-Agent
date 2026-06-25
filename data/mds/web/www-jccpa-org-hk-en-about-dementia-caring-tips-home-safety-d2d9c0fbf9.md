@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/home-safety/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/home-safety/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/home-safety -->
 <!-- type: website -->
 
 # Home Safety - Jockey Club Centre for Positive Ageing | Professional Support for Dementia

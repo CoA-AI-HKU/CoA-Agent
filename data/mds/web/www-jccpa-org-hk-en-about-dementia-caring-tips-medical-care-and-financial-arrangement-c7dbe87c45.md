@@ -1,5 +1,5 @@
 <!-- source: https://www.jccpa.org.hk/en/about-dementia/caring-tips/medical-care-and-financial-arrangement/ -->
-<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/medical-care-and-financial-arrangement/ -->
+<!-- requested_url: https://www.jccpa.org.hk/en/about-dementia/caring-tips/medical-care-and-financial-arrangement -->
 <!-- type: website -->
 
 # Medical, Care and Financial Arrangement - Jockey Club Centre for Positive Ageing | Professional Support for Dementia
