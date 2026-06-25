@@ -11,8 +11,32 @@ Example `~/.nanobot/config.json` fragment:
   "tools": {
     "mcpServers": {
       "dementia_rag": {
-        "command": "python",
+        "command": "python3",
         "args": ["-m", "src.dementia_rag_mcp_server"],
+        "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent",
+        "env": {
+          "CHROMA_DIR": ".chroma/ling_rag",
+          "CHROMA_COLLECTION": "ling_rag",
+          "EMBEDDER_PROVIDER": "auto",
+          "EMBEDDINGS_OFFLINE": "true"
+        }
+      }
+    }
+  }
+}
+```
+
+If your Nanobot config launches the server by absolute file path instead, this
+also works:
+
+```json
+{
+  "tools": {
+    "mcpServers": {
+      "dementia_rag": {
+        "command": "python3",
+        "args": ["/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent/src/dementia_rag_mcp_server.py"],
+        "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent",
         "env": {
           "CHROMA_DIR": ".chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",

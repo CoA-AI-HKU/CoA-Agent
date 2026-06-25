@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 from typing import Any
 
-from .dementia_rag import search_dementia_knowledge
+try:
+    from .dementia_rag import search_dementia_knowledge
+except ImportError:
+    project_root = Path(__file__).resolve().parents[1]
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+    from src.dementia_rag import search_dementia_knowledge
 
 
 def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
