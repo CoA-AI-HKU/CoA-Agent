@@ -106,9 +106,10 @@ def search_dementia_knowledge(question: str) -> dict[str, Any]:
     embedder_provider = os.getenv("EMBEDDER_PROVIDER", "auto")
     embedder_model = os.getenv("EMBEDDER_MODEL") or None
     offline_embeddings = os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}
-    top_k = int(os.getenv("RAG_TOP_K", "5"))
-    max_context_chars = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "3000"))
-    per_chunk_chars = int(os.getenv("RAG_PER_CHUNK_CHARS", "1000"))
+    top_k = int(os.getenv("RAG_TOP_K", "3"))
+    max_context_chars = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800"))
+    per_chunk_chars = int(os.getenv("RAG_PER_CHUNK_CHARS", "500"))
+    min_shared_query_terms = int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1"))
 
     vector_store = get_default_vector_store(
         persist_directory=persist_dir,
@@ -122,6 +123,7 @@ def search_dementia_knowledge(question: str) -> dict[str, Any]:
         top_k=top_k,
         max_context_chars=max_context_chars,
         per_chunk_chars=per_chunk_chars,
+        min_shared_query_terms=min_shared_query_terms,
     )
     retrieved_docs = agent.retrieve(question, k=top_k)
     return _format_search_response(

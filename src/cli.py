@@ -67,6 +67,7 @@ def build_agent(
     skip_index: bool = False,
     persist_dir: Path | str = ".chroma/ling_rag",
     force_reindex: bool = False,
+    min_shared_query_terms: int = 1,
 ) -> "RagAgent":
     # import RagAgent lazily to avoid heavy dependencies at import time
     from .rag_agent import RagAgent
@@ -78,6 +79,7 @@ def build_agent(
         embedder_model_name=embedder_model,
         offline_embeddings=offline_embeddings,
         vector_store=vector_store,
+        min_shared_query_terms=min_shared_query_terms,
     )
 
     if skip_index:
@@ -164,6 +166,7 @@ def main() -> None:
     parser.add_argument("--deepseek-key", default=os.getenv("DEEPSEEK_API_KEY"), help="DeepSeek API key")
     parser.add_argument("--deepseek-model", default=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), help="DeepSeek model name")
     parser.add_argument("--fallback-to-top-chunk", action="store_true", help="Return the top retrieved chunk instead of calling DeepSeek")
+    parser.add_argument("--min-shared-query-terms", type=int, default=int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")), help="Minimum meaningful query terms that must appear in a retrieved chunk")
     args = parser.parse_args()
 
     deepseek_url = args.deepseek_url
@@ -214,6 +217,7 @@ def main() -> None:
             skip_index=args.skip_index,
             persist_dir=args.persist_dir,
             force_reindex=force_reindex,
+            min_shared_query_terms=args.min_shared_query_terms,
         )
 
     agent = create_agent(force_reindex=args.force_reindex)

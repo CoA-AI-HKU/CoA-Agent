@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from src.chunker import chunk_document
+from src.chunker import chunk_document, chunk_text
 from src.document import Document
 from src.embedder import Embedder
 from src.pdf_ingest import convert_pdf_file
@@ -37,6 +37,17 @@ def test_chunk_document_creates_chunks() -> None:
     assert chunks[0].metadata["chunk_index"] == 1
 
 
+def test_chunk_text_uses_sentence_boundaries() -> None:
+    text = "First sentence is short. Second sentence should stay intact. Third sentence starts a new smaller chunk."
+    chunks = chunk_text(text, chunk_size=55, chunk_overlap=0)
+
+    assert chunks == [
+        "First sentence is short.",
+        "Second sentence should stay intact.",
+        "Third sentence starts a new smaller chunk.",
+    ]
+
+
 def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     documents = [Document(text="This is a sample document.", metadata={"source": "test.md"})]
     store = get_default_vector_store(persist_directory=tmp_path / "chroma_test", collection_name="test_collection")
@@ -48,7 +59,8 @@ def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     assert "sample document" in retrieved[0].text
 
     prompt = agent.build_prompt("What is this?", retrieved)
-    assert "Answer the question using the provided context" in prompt
+    assert "Answer the question using only the provided context" in prompt
+    assert "Keep the answer concise" in prompt
     assert "What is this?" in prompt
 
 

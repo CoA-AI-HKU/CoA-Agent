@@ -5,92 +5,100 @@ from typing import Iterable, List
 
 from .document import Document
 
-DEFAULT_CHUNK_SIZE = 1000
-DEFAULT_CHUNK_OVERLAP = 200
+DEFAULT_CHUNK_SIZE = 450
+DEFAULT_CHUNK_OVERLAP = 75
 
 
-def _split_paragraphs(text: str) -> List[str]:
+def _normalize_text(text: str) -> str:
     text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
-    paragraphs = [paragraph.strip() for paragraph in re.split(r"\n\s*\n", text) if paragraph.strip()]
-    return paragraphs
+    return re.sub(r"\s+", " ", text)
 
 
-def _split_long_paragraph(paragraph: str, max_size: int) -> List[str]:
-    if len(paragraph) <= max_size:
-        return [paragraph]
+def _split_sentences(text: str) -> List[str]:
+    normalized = _normalize_text(text)
+    if not normalized:
+        return []
 
-    sentences = re.split(r"(?<=[.!?])\s+", paragraph)
+    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    return [sentence.strip() for sentence in sentences if sentence.strip()]
+
+
+def _split_long_sentence(sentence: str, max_size: int) -> List[str]:
+    if len(sentence) <= max_size:
+        return [sentence]
+
+    words = sentence.split()
     chunks: List[str] = []
-    current: List[str] = []
-    current_length = 0
+    current: list[str] = []
 
-    for sentence in sentences:
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-
-        if current_length + len(sentence) + 1 > max_size and current:
-            chunks.append(" ".join(current).strip())
+    for word in words:
+        candidate = " ".join([*current, word])
+        if len(candidate) > max_size and current:
+            chunks.append(" ".join(current))
             current = []
-            current_length = 0
 
-        if len(sentence) > max_size:
-            for i in range(0, len(sentence), max_size):
-                chunks.append(sentence[i : i + max_size].strip())
+        if len(word) > max_size:
+            chunks.extend(word[i : i + max_size] for i in range(0, len(word), max_size))
             continue
 
-        current.append(sentence)
-        current_length += len(sentence) + 1
+        current.append(word)
 
     if current:
-        chunks.append(" ".join(current).strip())
+        chunks.append(" ".join(current))
 
     return chunks
 
 
-def _retained_overlap(paragraphs: List[str], overlap: int) -> List[str]:
-    if overlap <= 0 or not paragraphs:
+def _retained_overlap(sentences: List[str], overlap: int) -> List[str]:
+    if overlap <= 0 or not sentences:
         return []
 
     retained: List[str] = []
     total = 0
-    for paragraph in reversed(paragraphs):
-        paragraph_length = len(paragraph) + 1
-        if total + paragraph_length > overlap and retained:
+    for sentence in reversed(sentences):
+        sentence_length = len(sentence) + 1
+        if total + sentence_length > overlap and retained:
             break
-        retained.insert(0, paragraph)
-        total += paragraph_length
+        retained.insert(0, sentence)
+        total += sentence_length
 
     return retained
 
 
 def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[str]:
-    paragraphs = _split_paragraphs(text)
+    sentences = _split_sentences(text)
     chunks: List[str] = []
-    current_paragraphs: List[str] = []
+    current_sentences: List[str] = []
     current_length = 0
 
-    for paragraph in paragraphs:
-        if len(paragraph) > chunk_size:
-            long_paragraph_chunks = _split_long_paragraph(paragraph, chunk_size)
-            for chunk in long_paragraph_chunks:
-                if current_paragraphs:
-                    chunks.append(" ".join(current_paragraphs).strip())
-                    current_paragraphs = _retained_overlap(current_paragraphs, chunk_overlap)
-                    current_length = len(" ".join(current_paragraphs))
-                chunks.append(chunk)
-            continue
+    for sentence in sentences:
+        sentence_parts = _split_long_sentence(sentence, chunk_size)
+        for sentence_part in sentence_parts:
+            if current_length + len(sentence_part) + 1 > chunk_size and current_sentences:
+                chunks.append(" ".join(current_sentences).strip())
+                current_sentences = _retained_overlap(current_sentences, chunk_overlap)
+                current_length = len(" ".join(current_sentences))
 
-        if current_length + len(paragraph) + 1 > chunk_size and current_paragraphs:
-            chunks.append(" ".join(current_paragraphs).strip())
-            current_paragraphs = _retained_overlap(current_paragraphs, chunk_overlap)
-            current_length = len(" ".join(current_paragraphs))
+            if len(sentence_part) > chunk_size:
+                if current_sentences:
+                    chunks.append(" ".join(current_sentences).strip())
+                    current_sentences = []
+                    current_length = 0
+                chunks.append(sentence_part)
+                continue
 
-        current_paragraphs.append(paragraph)
-        current_length = len(" ".join(current_paragraphs))
+            current_sentences.append(sentence_part)
+            current_length = len(" ".join(current_sentences))
 
-    if current_paragraphs:
-        chunks.append(" ".join(current_paragraphs).strip())
+            if current_length >= chunk_size:
+                chunks.append(" ".join(current_sentences).strip())
+                current_sentences = _retained_overlap(current_sentences, chunk_overlap)
+                current_length = len(" ".join(current_sentences))
+
+    if current_sentences:
+        final_chunk = " ".join(current_sentences).strip()
+        if not chunks or chunks[-1] != final_chunk:
+            chunks.append(final_chunk)
 
     return chunks
 

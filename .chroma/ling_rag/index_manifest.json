@@ -1,6 +1,6 @@
 {
-  "chunk_overlap": 200,
-  "chunk_size": 1000,
+  "chunk_overlap": 75,
+  "chunk_size": 450,
   "documents": [
     {
       "chars": 24328,

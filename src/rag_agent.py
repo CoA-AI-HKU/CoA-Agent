@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import List, Optional
 
@@ -7,6 +8,66 @@ from .chunker import chunk_documents
 from .document import Document
 from .embedder import Embedder
 from .vector_store import get_default_vector_store
+
+
+UNKNOWN_ANSWER = "I don't know."
+
+STOPWORDS = {
+    "about",
+    "after",
+    "again",
+    "also",
+    "and",
+    "any",
+    "are",
+    "ask",
+    "can",
+    "could",
+    "does",
+    "for",
+    "from",
+    "has",
+    "have",
+    "how",
+    "into",
+    "its",
+    "may",
+    "more",
+    "not",
+    "our",
+    "out",
+    "should",
+    "tell",
+    "than",
+    "that",
+    "the",
+    "their",
+    "there",
+    "these",
+    "they",
+    "this",
+    "was",
+    "what",
+    "when",
+    "where",
+    "which",
+    "who",
+    "why",
+    "will",
+    "with",
+    "would",
+    "you",
+    "your",
+}
+
+
+def _content_terms(text: str) -> set[str]:
+    terms = set()
+    for term in re.findall(r"[A-Za-z][A-Za-z0-9'-]*", text.lower()):
+        if len(term) < 3 or term in STOPWORDS:
+            continue
+        terms.add(term)
+    return terms
 
 
 class RagAgent:
@@ -17,11 +78,12 @@ class RagAgent:
         embedder_model_name: Optional[str] = None,
         embedder_provider: str = "auto",
         offline_embeddings: bool = False,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        top_k: int = 5,
-        max_context_chars: int = 3000,
-        per_chunk_chars: int = 1000,
+        chunk_size: int = 450,
+        chunk_overlap: int = 75,
+        top_k: int = 3,
+        max_context_chars: int = 1800,
+        per_chunk_chars: int = 500,
+        min_shared_query_terms: int = 1,
     ) -> None:
         self._embedder = embedder
         self.embedder_model_name = embedder_model_name
@@ -33,6 +95,7 @@ class RagAgent:
         self.top_k = top_k
         self.max_context_chars = max_context_chars
         self.per_chunk_chars = per_chunk_chars
+        self.min_shared_query_terms = min_shared_query_terms
 
     @property
     def embedder(self) -> Embedder:
@@ -58,7 +121,29 @@ class RagAgent:
             self.vector_store = get_default_vector_store()
         query_embedding = self.embedder.encode([query])[0]
         search_results = self.vector_store.query(query, n_results=k, query_embedding=query_embedding)
-        return [Document(text=result['text'], metadata=result['metadata']) for result in search_results]
+        documents = []
+        for result in search_results:
+            metadata = dict(result["metadata"])
+            if "distance" in result:
+                metadata["distance"] = result["distance"]
+            documents.append(Document(text=result["text"], metadata=metadata))
+        return self._filter_supported_documents(query, documents)
+
+    def _filter_supported_documents(self, query: str, documents: List[Document]) -> List[Document]:
+        query_terms = _content_terms(query)
+        if not query_terms:
+            return []
+
+        required_matches = min(max(self.min_shared_query_terms, 1), len(query_terms))
+        supported = []
+        for document in documents:
+            document_terms = _content_terms(document.text)
+            shared_terms = query_terms & document_terms
+            if len(shared_terms) >= required_matches:
+                metadata = dict(document.metadata)
+                metadata["matched_query_terms"] = sorted(shared_terms)
+                supported.append(Document(text=document.text, metadata=metadata))
+        return supported
 
     def build_prompt(self, query: str, retrieved_docs: List[Document]) -> str:
         parts: List[str] = []
@@ -78,10 +163,10 @@ class RagAgent:
 
         return (
             "You are a helpful assistant.\n"
-            "Answer the question using the provided context.\n"
-            "If the provided context supports an answer, give a direct answer in your own words.\n"
+            "Answer the question using only the provided context.\n"
+            "Keep the answer concise, specific, and well-defined: use 1-3 short paragraphs or bullets.\n"
             "Do not invent information from outside the context.\n"
-            "If the context does not contain enough information to answer, say \"I don't know.\"\n\n"
+            "If the context is only loosely related or does not explicitly answer the question, say \"I don't know.\"\n\n"
             "Context:\n"
             f"{context}\n\n"
             "Question:\n"
@@ -92,12 +177,12 @@ class RagAgent:
     def answer(self, query: str, deepseek_callable, k: Optional[int] = None) -> str:
         retrieved = self.retrieve(query, k=k)
         if not retrieved:
-            return "No relevant context was retrieved for that question."
+            return UNKNOWN_ANSWER
         prompt = self.build_prompt(query, retrieved)
         return deepseek_callable(prompt)
 
     def answer_with_top_chunk(self, query: str, k: Optional[int] = None) -> str:
         retrieved = self.retrieve(query, k=k)
         if not retrieved:
-            return "No relevant context was retrieved."
+            return UNKNOWN_ANSWER
         return retrieved[0].text
