@@ -63,6 +63,9 @@ def _dummy_terms(text: str) -> list[str]:
         if len(term) < 3 or term in DUMMY_STOPWORDS:
             continue
         terms.append(term)
+    cjk_chars = re.findall(r"[\u3400-\u9fff]", text)
+    terms.extend("".join(cjk_chars[index : index + 2]) for index in range(len(cjk_chars) - 1))
+    terms.extend("".join(cjk_chars[index : index + 3]) for index in range(len(cjk_chars) - 2))
     return terms
 
 

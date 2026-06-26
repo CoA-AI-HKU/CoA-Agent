@@ -1,4 +1,4 @@
-# 最新動向 - 賽馬會耆智園 | 一站式腦退化症服務中心
+﻿# 最新動向 - 賽馬會耆智園 | 一站式腦退化症服務中心
 
 耆智園經常舉辦各類活動，讓大眾能更深入認識腦退化症，歡迎報名參與各項活動。
 
@@ -40,8 +40,6 @@
 
 20262025202420232022202120202019
 
-[01/05/2026](https://www.jccpa.org.hk/centre-news/2026-05/)
-
 2026-05](https://www.jccpa.org.hk/centre-news/2026-05/)
 
 - 媒體報道
@@ -52,8 +50,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2026-05/)
-
-[01/04/2026](https://www.jccpa.org.hk/centre-news/2026-04/)
 
 2026-04](https://www.jccpa.org.hk/centre-news/2026-04/)
 
@@ -66,8 +62,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2026-04/)
 
-[01/03/2026](https://www.jccpa.org.hk/centre-news/2026-03/)
-
 2026-03](https://www.jccpa.org.hk/centre-news/2026-03/)
 
 - 《金多寶》試映及分享會
@@ -78,8 +72,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2026-03/)
-
-[01/02/2026](https://www.jccpa.org.hk/centre-news/2026-02/)
 
 2026-02](https://www.jccpa.org.hk/centre-news/2026-02/)
 
@@ -93,8 +85,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2026-02/)
 
-[01/01/2026](https://www.jccpa.org.hk/centre-news/2026-01/)
-
 2026-01](https://www.jccpa.org.hk/centre-news/2026-01/)
 
 - 媒體報導
@@ -105,8 +95,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2026-01/)
 
-[01/12/2025](https://www.jccpa.org.hk/centre-news/2025-12/)
-
 2025-12](https://www.jccpa.org.hk/centre-news/2025-12/)
 
 - 秋季大旅行
@@ -115,8 +103,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2025-12/)
-
-[01/11/2025](https://www.jccpa.org.hk/centre-news/2025-11/)
 
 2025-11](https://www.jccpa.org.hk/centre-news/2025-11/)
 
@@ -130,8 +116,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-11/)
 
-[01/10/2025](https://www.jccpa.org.hk/centre-news/2025-10/)
-
 2025-10](https://www.jccpa.org.hk/centre-news/2025-10/)
 
 - 媒體報導
@@ -142,8 +126,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2025-10/)
-
-[01/09/2025](https://www.jccpa.org.hk/centre-news/2025-09/)
 
 2025-09](https://www.jccpa.org.hk/centre-news/2025-09/)
 
@@ -157,8 +139,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-09/)
 
-[01/08/2025](https://www.jccpa.org.hk/centre-news/2025-08/)
-
 2025-08](https://www.jccpa.org.hk/centre-news/2025-08/)
 
 - 日間中心活動 – 友伴犬服務
@@ -168,8 +148,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2025-08/)
-
-[01/07/2025](https://www.jccpa.org.hk/centre-news/2025-07/)
 
 2025-07](https://www.jccpa.org.hk/centre-news/2025-07/)
 
@@ -181,8 +159,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-07/)
 
-[01/06/2025](https://www.jccpa.org.hk/centre-news/2025-06/)
-
 2025-06](https://www.jccpa.org.hk/centre-news/2025-06/)
 
 - 媒體報導
@@ -191,8 +167,6 @@
 - 支援腦退化症實務高等文憑課程現正招生
 
 ](https://www.jccpa.org.hk/centre-news/2025-06/)
-
-[01/05/2025](https://www.jccpa.org.hk/centre-news/2025-05/)
 
 2025-05](https://www.jccpa.org.hk/centre-news/2025-05/)
 
@@ -206,8 +180,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-05/)
 
-[01/04/2025](https://www.jccpa.org.hk/centre-news/2025-04/)
-
 2025-04](https://www.jccpa.org.hk/centre-news/2025-04/)
 
 - 媒體報導
@@ -217,8 +189,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2025-04/)
-
-[01/03/2025](https://www.jccpa.org.hk/centre-news/2025-03/)
 
 2025-03](https://www.jccpa.org.hk/centre-news/2025-03/)
 
@@ -230,8 +200,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-03/)
 
-[01/02/2025](https://www.jccpa.org.hk/centre-news/2025-02/)
-
 2025-02](https://www.jccpa.org.hk/centre-news/2025-02/)
 
 - 腦退化症照顧技巧講座
@@ -241,8 +209,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2025-02/)
 
-[01/01/2025](https://www.jccpa.org.hk/centre-news/2025-01/)
-
 2025-01](https://www.jccpa.org.hk/centre-news/2025-01/)
 
 - 媒體報道
@@ -251,8 +217,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2025-01/)
-
-[01/12/2024](https://www.jccpa.org.hk/centre-news/2024-12/)
 
 2024-12](https://www.jccpa.org.hk/centre-news/2024-12/)
 
@@ -268,8 +232,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-12/)
 
-[01/11/2024](https://www.jccpa.org.hk/centre-news/2024-11/)
-
 2024-11](https://www.jccpa.org.hk/centre-news/2024-11/)
 
 - 媒體報道
@@ -282,8 +244,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-11/)
 
-[01/10/2024](https://www.jccpa.org.hk/centre-news/2024-10/)
-
 2024-10](https://www.jccpa.org.hk/centre-news/2024-10/)
 
 - 媒體報道
@@ -294,8 +254,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-10/)
 
-[01/09/2024](https://www.jccpa.org.hk/centre-news/2024-09/)
-
 2024-09](https://www.jccpa.org.hk/centre-news/2024-09/)
 
 - 媒體報道
@@ -305,8 +263,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-09/)
 
-[01/08/2024](https://www.jccpa.org.hk/centre-news/2024-08/)
-
 2024-08](https://www.jccpa.org.hk/centre-news/2024-08/)
 
 - 媒體報道
@@ -315,8 +271,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-08/)
 
-[01/07/2024](https://www.jccpa.org.hk/centre-news/2024-07/)
-
 2024-07](https://www.jccpa.org.hk/centre-news/2024-07/)
 
 - 媒體報道
@@ -324,8 +278,6 @@
 - 本月參觀團體
 
 ](https://www.jccpa.org.hk/centre-news/2024-07/)
-
-[01/06/2024](https://www.jccpa.org.hk/centre-news/2024-06/)
 
 2024-06](https://www.jccpa.org.hk/centre-news/2024-06/)
 
@@ -340,8 +292,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-06/)
 
-[01/05/2024](https://www.jccpa.org.hk/centre-news/2024-05/)
-
 2024-05](https://www.jccpa.org.hk/centre-news/2024-05/)
 
 - 「腦退化症照顧知多點」講座
@@ -351,8 +301,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-05/)
 
-[01/04/2024](https://www.jccpa.org.hk/centre-news/2024-04/)
-
 2024-04](https://www.jccpa.org.hk/centre-news/2024-04/)
 
 - 媒體報導
@@ -360,8 +308,6 @@
 - 支援腦退化症實務高等文憑課程現正招生
 
 ](https://www.jccpa.org.hk/centre-news/2024-04/)
-
-[01/03/2024](https://www.jccpa.org.hk/centre-news/2024-03/)
 
 2024-03](https://www.jccpa.org.hk/centre-news/2024-03/)
 
@@ -372,8 +318,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-03/)
 
-[01/02/2024](https://www.jccpa.org.hk/centre-news/2024-02/)
-
 2024-02](https://www.jccpa.org.hk/centre-news/2024-02/)
 
 - 媒體報導
@@ -381,8 +325,6 @@
 - 金龍獻瑞賀新春
 
 ](https://www.jccpa.org.hk/centre-news/2024-02/)
-
-[01/01/2024](https://www.jccpa.org.hk/centre-news/2024-01/)
 
 2024-01](https://www.jccpa.org.hk/centre-news/2024-01/)
 
@@ -397,8 +339,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2024-01/)
 
-[01/12/2023](https://www.jccpa.org.hk/centre-news/2023-12/)
-
 2023-12](https://www.jccpa.org.hk/centre-news/2023-12/)
 
 - 媒體報導
@@ -406,8 +346,6 @@
 - 本月團體參觀
 
 ](https://www.jccpa.org.hk/centre-news/2023-12/)
-
-[01/11/2023](https://www.jccpa.org.hk/centre-news/2023-11/)
 
 2023-11](https://www.jccpa.org.hk/centre-news/2023-11/)
 
@@ -419,8 +357,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-11/)
 
-[01/10/2023](https://www.jccpa.org.hk/centre-news/2023-10/)
-
 2023-10](https://www.jccpa.org.hk/centre-news/2023-10/)
 
 - 媒體報導
@@ -428,15 +364,11 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-10/)
 
-[01/09/2023](https://www.jccpa.org.hk/centre-news/2023-09/)
-
 2023-09](https://www.jccpa.org.hk/centre-news/2023-09/)
 
 - 「腦退化症照顧知多點」講座
 
 ](https://www.jccpa.org.hk/centre-news/2023-09/)
-
-[01/08/2023](https://www.jccpa.org.hk/centre-news/2023-08/)
 
 2023-08](https://www.jccpa.org.hk/centre-news/2023-08/)
 
@@ -446,16 +378,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-08/)
 
-[01/07/2023](https://www.jccpa.org.hk/centre-news/2023-07/)
-
 2023-07](https://www.jccpa.org.hk/centre-news/2023-07/)
 
 - 「腦退化症照顧知多點」講座
 - 「賽馬會與耆同行腦退化症支援計劃」在「The 11th Asia Pacific Eldercare Innovation Awards 2023」榮獲殊榮
 
 ](https://www.jccpa.org.hk/centre-news/2023-07/)
-
-[01/06/2023](https://www.jccpa.org.hk/centre-news/2023-06/)
 
 2023-06](https://www.jccpa.org.hk/centre-news/2023-06/)
 
@@ -465,16 +393,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-06/)
 
-[01/05/2023](https://www.jccpa.org.hk/centre-news/2023-05/)
-
 2023-05](https://www.jccpa.org.hk/centre-news/2023-05/)
 
 - 媒體報導
 - 「腦退化症照顧知多點」講座
 
 ](https://www.jccpa.org.hk/centre-news/2023-05/)
-
-[01/04/2023](https://www.jccpa.org.hk/centre-news/2023-04/)
 
 2023-04](https://www.jccpa.org.hk/centre-news/2023-04/)
 
@@ -484,16 +408,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-04/)
 
-[01/03/2023](https://www.jccpa.org.hk/centre-news/2023-03/)
-
 2023-03](https://www.jccpa.org.hk/centre-news/2023-03/)
 
 - 媒體報導
 - 賽馬會早發性腦退化症支援計劃
 
 ](https://www.jccpa.org.hk/centre-news/2023-03/)
-
-[01/02/2023](https://www.jccpa.org.hk/centre-news/2023-02/)
 
 2023-02](https://www.jccpa.org.hk/centre-news/2023-02/)
 
@@ -506,8 +426,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-02/)
 
-[01/01/2023](https://www.jccpa.org.hk/centre-news/2023-01/)
-
 2023-01](https://www.jccpa.org.hk/centre-news/2023-01/)
 
 - 玉兔迎春賀新年
@@ -516,16 +434,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2023-01/)
 
-[01/12/2022](https://www.jccpa.org.hk/centre-news/2022-12/)
-
 2022-12](https://www.jccpa.org.hk/centre-news/2022-12/)
 
 - 賽馬會「友里蹤跡」社區計劃
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2022-12/)
-
-[01/11/2022](https://www.jccpa.org.hk/centre-news/2022-11/)
 
 2022-11](https://www.jccpa.org.hk/centre-news/2022-11/)
 
@@ -537,8 +451,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-11/)
 
-[01/10/2022](https://www.jccpa.org.hk/centre-news/2022-10/)
-
 2022-10](https://www.jccpa.org.hk/centre-news/2022-10/)
 
 - 媒體報導
@@ -547,8 +459,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-10/)
 
-[01/09/2022](https://www.jccpa.org.hk/centre-news/2022-09/)
-
 2022-09](https://www.jccpa.org.hk/centre-news/2022-09/)
 
 - 媒體報導
@@ -556,8 +466,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2022-09/)
-
-[01/08/2022](https://www.jccpa.org.hk/centre-news/2022-08/)
 
 2022-08](https://www.jccpa.org.hk/centre-news/2022-08/)
 
@@ -568,8 +476,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-08/)
 
-[01/07/2022](https://www.jccpa.org.hk/centre-news/2022-07/)
-
 2022-07](https://www.jccpa.org.hk/centre-news/2022-07/)
 
 - 媒體報導
@@ -577,8 +483,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2022-07/)
-
-[01/06/2022](https://www.jccpa.org.hk/centre-news/2022-06/)
 
 2022-06](https://www.jccpa.org.hk/centre-news/2022-06/)
 
@@ -588,8 +492,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-06/)
 
-[01/05/2022](https://www.jccpa.org.hk/centre-news/2022-05/)
-
 2022-05](https://www.jccpa.org.hk/centre-news/2022-05/)
 
 - 賽馬會「友里蹤跡」社區計劃
@@ -597,16 +499,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-05/)
 
-[01/04/2022](https://www.jccpa.org.hk/centre-news/2022-04/)
-
 2022-04](https://www.jccpa.org.hk/centre-news/2022-04/)
 
 - 賽馬會「友里蹤跡」社區計劃
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2022-04/)
-
-[01/03/2022](https://www.jccpa.org.hk/centre-news/2022-03/)
 
 2022-03](https://www.jccpa.org.hk/centre-news/2022-03/)
 
@@ -616,8 +514,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-03/)
 
-[01/02/2022](https://www.jccpa.org.hk/centre-news/2022-02/)
-
 2022-02](https://www.jccpa.org.hk/centre-news/2022-02/)
 
 - 媒體報導
@@ -626,8 +522,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2022-02/)
-
-[01/01/2022](https://www.jccpa.org.hk/centre-news/2022-01/)
 
 2022-01](https://www.jccpa.org.hk/centre-news/2022-01/)
 
@@ -639,8 +533,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2022-01/)
 
-[01/12/2021](https://www.jccpa.org.hk/centre-news/2021-12/)
-
 2021-12](https://www.jccpa.org.hk/centre-news/2021-12/)
 
 - 賽馬會「與耆同行」腦退化症支援計劃
@@ -649,8 +541,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2021-12/)
-
-[01/11/2021](https://www.jccpa.org.hk/centre-news/2021-11/)
 
 2021-11](https://www.jccpa.org.hk/centre-news/2021-11/)
 
@@ -661,8 +551,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-11/)
 
-[01/10/2021](https://www.jccpa.org.hk/centre-news/2021-10/)
-
 2021-10](https://www.jccpa.org.hk/centre-news/2021-10/)
 
 - 賽馬會「友里蹤跡」社區計劃
@@ -670,8 +558,6 @@
 - 1+2腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2021-10/)
-
-[01/09/2021](https://www.jccpa.org.hk/centre-news/2021-09/)
 
 2021-09](https://www.jccpa.org.hk/centre-news/2021-09/)
 
@@ -684,8 +570,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-09/)
 
-[01/08/2021](https://www.jccpa.org.hk/centre-news/2021-08/)
-
 2021-08](https://www.jccpa.org.hk/centre-news/2021-08/)
 
 - 園友活動
@@ -694,8 +578,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2021-08/)
-
-[01/07/2021](https://www.jccpa.org.hk/centre-news/2021-07/)
 
 2021-07](https://www.jccpa.org.hk/centre-news/2021-07/)
 
@@ -706,8 +588,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-07/)
 
-[01/06/2021](https://www.jccpa.org.hk/centre-news/2021-06/)
-
 2021-06](https://www.jccpa.org.hk/centre-news/2021-06/)
 
 - 耆智園21週年
@@ -716,8 +596,6 @@
 - 1+2 腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2021-06/)
-
-[01/05/2021](https://www.jccpa.org.hk/centre-news/2021-05/)
 
 2021-05](https://www.jccpa.org.hk/centre-news/2021-05/)
 
@@ -728,8 +606,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-05/)
 
-[01/04/2021](https://www.jccpa.org.hk/centre-news/2021-04/)
-
 2021-04](https://www.jccpa.org.hk/centre-news/2021-04/)
 
 - 園友活動
@@ -739,16 +615,12 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-04/)
 
-[01/03/2021](https://www.jccpa.org.hk/centre-news/2021-03/)
-
 2021-03](https://www.jccpa.org.hk/centre-news/2021-03/)
 
 - 賽馬會「與耆同行」腦退化症支援計劃
 - 1+2腦退化症照顧技巧講座
 
 ](https://www.jccpa.org.hk/centre-news/2021-03/)
-
-[01/02/2021](https://www.jccpa.org.hk/centre-news/2021-02/)
 
 2021-02](https://www.jccpa.org.hk/centre-news/2021-02/)
 
@@ -758,8 +630,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2021-02/)
 
-[01/01/2021](https://www.jccpa.org.hk/centre-news/2021-01/)
-
 2021-01](https://www.jccpa.org.hk/centre-news/2021-01/)
 
 - 香港國際牙科博覽暨研討會
@@ -768,8 +638,6 @@
 - 賽馬會「與耆同行」腦退化症支援計劃
 
 ](https://www.jccpa.org.hk/centre-news/2021-01/)
-
-[01/12/2020](https://www.jccpa.org.hk/centre-news/2020-12/)
 
 2020-12](https://www.jccpa.org.hk/centre-news/2020-12/)
 
@@ -783,8 +651,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-12/)
 
-[01/11/2020](https://www.jccpa.org.hk/centre-news/2020-11/)
-
 2020-11](https://www.jccpa.org.hk/centre-news/2020-11/)
 
 - 媒體報導
@@ -796,8 +662,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-11/)
 
-[01/10/2020](https://www.jccpa.org.hk/centre-news/2020-10/)
-
 2020-10](https://www.jccpa.org.hk/centre-news/2020-10/)
 
 - 媒體報導
@@ -807,8 +671,6 @@
 - 好好地老電子書
 
 ](https://www.jccpa.org.hk/centre-news/2020-10/)
-
-[01/09/2020](https://www.jccpa.org.hk/centre-news/2020-09/)
 
 2020-09](https://www.jccpa.org.hk/centre-news/2020-09/)
 
@@ -821,8 +683,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-09/)
 
-[01/08/2020](https://www.jccpa.org.hk/centre-news/2020-08/)
-
 2020-08](https://www.jccpa.org.hk/centre-news/2020-08/)
 
 - 友里蹤跡：Facebook直播講座
@@ -831,8 +691,6 @@
 - 腦退化症照顧技巧速成班
 
 ](https://www.jccpa.org.hk/centre-news/2020-08/)
-
-[01/07/2020](https://www.jccpa.org.hk/centre-news/2020-07/)
 
 2020-07](https://www.jccpa.org.hk/centre-news/2020-07/)
 
@@ -845,8 +703,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-07/)
 
-[01/06/2020](https://www.jccpa.org.hk/centre-news/2020-06/)
-
 2020-06](https://www.jccpa.org.hk/centre-news/2020-06/)
 
 - 媒體報導
@@ -858,8 +714,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-06/)
 
-[01/05/2020](https://www.jccpa.org.hk/centre-news/2020-05/)
-
 2020-05](https://www.jccpa.org.hk/centre-news/2020-05/)
 
 - 園友活動 – 日本和諧粉彩工作坊
@@ -870,8 +724,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-05/)
 
-[01/04/2020](https://www.jccpa.org.hk/centre-news/2020-04/)
-
 2020-04](https://www.jccpa.org.hk/centre-news/2020-04/)
 
 - 季度生日會
@@ -879,8 +731,6 @@
 - 賽馬會「與耆同行」腦退化症支援計劃
 
 ](https://www.jccpa.org.hk/centre-news/2020-04/)
-
-[01/03/2020](https://www.jccpa.org.hk/centre-news/2020-03/)
 
 2020-03](https://www.jccpa.org.hk/centre-news/2020-03/)
 
@@ -890,8 +740,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-03/)
 
-[01/02/2020](https://www.jccpa.org.hk/centre-news/2020-02/)
-
 2020-02](https://www.jccpa.org.hk/centre-news/2020-02/)
 
 - 「以耆為本」腦退化症照顧培訓課程
@@ -900,8 +748,6 @@
 - 邀請訓練服務
 
 ](https://www.jccpa.org.hk/centre-news/2020-02/)
-
-[01/01/2020](https://www.jccpa.org.hk/centre-news/2020-01/)
 
 2020-01](https://www.jccpa.org.hk/centre-news/2020-01/)
 
@@ -917,8 +763,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2020-01/)
 
-[01/12/2019](https://www.jccpa.org.hk/centre-news/2019-12/)
-
 2019-12](https://www.jccpa.org.hk/centre-news/2019-12/)
 
 - 媒體報道
@@ -931,8 +775,6 @@
 - 本月參觀的團體
 
 ](https://www.jccpa.org.hk/centre-news/2019-12/)
-
-[01/11/2019](https://www.jccpa.org.hk/centre-news/2019-11/)
 
 2019-11](https://www.jccpa.org.hk/centre-news/2019-11/)
 
@@ -948,8 +790,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2019-11/)
 
-[01/10/2019](https://www.jccpa.org.hk/centre-news/2019-10/)
-
 2019-10](https://www.jccpa.org.hk/centre-news/2019-10/)
 
 - 照顧認知障礙症長者訓練課程
@@ -959,8 +799,6 @@
 - 本月參觀的團體
 
 ](https://www.jccpa.org.hk/centre-news/2019-10/)
-
-[01/09/2019](https://www.jccpa.org.hk/centre-news/2019-09/)
 
 2019-09](https://www.jccpa.org.hk/centre-news/2019-09/)
 
@@ -972,8 +810,6 @@
 - 本月參觀的團體
 
 ](https://www.jccpa.org.hk/centre-news/2019-09/)
-
-[01/08/2019](https://www.jccpa.org.hk/centre-news/2019-08/)
 
 2019-08](https://www.jccpa.org.hk/centre-news/2019-08/)
 
@@ -987,8 +823,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2019-08/)
 
-[01/07/2019](https://www.jccpa.org.hk/centre-news/2019-07/)
-
 2019-07](https://www.jccpa.org.hk/centre-news/2019-07/)
 
 - 媒體報道
@@ -1001,8 +835,6 @@
 - 本月參觀的團體
 
 ](https://www.jccpa.org.hk/centre-news/2019-07/)
-
-[01/06/2019](https://www.jccpa.org.hk/centre-news/2019-06/)
 
 2019-06](https://www.jccpa.org.hk/centre-news/2019-06/)
 
@@ -1019,8 +851,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2019-06/)
 
-[01/05/2019](https://www.jccpa.org.hk/centre-news/2019-05/)
-
 2019-05](https://www.jccpa.org.hk/centre-news/2019-05/)
 
 - 媒體報道
@@ -1033,8 +863,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2019-05/)
 
-[01/04/2019](https://www.jccpa.org.hk/centre-news/2019-04/)
-
 2019-04](https://www.jccpa.org.hk/centre-news/2019-04/)
 
 - 媒體報道
@@ -1043,8 +871,6 @@
 - 邀約訓練服務
 
 ](https://www.jccpa.org.hk/centre-news/2019-04/)
-
-[01/03/2019](https://www.jccpa.org.hk/centre-news/2019-03/)
 
 2019-03](https://www.jccpa.org.hk/centre-news/2019-03/)
 
@@ -1058,8 +884,6 @@
 
 ](https://www.jccpa.org.hk/centre-news/2019-03/)
 
-[01/02/2019](https://www.jccpa.org.hk/centre-news/2019-02/)
-
 2019-02](https://www.jccpa.org.hk/centre-news/2019-02/)
 
 - 媒體報道
@@ -1071,8 +895,6 @@
 - 本月參觀的專家及團體
 
 ](https://www.jccpa.org.hk/centre-news/2019-02/)
-
-[01/01/2019](https://www.jccpa.org.hk/centre-news/2019-01/)
 
 2019-01](https://www.jccpa.org.hk/centre-news/2019-01/)
 
@@ -1087,82 +909,21 @@
 
 腦退化症風險因素評估
 
-[了解更多](https://dementia.org.hk/)
-
 認識耆智園
-
-- [認識耆智園](https://www.jccpa.org.hk/about-us/)
-- [發展里程事](https://www.jccpa.org.hk/about-us/#timeline)
-- [專業團隊](https://www.jccpa.org.hk/about-us/team/)
-- [架構圖](https://www.jccpa.org.hk/about-us/organisation-chart/)
-- [親善大使](https://www.jccpa.org.hk/about-us/ambassadors/)
 
 認識腦退化症
 
-- [認識腦退化症](https://www.jccpa.org.hk/about-dementia/)
-- [腦退化症知識](https://www.jccpa.org.hk/about-dementia/what-is-dementia/)
-- [實用照顧錦囊](https://www.jccpa.org.hk/about-dementia/caring-tips/)
-- [01. 照顧者貼士](https://www.jccpa.org.hk/about-dementia/caring-tips/tips-for-caregivers/)
-- [02. 了解腦退化症人士](https://www.jccpa.org.hk/about-dementia/caring-tips/understanding-people-with-dementia/)
-- [03. 溝通方式](https://www.jccpa.org.hk/about-dementia/caring-tips/communication/)
-- [04. 家居安全​](https://www.jccpa.org.hk/about-dementia/caring-tips/home-safety/)
-- [05. 進食及吞嚥](https://www.jccpa.org.hk/about-dementia/caring-tips/eating-and-swallowing/)
-- [06. 飲食與營養](https://www.jccpa.org.hk/about-dementia/caring-tips/food-and-nutrition/)
-- [07. 口腔護理](https://www.jccpa.org.hk/about-dementia/caring-tips/oral-care/)
-- [08. 預防走失](https://www.jccpa.org.hk/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
-- [09. 預防跌倒](https://www.jccpa.org.hk/about-dementia/caring-tips/fall-prevention-tips/)
-- [10. 預防失禁](https://www.jccpa.org.hk/about-dementia/caring-tips/incontinence-prevention-tips/)
-- [11. 受壓下的行為表現](https://www.jccpa.org.hk/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
-- [12. 照顧者自身的安全](https://www.jccpa.org.hk/about-dementia/caring-tips/safety-for-caregivers/)
-- [13. 扶抱技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/safe-lifting/)
-- [14. 輪椅安全使用技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/wheelchair-safety-tips/)
-- [15. 醫療、護理及財務安排](https://www.jccpa.org.hk/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
-- [16. 藥物治療](https://www.jccpa.org.hk/about-dementia/caring-tips/dementia-medications/)
-- [家傭溝通](https://www.jccpa.org.hk/about-dementia/tips-for-domestic-helpers/)
-- [常見問題](https://www.jccpa.org.hk/about-dementia/faq/)
-- [護腦貼士](https://www.jccpa.org.hk/about-dementia/brain-health-tips/)
-- [腦退化初步快速測試](https://www.jccpa.org.hk/about-dementia/dementia-screening-test/)
-- [尋找合適服務](https://www.jccpa.org.hk/about-dementia/find-your-suitable-services/)
-- [社區資源地圖](https://www.jccpa.org.hk/about-dementia/community-resources/)
-- [下載有用資料](https://www.jccpa.org.hk/about-dementia/useful-information/)
-
 核心服務
-
-- [核心服務](https://www.jccpa.org.hk/services/)
-- [記憶診所](https://www.jccpa.org.hk/services/memory-clinic/)
-- [日間中心服務](https://www.jccpa.org.hk/services/day-care-service/)
-- [住宿服務](https://www.jccpa.org.hk/services/residential-service/)
-- [環境設施](https://www.jccpa.org.hk/services/environment-and-facilities/)
-- [參觀申請](https://www.jccpa.org.hk/services/environment-and-facilities/#application)
 
 焦點項目
 
-- [焦點項目](https://www.jccpa.org.hk/key-projects/)
-- [賽馬會「智康健」腦退化檢測及社區支援計劃](https://www.jccpa.org.hk/projects/dscs/)
-- [「友里蹤跡」社區計劃](https://www.jccpa.org.hk/projects/ccd/)
-- [「回家易」離院復康計劃](https://www.jccpa.org.hk/projects/pdp/)
-
 訓練及課程
 
-- [訓練及課程](https://www.jccpa.org.hk/training/)
-- [家屬照顧者](https://www.jccpa.org.hk/training/family-caregivers/)
-- [業界同工](https://www.jccpa.org.hk/training/professional-workers/)
-- [家庭傭工](https://www.jccpa.org.hk/training/domestic-helpers/)
-- [企業機構](https://www.jccpa.org.hk/training/corporates-and-organisations/)
-- [公眾教育活動](https://www.jccpa.org.hk/training/public-education/)
-- [腦退化症網上學習平台](https://edu.jccpa.org.hk/)
-- [支援腦退化症實務高等文憑課程](https://www.jccpa.org.hk/training/advanced-diploma/)
-
 研究成果
-
-- [研究成果](https://www.jccpa.org.hk/research/)
-- [進行中的研究](https://www.jccpa.org.hk/research/#sec01)
-- [已完成的研究](https://www.jccpa.org.hk/research/#sec02)
-- [腦退化症研究專題](https://www.jccpa.org.hk/research/#sec03)
-- [腦退化症風險因素評估](https://dementia.org.hk/)
 
 菜單Menu
 
 1
 
 賽馬會耆智園是香港中文大學全資擁有的附屬機構
+

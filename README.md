@@ -86,10 +86,12 @@ If no real embedding backend is available, the CLI falls back to the determinist
 For answer-mode debugging:
 
 ```bash
-python -m src.cli --retrieve-top-k 8 --answer-top-k 3 --show-sources --debug-rag
+python -m src.cli --embedder-provider dummy --retrieve-top-k 8 --answer-top-k 3 --show-sources --debug-rag
 ```
 
 `--fallback-to-top-chunk` is only for retrieval debugging. It bypasses answer synthesis and should not be used for final Telegram/Nanobot replies.
+
+The current JCCPA corpus is Traditional Chinese. The answer prompt defaults to Traditional Chinese, while still allowing another language if the user clearly asks in that language and a generation model is configured.
 
 Environment variables (optional):
 

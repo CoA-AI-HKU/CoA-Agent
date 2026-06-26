@@ -71,11 +71,16 @@ def _content_terms(text: str) -> set[str]:
         if len(term) < 3 or term in STOPWORDS:
             continue
         terms.add(term)
+    cjk_chars = re.findall(r"[\u3400-\u9fff]", text)
+    terms.update("".join(cjk_chars[index : index + 2]) for index in range(len(cjk_chars) - 1))
+    terms.update("".join(cjk_chars[index : index + 3]) for index in range(len(cjk_chars) - 2))
     return terms
 
 
 def _normalized_words(text: str) -> str:
-    return " ".join(re.findall(r"[a-z0-9]+", text.lower()))
+    latin = re.findall(r"[a-z0-9]+", text.lower())
+    cjk = re.findall(r"[\u3400-\u9fff]", text)
+    return " ".join([*latin, "".join(cjk)])
 
 
 def _query_phrase(query: str) -> str:
@@ -135,7 +140,26 @@ def _normalized_relevance_score(query: str, document: Document) -> float:
 
 
 def rewrite_query(question: str) -> str:
-    return question.strip()
+    query = question.strip()
+    lowered = query.lower()
+    replacements = {
+        "dementia": "腦退化症",
+        "symptoms": "症狀",
+        "symptom": "症狀",
+        "caregiver": "照顧者",
+        "caregivers": "照顧者",
+        "diagnosis": "診斷",
+        "diagnose": "診斷",
+        "treatment": "治療",
+        "what is": "是什麼",
+    }
+    translated_terms = [value for key, value in replacements.items() if key in lowered]
+    reversed_definition = re.search(r"什麼是([^？?，,。.\s]+)", query)
+    if reversed_definition:
+        translated_terms.append(f"{reversed_definition.group(1)}是什麼")
+    if translated_terms:
+        return f"{query} {' '.join(dict.fromkeys(translated_terms))}"
+    return query
 
 
 class RagAgent:
@@ -300,7 +324,7 @@ class RagAgent:
         best_chunks = scored[:use_k]
         context = self.format_context(best_chunks)
         prompt = ANSWER_PROMPT.format(context=context, question=question)
-        answer = answer_callable(prompt).strip() if answer_callable else self._extractive_answer(question, best_chunks)
+        answer = answer_callable(prompt).strip() if answer_callable else self._extractive_answer(search_query, best_chunks)
         if not answer:
             answer = FALLBACK_ANSWER
 
@@ -329,6 +353,10 @@ class RagAgent:
         }
 
     def _extractive_answer(self, question: str, retrieved_docs: List[Document]) -> str:
+        direct_answer = _extract_direct_paragraph_answer(question, retrieved_docs)
+        if direct_answer:
+            return direct_answer
+
         question_terms = _content_terms(question)
         candidate_sentences: list[tuple[float, str]] = []
         for doc in retrieved_docs:
@@ -365,6 +393,8 @@ def _split_answer_sentences(text: str) -> list[str]:
             continue
         if stripped.startswith("[Source "):
             continue
+        if re.fullmatch(r"\[[^\]]+\]\([^)]+\)", stripped):
+            continue
         if re.fullmatch(r"[-*+]\s*", stripped):
             continue
         prose_lines.append(re.sub(r"^[-*+]\s+", "", stripped))
@@ -372,7 +402,7 @@ def _split_answer_sentences(text: str) -> list[str]:
     normalized = re.sub(r"\s+", " ", "\n".join(prose_lines)).strip()
     if not normalized:
         return []
-    return [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", normalized) if sentence.strip()]
+    return [sentence.strip() for sentence in re.split(r"(?<=[.!?。！？])\s*", normalized) if sentence.strip()]
 
 
 def _is_low_value_answer_sentence(sentence: str) -> bool:
@@ -383,7 +413,73 @@ def _is_low_value_answer_sentence(sentence: str) -> bool:
         return True
     if stripped.endswith("?"):
         return True
+    if re.fullmatch(r"\[[^\]]+\]\([^)]+\).*", stripped):
+        return True
     return False
+
+
+def _is_definition_question(question: str) -> bool:
+    normalized = question.lower()
+    return any(pattern in normalized for pattern in ("what is", "什麼是", "是什麼", "何謂"))
+
+
+def _paragraphs_after_headings(text: str) -> list[tuple[str, str]]:
+    output: list[tuple[str, str]] = []
+    current_heading = ""
+    for block in re.split(r"\n\s*\n+", text):
+        stripped = block.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("#"):
+            current_heading = stripped.lstrip("#").strip()
+            continue
+        if re.fullmatch(r"\[[^\]]+\]\([^)]+\)", stripped):
+            continue
+        output.append((current_heading, stripped))
+    return output
+
+
+def _extract_direct_paragraph_answer(question: str, retrieved_docs: List[Document]) -> str:
+    query_terms = _content_terms(question)
+    definition_question = _is_definition_question(question)
+    candidates: list[tuple[float, str]] = []
+
+    for doc in retrieved_docs:
+        source_text = str(doc.metadata.get("source", "")).lower()
+        for heading, paragraph in _paragraphs_after_headings(doc.text):
+            if _is_low_value_answer_sentence(paragraph):
+                continue
+            paragraph_terms = _content_terms(paragraph)
+            shared = query_terms & paragraph_terms
+            if not shared:
+                continue
+
+            score = float(len(shared))
+            heading_text = heading.lower()
+            normalized_paragraph = paragraph.strip()
+            if definition_question and ("是" in paragraph or " is " in f" {paragraph.lower()} "):
+                score += 4.0
+            if definition_question and re.match(r"^[\u3400-\u9fff]{2,12}是", normalized_paragraph):
+                score += 6.0
+            if definition_question and ("what-is" in source_text or "是什麼" in heading_text):
+                score += 4.0
+            if definition_question and "是否" in paragraph:
+                score -= 3.0
+            if heading and query_terms & _content_terms(heading):
+                score += 2.0
+            if len(paragraph) > 60:
+                score += 0.5
+            candidates.append((score, paragraph))
+
+    if not candidates:
+        return ""
+
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    answer = candidates[0][1].strip()
+    first_sentence = _split_answer_sentences(answer)
+    if first_sentence:
+        return first_sentence[0]
+    return answer
 
 
 def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
@@ -396,4 +492,4 @@ def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
         if source_name not in source_names:
             source_names.append(source_name)
     suffix = "; ".join(source_names)
-    return f"{answer}\n\nSource: {suffix}"
+    return f"{answer}\n\n資料來源：{suffix}"

@@ -97,15 +97,28 @@ class ChromaVectorStore:
         self.persist_directory = persist_directory
         self.collection_name = collection_name
         self.client_settings = client_settings or {}
-        settings = Settings(**self.client_settings)
+        self._settings = Settings(**self.client_settings)
+        self._create_client()
+        self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        self.max_batch_size = self._detect_max_batch_size()
+
+    def _create_client(self) -> None:
+        from chromadb import PersistentClient
+
         if self.persist_directory is not None:
-            self.client = PersistentClient(path=str(self.persist_directory), settings=settings)
+            self.client = PersistentClient(path=str(self.persist_directory), settings=self._settings)
         else:
             from chromadb import Client
 
-            self.client = Client(settings)
+            self.client = Client(self._settings)
+
+    def _refresh_collection(self) -> None:
+        self._create_client()
         self.collection = self.client.get_or_create_collection(name=self.collection_name)
-        self.max_batch_size = self._detect_max_batch_size()
+
+    def _is_missing_collection_error(self, exc: Exception) -> bool:
+        message = str(exc).lower()
+        return "does not exist" in message or "not found" in message
 
     def _detect_max_batch_size(self) -> int:
         max_batch_size = getattr(self.client, "max_batch_size", None)
@@ -124,12 +137,23 @@ class ChromaVectorStore:
 
         for start in range(0, len(docs), self.max_batch_size):
             end = start + self.max_batch_size
-            self.collection.add(
-                documents=items[start:end],
-                metadatas=metadatas[start:end],
-                ids=ids[start:end],
-                embeddings=embeddings[start:end],
-            )
+            try:
+                self.collection.add(
+                    documents=items[start:end],
+                    metadatas=metadatas[start:end],
+                    ids=ids[start:end],
+                    embeddings=embeddings[start:end],
+                )
+            except Exception as exc:
+                if not self._is_missing_collection_error(exc):
+                    raise
+                self._refresh_collection()
+                self.collection.add(
+                    documents=items[start:end],
+                    metadatas=metadatas[start:end],
+                    ids=ids[start:end],
+                    embeddings=embeddings[start:end],
+                )
 
     def query(
         self,
@@ -146,7 +170,13 @@ class ChromaVectorStore:
         else:
             query_args["query_texts"] = [query_text]
 
-        results = self.collection.query(**query_args)
+        try:
+            results = self.collection.query(**query_args)
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+            self._refresh_collection()
+            results = self.collection.query(**query_args)
         output: List[Dict[str, Any]] = []
         if results["documents"]:
             for doc, metadata, distance in zip(
@@ -166,11 +196,21 @@ class ChromaVectorStore:
             self.client.persist()
 
     def count(self) -> int:
-        return self.collection.count()
+        try:
+            return self.collection.count()
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+            self._refresh_collection()
+            return self.collection.count()
 
     def clear(self) -> None:
-        self.client.delete_collection(name=self.collection_name)
-        self.collection = self.client.get_or_create_collection(name=self.collection_name)
+        try:
+            self.client.delete_collection(name=self.collection_name)
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+        self._refresh_collection()
 
 
 def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):

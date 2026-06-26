@@ -30,7 +30,7 @@ def test_answer_question_returns_concise_grounded_answer() -> None:
     assert "scientific" in result["answer"].lower()
     assert "engineering" in result["answer"].lower()
     assert "language" in result["answer"].lower()
-    assert "Source: Introducing_computational_linguistics.md" in result["answer_with_sources"]
+    assert "資料來源：Introducing_computational_linguistics.md" in result["answer_with_sources"]
     assert result["sources"] == ["Introducing_computational_linguistics.md"]
     assert _sentence_count(result["answer"]) <= 3
 

@@ -10,6 +10,7 @@ from urllib.parse import urldefrag, urlparse
 from .web_to_markdown import (
     DEFAULT_MAX_BYTES,
     DEFAULT_TIMEOUT_SECONDS,
+    MIN_CONTENT_CHARS,
     extract_links,
     fetch_website_html,
     load_website_as_markdown_document,
@@ -24,6 +25,7 @@ DEFAULT_MAX_CRAWL_PAGES = 100
 DEFAULT_MAX_CRAWL_DEPTH = 4
 DEFAULT_CRAWL_SCOPE = "path-prefix"
 DEFAULT_CRAWL_DELAY_SECONDS = 0.2
+DEFAULT_MIN_CONTENT_CHARS = MIN_CONTENT_CHARS
 SKIP_PATH_CONTAINS = {
     "/feed",
     "/wp-json",
@@ -115,18 +117,39 @@ def _metadata_header(source: str, requested_url: str) -> list[str]:
     return []
 
 
+def _content_chars(markdown: str) -> int:
+    text = re.sub(r"```.*?```", "", markdown, flags=re.DOTALL)
+    text = re.sub(r"\[[^\]]+\]\([^)]+\)", "", text)
+    text = re.sub(r"#+", "", text)
+    return len(re.sub(r"\s+", "", text))
+
+
+def _is_useful_markdown(markdown: str, min_content_chars: int = DEFAULT_MIN_CONTENT_CHARS) -> bool:
+    if _content_chars(markdown) < min_content_chars:
+        return False
+    lines = [line.strip() for line in markdown.splitlines() if line.strip()]
+    if not lines:
+        return False
+    link_lines = sum(1 for line in lines if re.fullmatch(r"[-*]?\s*\[[^\]]+\]\([^)]+\)", line))
+    return link_lines / len(lines) < 0.5
+
+
 def convert_website_url(
     url: str,
     markdown_root: Path = DEFAULT_WEB_MARKDOWN_ROOT,
     overwrite: bool = False,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
-) -> Path:
+    min_content_chars: int = DEFAULT_MIN_CONTENT_CHARS,
+) -> Path | None:
     target_path = markdown_path_for_url(url, markdown_root=markdown_root)
     if target_path.exists() and not overwrite:
         return target_path
 
     document = load_website_as_markdown_document(url, timeout=timeout, max_bytes=max_bytes)
+    if not _is_useful_markdown(document.text, min_content_chars=min_content_chars):
+        print(f"Skipping {url}: not enough useful content after cleaning")
+        return None
     source = document.metadata.get("source", url)
     requested_url = document.metadata.get("requested_url", url)
     return save_markdown_document(document, target_path, metadata_header=_metadata_header(source, requested_url))
@@ -138,11 +161,21 @@ def convert_website_urls(
     overwrite: bool = False,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
+    min_content_chars: int = DEFAULT_MIN_CONTENT_CHARS,
 ) -> list[Path]:
-    return [
-        convert_website_url(url, markdown_root=markdown_root, overwrite=overwrite, timeout=timeout, max_bytes=max_bytes)
-        for url in urls
-    ]
+    converted: list[Path] = []
+    for url in urls:
+        target_path = convert_website_url(
+            url,
+            markdown_root=markdown_root,
+            overwrite=overwrite,
+            timeout=timeout,
+            max_bytes=max_bytes,
+            min_content_chars=min_content_chars,
+        )
+        if target_path is not None:
+            converted.append(target_path)
+    return converted
 
 
 def crawl_website(
@@ -155,14 +188,18 @@ def crawl_website(
     max_bytes: int = DEFAULT_MAX_BYTES,
     crawl_scope: str = DEFAULT_CRAWL_SCOPE,
     delay_seconds: float = DEFAULT_CRAWL_DELAY_SECONDS,
+    min_content_chars: int = DEFAULT_MIN_CONTENT_CHARS,
 ) -> list[Path]:
     start_url = _normalized_url(start_url)
     queue = deque([(start_url, 0)])
     seen = {start_url}
     converted: list[Path] = []
+    processed = 0
+    max_fetches = max(max_pages * 3, max_pages)
 
-    while queue and len(converted) < max_pages:
+    while queue and len(converted) < max_pages and processed < max_fetches:
         url, depth = queue.popleft()
+        processed += 1
         try:
             html, final_url, content_type = fetch_website_html(url, timeout=timeout, max_bytes=max_bytes)
         except RuntimeError as exc:
@@ -177,14 +214,18 @@ def crawl_website(
             content_type=content_type,
         )
         target_path = markdown_path_for_url(final_url, markdown_root=markdown_root)
-        if overwrite or not target_path.exists():
-            save_markdown_document(
-                document,
-                target_path,
-                metadata_header=_metadata_header(final_url, url),
-            )
-        converted.append(target_path)
-        print(f"[{len(converted)}/{max_pages}] {final_url}")
+        is_useful = _is_useful_markdown(document.text, min_content_chars=min_content_chars)
+        if is_useful:
+            if overwrite or not target_path.exists():
+                save_markdown_document(
+                    document,
+                    target_path,
+                    metadata_header=_metadata_header(final_url, url),
+                )
+            converted.append(target_path)
+            print(f"[{len(converted)}/{max_pages}] {final_url}")
+        else:
+            print(f"Skipping {final_url}: not enough useful content after cleaning")
 
         if depth >= max_depth:
             if delay_seconds > 0:
@@ -218,6 +259,7 @@ def crawl_website_urls(
     max_bytes: int = DEFAULT_MAX_BYTES,
     crawl_scope: str = DEFAULT_CRAWL_SCOPE,
     delay_seconds: float = DEFAULT_CRAWL_DELAY_SECONDS,
+    min_content_chars: int = DEFAULT_MIN_CONTENT_CHARS,
 ) -> list[Path]:
     converted: list[Path] = []
     for url in urls:
@@ -232,6 +274,7 @@ def crawl_website_urls(
                 max_bytes=max_bytes,
                 crawl_scope=crawl_scope,
                 delay_seconds=delay_seconds,
+                min_content_chars=min_content_chars,
             )
         )
     return converted
@@ -259,6 +302,7 @@ def main() -> None:
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS, help="Fetch timeout in seconds per page")
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES, help="Maximum bytes to read per page")
     parser.add_argument("--delay", type=float, default=DEFAULT_CRAWL_DELAY_SECONDS, help="Delay between page fetches")
+    parser.add_argument("--min-content-chars", type=int, default=DEFAULT_MIN_CONTENT_CHARS, help="Skip pages with less useful text after cleaning")
     parser.add_argument(
         "--crawl-scope",
         choices=["path-prefix", "same-site"],
@@ -281,6 +325,7 @@ def main() -> None:
             overwrite=args.overwrite,
             timeout=args.timeout,
             max_bytes=args.max_bytes,
+            min_content_chars=args.min_content_chars,
         )
     else:
         converted = crawl_website_urls(
@@ -293,6 +338,7 @@ def main() -> None:
             max_bytes=args.max_bytes,
             crawl_scope=args.crawl_scope,
             delay_seconds=args.delay,
+            min_content_chars=args.min_content_chars,
         )
     print(f"Converted {len(converted)} website page(s) to markdown under {args.markdown_root}")
     for path in converted:

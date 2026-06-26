@@ -159,7 +159,10 @@ def interactive_loop(
 ) -> None:
     print("Enter questions (empty line to quit). Type 'reload' to re-index documents.")
     while True:
-        query = input("Question> ").strip()
+        try:
+            query = input("Question> ").strip()
+        except EOFError:
+            break
         if query == "":
             break
         if query.lower() == "reload":

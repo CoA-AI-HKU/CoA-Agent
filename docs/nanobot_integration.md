@@ -24,10 +24,11 @@ Example `~/.nanobot/config.json` fragment:
         "env": {
           "CHROMA_DIR": ".chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
-          "EMBEDDER_PROVIDER": "auto",
+          "EMBEDDER_PROVIDER": "dummy",
           "EMBEDDINGS_OFFLINE": "true",
           "RAG_RETRIEVE_TOP_K": "8",
-          "RAG_ANSWER_TOP_K": "3"
+          "RAG_ANSWER_TOP_K": "3",
+          "RAG_LANGUAGE": "zh-Hant"
         }
       }
     }
@@ -56,8 +57,9 @@ If your Nanobot config launches the server by absolute file path instead, this a
         "env": {
           "CHROMA_DIR": ".chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
-          "EMBEDDER_PROVIDER": "auto",
-          "EMBEDDINGS_OFFLINE": "true"
+          "EMBEDDER_PROVIDER": "dummy",
+          "EMBEDDINGS_OFFLINE": "true",
+          "RAG_LANGUAGE": "zh-Hant"
         }
       }
     }
@@ -95,7 +97,8 @@ provided documents do not contain enough information. Do not answer
 document-grounded questions from general model knowledge alone.
 
 Use search_dementia_knowledge only for retrieval debugging. For dementia-support
-questions, keep responses calm, short, and reassuring. Avoid diagnosis,
+questions, reply in Traditional Chinese unless the user clearly asks for another
+language. Keep responses calm, short, and reassuring. Avoid diagnosis,
 treatment, medication, or emergency medical advice. If there is immediate danger,
 wandering risk, severe confusion, injury, or self-harm risk, advise contacting a
 caregiver, emergency services, or a qualified clinician.

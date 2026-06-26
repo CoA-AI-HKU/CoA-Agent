@@ -15,6 +15,27 @@ from .document import Document
 DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; CoA-Agent-RAG/1.0; +https://example.local)"
 DEFAULT_TIMEOUT_SECONDS = 20
 DEFAULT_MAX_BYTES = 2_000_000
+MIN_CONTENT_CHARS = 250
+NOISE_ATTRIBUTE_KEYWORDS = {
+    "breadcrumb",
+    "cookie",
+    "footer",
+    "header",
+    "language",
+    "menu",
+    "modal",
+    "nav",
+    "navbar",
+    "pagination",
+    "popup",
+    "search",
+    "share",
+    "sidebar",
+    "social",
+    "subscribe",
+    "toolbar",
+    "widget",
+}
 SKIPPED_LINK_EXTENSIONS = {
     ".7z",
     ".avi",
@@ -48,14 +69,14 @@ SKIPPED_LINK_EXTENSIONS = {
 
 def _normalize_markdown(text: str) -> str:
     replacements = {
-        "â€œ": "\"",
-        "â€": "\"",
-        "â€˜": "'",
-        "â€™": "'",
-        "â€“": "-",
-        "â€”": "-",
-        "Â ": " ",
-        "AÎ²": "Aβ",
+        "Ã¢â‚¬Å“": "\"",
+        "Ã¢â‚¬Â": "\"",
+        "Ã¢â‚¬Ëœ": "'",
+        "Ã¢â‚¬â„¢": "'",
+        "Ã¢â‚¬â€œ": "-",
+        "Ã¢â‚¬â€": "-",
+        "Ã‚Â ": " ",
+        "AÃŽÂ²": "AÎ²",
     }
     for bad, good in replacements.items():
         text = text.replace(bad, good)
@@ -101,7 +122,7 @@ def fetch_website_html(
         headers={
             "User-Agent": user_agent,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Language": "zh-HK,zh-Hant;q=0.9,en;q=0.7",
         },
     )
     try:
@@ -157,9 +178,106 @@ def extract_links(html: str, base_url: str) -> list[str]:
     return list(dict.fromkeys(parser.links))
 
 
+def _element_text_length(element) -> int:
+    text = element.get_text(" ", strip=True)
+    return len(text)
+
+
+def _element_link_density(element) -> float:
+    text_length = max(_element_text_length(element), 1)
+    link_text_length = sum(len(link.get_text(" ", strip=True)) for link in element.find_all("a"))
+    return link_text_length / text_length
+
+
+def _attr_looks_noisy(value: str) -> bool:
+    normalized = value.lower()
+    return any(keyword in normalized for keyword in NOISE_ATTRIBUTE_KEYWORDS)
+
+
+def _extract_main_html_with_bs4(html: str) -> tuple[str, str]:
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError as exc:
+        raise RuntimeError("beautifulsoup4 is not installed") from exc
+
+    soup = BeautifulSoup(html, "html.parser")
+    title = soup.title.get_text(" ", strip=True) if soup.title else ""
+
+    for selector in [
+        "script",
+        "style",
+        "noscript",
+        "template",
+        "svg",
+        "canvas",
+        "iframe",
+        "nav",
+        "footer",
+        "header",
+        "aside",
+        "form",
+        "button",
+        "input",
+        "select",
+        "option",
+    ]:
+        for element in soup.select(selector):
+            element.decompose()
+
+    for element in list(soup.find_all(True)):
+        classes = " ".join(element.get("class", []))
+        element_id = str(element.get("id", ""))
+        role = str(element.get("role", ""))
+        if _attr_looks_noisy(" ".join([classes, element_id, role])):
+            element.decompose()
+
+    candidates = []
+    for selector in [
+        "main",
+        "article",
+        "[role='main']",
+        ".entry-content",
+        ".page-content",
+        ".post-content",
+        ".content",
+        "#content",
+    ]:
+        candidates.extend(soup.select(selector))
+    if soup.body:
+        candidates.append(soup.body)
+
+    best = None
+    best_score = -1.0
+    for candidate in candidates:
+        text_length = _element_text_length(candidate)
+        if text_length < 100:
+            continue
+        link_density = _element_link_density(candidate)
+        heading_bonus = min(len(candidate.find_all(re.compile(r"^h[1-6]$"))) * 80, 400)
+        paragraph_bonus = min(len(candidate.find_all("p")) * 40, 400)
+        score = text_length + heading_bonus + paragraph_bonus - (link_density * text_length * 1.8)
+        if score > best_score:
+            best = candidate
+            best_score = score
+
+    if best is None:
+        best = soup.body or soup
+    return str(best), title
+
+
+def extract_main_html(html: str) -> tuple[str, str]:
+    try:
+        return _extract_main_html_with_bs4(html)
+    except RuntimeError:
+        parser = _ReadableMarkdownParser()
+        parser.feed(html)
+        parser.close()
+        return html, parser.title()
+
+
 class _ReadableMarkdownParser(HTMLParser):
     _SKIP_TAGS = {"script", "style", "noscript", "template", "svg", "canvas", "iframe"}
-    _NOISE_TAGS = {"nav", "footer", "aside", "header"}
+    _NOISE_TAGS = {"nav", "footer", "aside", "header", "form", "button", "input", "select", "option"}
     _BLOCK_TAGS = {
         "article",
         "blockquote",
@@ -183,6 +301,7 @@ class _ReadableMarkdownParser(HTMLParser):
         self.parts: list[str] = []
         self.skip_depth = 0
         self.noise_depth = 0
+        self.noise_tag_stack: list[str] = []
         self.list_stack: list[int | None] = []
         self.title_parts: list[str] = []
         self.in_title = False
@@ -195,6 +314,14 @@ class _ReadableMarkdownParser(HTMLParser):
             self.skip_depth += 1
             return
         if tag in self._NOISE_TAGS:
+            self.noise_tag_stack.append(tag)
+            self.noise_depth += 1
+            return
+        classes = " ".join(attr_map.get("class", "").split())
+        element_id = attr_map.get("id", "")
+        role = attr_map.get("role", "")
+        if _attr_looks_noisy(" ".join([classes, element_id, role])):
+            self.noise_tag_stack.append(tag)
             self.noise_depth += 1
             return
         if self._is_skipping:
@@ -244,7 +371,8 @@ class _ReadableMarkdownParser(HTMLParser):
         if tag in self._SKIP_TAGS and self.skip_depth:
             self.skip_depth -= 1
             return
-        if tag in self._NOISE_TAGS and self.noise_depth:
+        if self.noise_tag_stack and self.noise_tag_stack[-1] == tag and self.noise_depth:
+            self.noise_tag_stack.pop()
             self.noise_depth -= 1
             return
         if self._is_skipping:
@@ -351,23 +479,43 @@ def _is_noise_line(line: str) -> bool:
         "menu",
         "en",
         "a a a",
-        "繁",
-        "简",
-        "參",
-        "觀",
-        "申",
-        "請",
-        "参",
-        "观",
-        "申",
-        "请",
+        "ç¹",
+        "ç®€",
+        "åƒ",
+        "è§€",
+        "ç”³",
+        "è«‹",
+        "å‚",
+        "è§‚",
+        "è¯·",
     }:
         return True
-    if re.fullmatch(r"[-*]\s*(繁|简|en|a\s*a\s*a)", normalized):
+    if re.fullmatch(r"[-*]\s*(ç¹|ç®€|en|a\s*a\s*a)", normalized):
         return True
     if len(stripped) <= 2 and not re.search(r"[A-Za-z0-9]", stripped):
         return True
+    if re.fullmatch(r"\[[^\]]{1,40}\]\([^)]+\)", stripped):
+        return True
+    if re.fullmatch(r"(ä¸Šä¸€é |ä¸‹ä¸€é |è¿”å›ž|æ›´å¤š|è©³æƒ…|äº†è§£æ›´å¤š|é–±è®€æ›´å¤š|read more|more)", normalized_text):
+        return True
     return False
+
+
+def _is_link_only_line(line: str) -> bool:
+    return bool(re.fullmatch(r"\s*[-*]?\s*\[[^\]]+\]\([^)]+\)\s*", line))
+
+
+def _drop_link_heavy_blocks(text: str) -> str:
+    kept_blocks: list[str] = []
+    for block in re.split(r"\n\s*\n+", text):
+        lines = [line for line in block.splitlines() if line.strip()]
+        if not lines:
+            continue
+        link_only = sum(1 for line in lines if _is_link_only_line(line))
+        if len(lines) >= 3 and link_only / len(lines) >= 0.6:
+            continue
+        kept_blocks.append(block.strip())
+    return "\n\n".join(kept_blocks)
 
 
 def clean_markdown_text(markdown: str) -> str:
@@ -396,6 +544,7 @@ def clean_markdown_text(markdown: str) -> str:
                 previous_heading = re.sub(r"[^a-z0-9]+", " ", stripped.lower()).strip()
 
     text = "\n".join(cleaned_lines)
+    text = _drop_link_heavy_blocks(text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     text = re.sub(r"(?m)^\s+$", "", text)
     return text.strip()
@@ -403,11 +552,12 @@ def clean_markdown_text(markdown: str) -> str:
 
 def html_to_markdown(html: str, base_url: str | None = None) -> str:
     """Convert website HTML into readable markdown suitable for chunking."""
+    html, extracted_title = extract_main_html(html)
     parser = _ReadableMarkdownParser(base_url=base_url)
     parser.feed(html)
     parser.close()
     markdown = parser.markdown()
-    title = parser.title()
+    title = parser.title() or extracted_title
 
     if title and not markdown.startswith("#"):
         markdown = f"# {title}\n\n{markdown}".strip()
