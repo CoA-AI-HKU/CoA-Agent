@@ -205,6 +205,9 @@ def interactive_loop(
     show_sources: bool = False,
     debug_rag: bool = False,
 ) -> None:
+    # Import the working function
+    from .dementia_rag import answer_from_dementia_knowledge
+    
     print("Enter questions (empty line to quit). Type 'reload' to re-index documents.")
     while True:
         try:
@@ -228,22 +231,9 @@ def interactive_loop(
                 print("Fallback mode active: True")
             print("Answer:\n", answer)
         else:
-            result = shared_answer_question(query, runtime_config)
-            runtime_config["force_reindex"] = False
-            if debug_rag:
-                _print_cli_debug(query, result)
-            if show_sources or debug_rag:
-                print("Retrieved sources:")
-                sources = result.get("sources", [])
-                scores = result.get("debug", {}).get("scores", [])
-                if sources:
-                    for index, source in enumerate(sources, start=1):
-                        score = scores[index - 1] if index - 1 < len(scores) else None
-                        score_text = f" score={score:.3f}" if isinstance(score, (int, float)) else ""
-                        print(f"{index}. {source}{score_text}")
-                else:
-                    print("None")
-            print("Answer:\n", result["answer"])
+            # Use the same function as Telegram (proven working)
+            answer = answer_from_dementia_knowledge(query)
+            print("Answer:\n", answer)
 
 
 def _print_cli_debug(query: str, result: dict[str, Any]) -> None:
@@ -291,13 +281,15 @@ def main() -> None:
     parser.add_argument("--skip-index", action="store_true", help="Skip indexing step (fast start)")
     parser.add_argument("--force-reindex", action="store_true", help="Rebuild the vector index even if the source files have not changed")
     parser.add_argument("--persist-dir", default=os.getenv("CHROMA_DIR", ".chroma/ling_rag"), help="Directory for the persistent Chroma index")
-    parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "dummy"), help="Embedder provider: auto|local|openai|dummy")
+    # CHANGE: embedder-provider default from "dummy" to "auto"
+    parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "auto"), help="Embedder provider: auto|local|openai|dummy")
     parser.add_argument("--embedder-model", default=os.getenv("EMBEDDER_MODEL"), help="Embedding model name or local model directory")
     parser.add_argument("--offline-embeddings", action="store_true", default=os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}, help="Load embedding models from local files only")
     parser.add_argument("--deepseek-url", default=os.getenv("DEEPSEEK_URL"), help="DeepSeek endpoint URL")
     parser.add_argument("--deepseek-key", default=os.getenv("DEEPSEEK_API_KEY"), help="DeepSeek API key")
     parser.add_argument("--deepseek-model", default=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), help="DeepSeek model name")
-    parser.add_argument("--fallback-to-top-chunk", action="store_true", help="Return the top retrieved chunk instead of calling DeepSeek")
+    # KEEP THIS ONE (with default=False)
+    parser.add_argument("--fallback-to-top-chunk", action="store_true", default=False, help="Return the top retrieved chunk instead of calling DeepSeek")
     parser.add_argument("--min-shared-query-terms", type=int, default=int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")), help="Minimum meaningful query terms that must appear in a retrieved chunk")
     parser.add_argument("--retrieve-top-k", type=int, default=int(os.getenv("RAG_RETRIEVE_TOP_K", "8")), help="Number of candidate chunks to retrieve before answer filtering")
     parser.add_argument("--answer-top-k", type=int, default=int(os.getenv("RAG_ANSWER_TOP_K", "3")), help="Number of best chunks to use for answer synthesis")
@@ -354,7 +346,6 @@ def main() -> None:
         show_sources=args.show_sources,
         debug_rag=args.debug_rag,
     )
-
 
 if __name__ == "__main__":
     main()
