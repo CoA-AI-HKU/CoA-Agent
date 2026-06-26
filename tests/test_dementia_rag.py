@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.dementia_rag import SAFE_FALLBACK_CONTEXT, _format_search_response
-from src.dementia_rag_mcp_server import search_dementia_knowledge_tool
+from src.dementia_rag_mcp_server import answer_from_dementia_knowledge_tool, search_dementia_knowledge_tool
 from src.document import Document
 from src.embedder import Embedder
 from src.rag_agent import RagAgent
@@ -41,6 +41,26 @@ def test_mcp_tool_returns_context(monkeypatch) -> None:
 
     assert result["context"] == expected["context"]
     assert result["sources"] == expected["sources"]
+
+
+def test_mcp_answer_tool_returns_grounded_answer(monkeypatch) -> None:
+    expected = {
+        "found": True,
+        "answer": "Memory support strategies include calendars.",
+        "sources": ["dementia.md"],
+        "context_used": "Source: dementia.md\nMemory support strategies include calendars.",
+        "debug": {"best_score": 0.8},
+    }
+
+    monkeypatch.setattr(
+        "src.dementia_rag_mcp_server.answer_from_dementia_knowledge",
+        lambda question: expected,
+    )
+
+    result = answer_from_dementia_knowledge_tool("What memory supports help?")
+
+    assert result["found"] is True
+    assert result["answer"] == expected["answer"]
 
 
 def test_empty_retrieval_returns_safe_fallback() -> None:

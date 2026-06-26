@@ -59,8 +59,8 @@ def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     assert "sample document" in retrieved[0].text
 
     prompt = agent.build_prompt("What is this?", retrieved)
-    assert "Answer the question using only the provided context" in prompt
-    assert "Keep the answer concise" in prompt
+    assert "Answer the user's question using ONLY the provided context" in prompt
+    assert "Answer in 1-3 short sentences" in prompt
     assert "What is this?" in prompt
 
 

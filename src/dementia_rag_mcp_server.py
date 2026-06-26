@@ -5,17 +5,22 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from .dementia_rag import search_dementia_knowledge
+    from .dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
-    from src.dementia_rag import search_dementia_knowledge
+    from src.dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
 
 
 def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
     """MCP tool wrapper for dementia knowledge-base retrieval."""
     return search_dementia_knowledge(question)
+
+
+def answer_from_dementia_knowledge_tool(question: str) -> dict[str, Any]:
+    """MCP tool wrapper for grounded answer synthesis."""
+    return answer_from_dementia_knowledge(question)
 
 
 try:
@@ -27,6 +32,7 @@ except ImportError:
 mcp = FastMCP("dementia_rag") if FastMCP is not None else None
 if mcp is not None:
     mcp.tool(name="search_dementia_knowledge")(search_dementia_knowledge_tool)
+    mcp.tool(name="answer_from_dementia_knowledge")(answer_from_dementia_knowledge_tool)
 
 
 def main() -> None:

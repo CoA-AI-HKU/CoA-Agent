@@ -3,4 +3,4 @@
 #
 # Example:
 # https://example.org/article
-https://www.jccpa.org.hk/en/about-dementia/
+https://www.jccpa.org.hk/

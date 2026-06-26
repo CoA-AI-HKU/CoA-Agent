@@ -1,18 +1,33 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Any, Iterable, List
 
 from .document import Document
+from .prompts import FALLBACK_ANSWER
 from .rag_agent import RagAgent
 from .vector_store import get_default_vector_store
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SAFE_FALLBACK_CONTEXT = (
     "No relevant context was retrieved from the dementia knowledge base. "
     "Answer only with a transparent limitation statement and suggest consulting a qualified clinician for medical concerns."
 )
+
+
+def _debug(message: str) -> None:
+    if os.getenv("RAG_DEBUG", "").lower() in {"1", "true", "yes"}:
+        print(f"DEBUG: {message}", file=sys.stderr)
+
+
+def _resolve_project_path(path_value: str | Path) -> Path:
+    path = Path(path_value).expanduser()
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
 
 
 def _risk_level(question: str, retrieved_docs: Iterable[Document]) -> str | None:
@@ -82,26 +97,27 @@ def _format_search_response(
         return {
             "context": SAFE_FALLBACK_CONTEXT,
             "sources": [],
+            "found": False,
             "risk_level": _risk_level(question, []),
+            "debug": {"retrieved_count": 0, "best_score": 0.0},
         }
 
+    scores = [doc.metadata.get("relevance_score", doc.metadata.get("distance")) for doc in retrieved_docs]
     return {
         "context": _build_context(retrieved_docs, max_context_chars, per_chunk_chars),
         "sources": _format_sources(retrieved_docs),
+        "found": True,
         "risk_level": _risk_level(question, retrieved_docs),
+        "debug": {
+            "retrieved_count": len(retrieved_docs),
+            "scores": scores,
+            "best_score": scores[0] if scores else None,
+        },
     }
 
 
-def search_dementia_knowledge(question: str) -> dict[str, Any]:
-    """Retrieve dementia knowledge-base context without calling a generation model."""
-    if not question or not question.strip():
-        return {
-            "context": SAFE_FALLBACK_CONTEXT,
-            "sources": [],
-            "risk_level": None,
-        }
-
-    persist_dir = Path(os.getenv("CHROMA_DIR", ".chroma/ling_rag"))
+def _build_runtime_agent() -> RagAgent:
+    persist_dir = _resolve_project_path(os.getenv("CHROMA_DIR", ".chroma/ling_rag"))
     collection_name = os.getenv("CHROMA_COLLECTION", "ling_rag")
     embedder_provider = os.getenv("EMBEDDER_PROVIDER", "auto")
     embedder_model = os.getenv("EMBEDDER_MODEL") or None
@@ -110,12 +126,16 @@ def search_dementia_knowledge(question: str) -> dict[str, Any]:
     max_context_chars = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800"))
     per_chunk_chars = int(os.getenv("RAG_PER_CHUNK_CHARS", "500"))
     min_shared_query_terms = int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1"))
+    retrieve_top_k = int(os.getenv("RAG_RETRIEVE_TOP_K", "8"))
+    answer_top_k = int(os.getenv("RAG_ANSWER_TOP_K", "3"))
+    min_relevance_score = float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.35"))
 
     vector_store = get_default_vector_store(
         persist_directory=persist_dir,
         collection_name=collection_name,
     )
-    agent = RagAgent(
+    _debug(f"using_chroma_dir={persist_dir}")
+    return RagAgent(
         embedder_provider=embedder_provider,
         embedder_model_name=embedder_model,
         offline_embeddings=offline_embeddings,
@@ -124,11 +144,125 @@ def search_dementia_knowledge(question: str) -> dict[str, Any]:
         max_context_chars=max_context_chars,
         per_chunk_chars=per_chunk_chars,
         min_shared_query_terms=min_shared_query_terms,
+        retrieve_top_k=retrieve_top_k,
+        answer_top_k=answer_top_k,
+        min_relevance_score=min_relevance_score,
     )
+
+
+def _extract_model_text(data: dict[str, Any]) -> str:
+    if data.get("answer"):
+        return str(data["answer"])
+    if data.get("text"):
+        return str(data["text"])
+    choices = data.get("choices") or []
+    if choices:
+        first_choice = choices[0]
+        message = first_choice.get("message") or {}
+        if message.get("content"):
+            return str(message["content"])
+        if first_choice.get("text"):
+            return str(first_choice["text"])
+    return ""
+
+
+def _build_answer_callable():
+    deepseek_url = os.getenv("DEEPSEEK_URL")
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY")
+    deepseek_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    openrouter_model = os.getenv("OPENROUTER_MODEL")
+
+    if not ((deepseek_url and deepseek_key) or (openrouter_key and openrouter_model)):
+        return None
+
+    try:
+        import requests
+    except ImportError:
+        _debug("requests is not installed; using extractive answer fallback")
+        return None
+
+    if openrouter_key and openrouter_model:
+        url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions")
+        headers = {
+            "Authorization": f"Bearer {openrouter_key}",
+            "Content-Type": "application/json",
+        }
+        model = openrouter_model
+    else:
+        url = str(deepseek_url)
+        headers = {
+            "Authorization": f"Bearer {deepseek_key}",
+            "Content-Type": "application/json",
+        }
+        model = deepseek_model
+
+    def answer_callable(prompt: str) -> str:
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        if response.status_code in {400, 404, 422}:
+            response = requests.post(url, headers=headers, json={"prompt": prompt}, timeout=30)
+        response.raise_for_status()
+        return _extract_model_text(response.json()).strip()
+
+    return answer_callable
+
+
+def search_dementia_knowledge(question: str) -> dict[str, Any]:
+    """Retrieve dementia knowledge-base context without calling a generation model."""
+    _debug(f"search_dementia_knowledge called with question={question!r}")
+    if not question or not question.strip():
+        return {
+            "context": SAFE_FALLBACK_CONTEXT,
+            "sources": [],
+            "found": False,
+            "risk_level": None,
+            "debug": {"retrieved_count": 0, "best_score": 0.0},
+        }
+
+    agent = _build_runtime_agent()
+    top_k = int(os.getenv("RAG_TOP_K", "3"))
+    max_context_chars = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800"))
+    per_chunk_chars = int(os.getenv("RAG_PER_CHUNK_CHARS", "500"))
     retrieved_docs = agent.retrieve(question, k=top_k)
-    return _format_search_response(
+    result = _format_search_response(
         question,
         retrieved_docs,
         max_context_chars=max_context_chars,
         per_chunk_chars=per_chunk_chars,
     )
+    _debug(f"retrieved_count={len(retrieved_docs)}")
+    _debug(f"sources={[source.get('source') for source in result.get('sources', [])]}")
+    return result
+
+
+def answer_from_dementia_knowledge(question: str) -> dict[str, Any]:
+    """Retrieve context and generate a concise grounded answer."""
+    _debug(f"answer_from_dementia_knowledge called with question={question!r}")
+    if not question or not question.strip():
+        return {
+            "found": False,
+            "answer": FALLBACK_ANSWER,
+            "sources": [],
+            "context_used": "",
+            "debug": {"retrieved_count": 0, "best_score": 0.0},
+        }
+
+    agent = _build_runtime_agent()
+    answer_callable = _build_answer_callable()
+    try:
+        result = agent.answer_question(question, answer_callable=answer_callable)
+    except Exception as exc:
+        _debug(f"answer model failed; using extractive fallback: {exc}")
+        result = agent.answer_question(question)
+    debug = result.get("debug", {})
+    _debug(f"retrieve_top_k={debug.get('top_k_retrieved')}")
+    _debug(f"retrieved_count={debug.get('retrieved_count')}")
+    _debug(f"best_score={debug.get('best_score')}")
+    _debug(f"sources={result.get('sources', [])}")
+    _debug(f"answer={str(result.get('answer', ''))[:300]!r}")
+    return result

@@ -11,14 +11,23 @@ Example `~/.nanobot/config.json` fragment:
   "tools": {
     "mcpServers": {
       "dementia_rag": {
-        "command": "python3",
-        "args": ["-m", "src.dementia_rag_mcp_server"],
-        "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent",
+        "command": "bash",
+        "args": [
+          "-lc",
+          "cd '/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent' && source .venv/bin/activate && python -m src.dementia_rag_mcp_server"
+        ],
+        "enabledTools": [
+          "search_dementia_knowledge",
+          "answer_from_dementia_knowledge"
+        ],
+        "toolTimeout": 60,
         "env": {
           "CHROMA_DIR": ".chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
           "EMBEDDER_PROVIDER": "auto",
-          "EMBEDDINGS_OFFLINE": "true"
+          "EMBEDDINGS_OFFLINE": "true",
+          "RAG_RETRIEVE_TOP_K": "8",
+          "RAG_ANSWER_TOP_K": "3"
         }
       }
     }
@@ -26,8 +35,15 @@ Example `~/.nanobot/config.json` fragment:
 }
 ```
 
-If your Nanobot config launches the server by absolute file path instead, this
-also works:
+If running on a cloud server, replace the `cd` path with the deployed project path, for example `/home/aine/CoA-Agent`.
+
+Do not print MCP debug messages to stdout. MCP uses stdout for protocol traffic. Use stderr:
+
+```python
+print("DEBUG: message", file=sys.stderr)
+```
+
+If your Nanobot config launches the server by absolute file path instead, this also works, but the explicit `cd` pattern above is safer:
 
 ```json
 {
@@ -71,11 +87,22 @@ Add this to the Nanobot agent instruction or policy block:
 ```text
 For document-grounded questions about dementia, caregiving, symptoms, safety,
 assessment, interventions, or knowledge-base content, call the
-search_dementia_knowledge MCP tool before answering.
+answer_from_dementia_knowledge MCP tool before answering.
 
-Use the returned context and sources as the grounding evidence. Do not claim
-knowledge from documents unless it appears in the retrieved context. If the tool
-returns no relevant context, say that the knowledge base did not contain enough
-information and offer general, non-diagnostic guidance. If risk_level is "high",
-encourage urgent local emergency or clinical support as appropriate.
+If the tool returns found=true, send `answer_with_sources` mostly unchanged when
+present; otherwise send `answer` mostly unchanged. If found=false, say that the
+provided documents do not contain enough information. Do not answer
+document-grounded questions from general model knowledge alone.
+
+Use search_dementia_knowledge only for retrieval debugging. For dementia-support
+questions, keep responses calm, short, and reassuring. Avoid diagnosis,
+treatment, medication, or emergency medical advice. If there is immediate danger,
+wandering risk, severe confusion, injury, or self-harm risk, advise contacting a
+caregiver, emergency services, or a qualified clinician.
 ```
+
+## Security
+
+Regenerate any Telegram bot token that appeared in logs. Store tokens in
+environment variables or a protected secrets file such as
+`~/.nanobot/secrets.env`; never commit tokens and never print them in logs.

@@ -1,0 +1,164 @@
+# 2024-12 - 賽馬會耆智園 | 一站式腦退化症服務中心
+
+## 媒體報導
+
+881903- 樂齡王國
+
+(報道詳情，請參閱[媒體報導](https://www.jccpa.org.hk/media/))
+
+## 【關懷同行：腦退化人士的離院照顧與復康】網上分享會
+
+賽馬會「回家易」離院復康計劃承蒙香港賽馬會慈善信託基金撥款捐助。為腦退化症人士提供專門的離院及支援計劃，透過不同專業的介入及協助長者的家人，為剛離院或家中的長者提供日常生活照顧，同時提供復康訓練，令他們盡量回復應有的健康及精神狀況，得以繼續在家安老。家人對腦退化症人士的「回家之路」就像吃了一顆定心丸。
+
+而【關懷同行：腦退化人士的離院照顧與復康】網上分享會於12月7日和14日已順利完成，並有超過50位照顧者出席。本園經驗豐富的高級物理治療師和註冊社工，分享針對剛離院的腦退化症人士的實用照顧技巧和知識，幫助他們康復。
+
+透過是次分享會希望讓大家對腦退化症人士專門離院及支援計劃了解更多，並認識不同專業的介入及協助長者的家人，為剛離院的長者提供日常生活照顧，同時提供復康訓練，令他們盡快回復應有的健康及精神狀況，得以繼續在家安老。
+
+## 耆智歡聚賀聖誕
+
+每逢佳節，本園都會舉辦各種精彩的活動予園友參與，今年聖誕也舉行了慶祝活動。透過問答遊戲、合唱聖誕歌、製作聖誕手工燈盒等讓園友一同感受節日氣氛，從而訓練他們的感官和認知能力。除了聖誕大餐，同工更裝扮成聖誕老人，為園友派發精心準備的聖誕禮物，讓園友預早度過一個難忘的聖誕節。
+
+Slide Title
+
+## 「輕鐵及巴士道路暨長者乘車安全運動典禮」設展
+
+為了讓全港市民及早關注自己或家中年長親友的認知情況，本園於12月3日於「輕鐵及巴士道路暨長者乘車安全運動典禮」設展，除了派發腦退化症知識單張，讓在場300位屯門長者們認識耆智園外，亦透過遊戲向長者們講解六大認知功能。同時，感謝港鐵邀請設展，讓本園得以向長者宣揚腦退化症；最後亦感謝港鐵送上書法屏風「惠澤社民」予以珍藏！
+
+Slide Title
+
+## 「50+服務博覽」
+
+今年是賽馬會流金匯15周年，而50+服務博覽是慶祝活動之一，為了讓更多50+ 同關注「自主老年」概念人士認識社區內不同的服務，本園和賽馬會流金匯合作，於12月12日在香港中文大學康本國際學術園地下舉辦「50+服務博覽」。
+
+本園除了介紹賽馬會「智康健」腦退化檢測及社區支援計劃外，亦即場提供視力及聽力的健康檢查，吸引超過100位長者們參與和了解！另外，衷心感謝九巴的義工隊幫忙，向長者們講解「智康健」計劃及協助同事們進行測試，讓整個活動得以順利進行。
+
+Slide Title
+
+## 「智康健」日
+
+「智康健」日已經於12月14日順利完成！超過40位長者們蒞臨本園進行認知測試及參與腦退化症知識講座，讓長者們知道護腦的重要性。本園不時為腦退化症人士和家屬照顧者舉辦不同的課程，以及針對家屬的需要及遇到的困難提供有效的解決方法和支援，希望能有效舒解家屬照顧者的壓力，一起相知同行。另外，衷心感謝九巴的義工隊幫忙，為長者們進行認知測試。
+
+有關課程或活動的資訊，可追蹤本園的社交平台以獲取最新資料。
+
+Facebook: [https://www.facebook.com/jccpahk/](https://www.facebook.com/jccpahk/)
+
+Instagram: [https://www.instagram.com/jccpahk/](https://www.instagram.com/jccpahk/)
+
+WhatsApp Channel: [https://whatsapp.com/channel/0029VaVxpwv8V0tpPmrHe93s](https://whatsapp.com/channel/0029VaVxpwv8V0tpPmrHe93s)
+
+Slide Title
+
+## 賽馬會耆智園旗艦訓練課程︰三天研討會 – 了解香港腦退化症人士的行為和表現
+
+一連三日的研討會已完滿結束，十分感謝各界的支持。是次研討會非常感謝各位講者在百忙中抽空出席，從「以人為本」及不同的專業角度探討腦退化症人士行為表現的原因及照顧策略，並且解讀不同的評估工具。讓專職同工對腦退化症人士的行為表現有更深入的了解，並且在制定護理策略的時候更能從腦退化症人士及其照顧者的角度考慮。
+
+在此，我們感謝以下講者百忙中抽空主講（排名不分先後）：
+
+- Prof Dawn Brooker MBE, Emeritus Professor and former Director of the University of Worcester Association for Dementia
+- 香港中文大學醫學院內科及藥物治療學系何善衡老年醫學教授郭志銳醫生
+- 香港中文大學醫學院精神科學系臨床副教授李廷俊醫生
+- 賽馬會耆智園副總經理崔志文博士
+- 香港大學藥理及藥劑學系註冊藥劑師鄭永德先生
+- 青山醫院高級職業治療師賴榕蓉小姐
+- 賽馬會耆智園註冊音樂治療師李英姿小姐
+- 賽馬會耆智園護理主任及個案經理潘曉陽先生
+
+是次研討會反應十分熱烈，有逾20名專職同工參與。參加者不單能向本地不同學者及專業人士取經，更與外國講者交流，了解外地如何了解及看待腦退化症，獲益良多。
+
+耆智園不時會為服務腦退化症的業界同工舉辦專業的訓練課程，透過結合腦退化症的理論知識、累積的服務經驗及研究結果，加強業界同工對腦退化症的了解，協助提升照顧技巧及服務水平。如想了解更多最新資訊，請留意本園網頁及Facebook/IG。
+
+Slide Title
+
+## 腦退化症網上學習平台推出全新一季課程
+
+本園在2023年6月推出全港首個全方位腦退化症網上學習平台：EDU。腦退化症網上學習平台提供不同的課程，透過影片和互動練習，以生動有趣及深入淺出的方式分享腦退化症知識和照顧技巧。用戶可以透過平台隨時隨地、靈活自主了解腦退化症知識。每個課程都會提供筆記，讓用戶可以掌握重點，隨時重溫照顧要訣。
+
+目前平台已經推出全新一季的課程内容，為照顧者提供如何「與腦退化症人士溝通」。有興趣人士可以透過以下網站了解及報讀：[https://edu.jccpa.org.hk/course/](https://edu.jccpa.org.hk/course/)
+
+## 本月參觀團體
+
+香港家庭福利會（職業治療部）
+
+腦退化症風險因素評估
+
+[了解更多](https://dementia.org.hk/)
+
+認識耆智園
+
+- [認識耆智園](https://www.jccpa.org.hk/about-us/)
+- [發展里程事](https://www.jccpa.org.hk/about-us/#timeline)
+- [專業團隊](https://www.jccpa.org.hk/about-us/team/)
+- [架構圖](https://www.jccpa.org.hk/about-us/organisation-chart/)
+- [親善大使](https://www.jccpa.org.hk/about-us/ambassadors/)
+
+認識腦退化症
+
+- [認識腦退化症](https://www.jccpa.org.hk/about-dementia/)
+- [腦退化症知識](https://www.jccpa.org.hk/about-dementia/what-is-dementia/)
+- [實用照顧錦囊](https://www.jccpa.org.hk/about-dementia/caring-tips/)
+- [01. 照顧者貼士](https://www.jccpa.org.hk/about-dementia/caring-tips/tips-for-caregivers/)
+- [02. 了解腦退化症人士](https://www.jccpa.org.hk/about-dementia/caring-tips/understanding-people-with-dementia/)
+- [03. 溝通方式](https://www.jccpa.org.hk/about-dementia/caring-tips/communication/)
+- [04. 家居安全​](https://www.jccpa.org.hk/about-dementia/caring-tips/home-safety/)
+- [05. 進食及吞嚥](https://www.jccpa.org.hk/about-dementia/caring-tips/eating-and-swallowing/)
+- [06. 飲食與營養](https://www.jccpa.org.hk/about-dementia/caring-tips/food-and-nutrition/)
+- [07. 口腔護理](https://www.jccpa.org.hk/about-dementia/caring-tips/oral-care/)
+- [08. 預防走失](https://www.jccpa.org.hk/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
+- [09. 預防跌倒](https://www.jccpa.org.hk/about-dementia/caring-tips/fall-prevention-tips/)
+- [10. 預防失禁](https://www.jccpa.org.hk/about-dementia/caring-tips/incontinence-prevention-tips/)
+- [11. 受壓下的行為表現](https://www.jccpa.org.hk/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
+- [12. 照顧者自身的安全](https://www.jccpa.org.hk/about-dementia/caring-tips/safety-for-caregivers/)
+- [13. 扶抱技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/safe-lifting/)
+- [14. 輪椅安全使用技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/wheelchair-safety-tips/)
+- [15. 醫療、護理及財務安排](https://www.jccpa.org.hk/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
+- [16. 藥物治療](https://www.jccpa.org.hk/about-dementia/caring-tips/dementia-medications/)
+- [家傭溝通](https://www.jccpa.org.hk/about-dementia/tips-for-domestic-helpers/)
+- [常見問題](https://www.jccpa.org.hk/about-dementia/faq/)
+- [護腦貼士](https://www.jccpa.org.hk/about-dementia/brain-health-tips/)
+- [腦退化初步快速測試](https://www.jccpa.org.hk/about-dementia/dementia-screening-test/)
+- [尋找合適服務](https://www.jccpa.org.hk/about-dementia/find-your-suitable-services/)
+- [社區資源地圖](https://www.jccpa.org.hk/about-dementia/community-resources/)
+- [下載有用資料](https://www.jccpa.org.hk/about-dementia/useful-information/)
+
+核心服務
+
+- [核心服務](https://www.jccpa.org.hk/services/)
+- [記憶診所](https://www.jccpa.org.hk/services/memory-clinic/)
+- [日間中心服務](https://www.jccpa.org.hk/services/day-care-service/)
+- [住宿服務](https://www.jccpa.org.hk/services/residential-service/)
+- [環境設施](https://www.jccpa.org.hk/services/environment-and-facilities/)
+- [參觀申請](https://www.jccpa.org.hk/services/environment-and-facilities/#application)
+
+焦點項目
+
+- [焦點項目](https://www.jccpa.org.hk/key-projects/)
+- [賽馬會「智康健」腦退化檢測及社區支援計劃](https://www.jccpa.org.hk/projects/dscs/)
+- [「友里蹤跡」社區計劃](https://www.jccpa.org.hk/projects/ccd/)
+- [「回家易」離院復康計劃](https://www.jccpa.org.hk/projects/pdp/)
+
+訓練及課程
+
+- [訓練及課程](https://www.jccpa.org.hk/training/)
+- [家屬照顧者](https://www.jccpa.org.hk/training/family-caregivers/)
+- [業界同工](https://www.jccpa.org.hk/training/professional-workers/)
+- [家庭傭工](https://www.jccpa.org.hk/training/domestic-helpers/)
+- [企業機構](https://www.jccpa.org.hk/training/corporates-and-organisations/)
+- [公眾教育活動](https://www.jccpa.org.hk/training/public-education/)
+- [腦退化症網上學習平台](https://edu.jccpa.org.hk/)
+- [支援腦退化症實務高等文憑課程](https://www.jccpa.org.hk/training/advanced-diploma/)
+
+研究成果
+
+- [研究成果](https://www.jccpa.org.hk/research/)
+- [進行中的研究](https://www.jccpa.org.hk/research/#sec01)
+- [已完成的研究](https://www.jccpa.org.hk/research/#sec02)
+- [腦退化症研究專題](https://www.jccpa.org.hk/research/#sec03)
+- [腦退化症風險因素評估](https://dementia.org.hk/)
+
+菜單Menu
+
+1
+
+賽馬會耆智園是香港中文大學全資擁有的附屬機構
+
+h

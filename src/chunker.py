@@ -5,13 +5,28 @@ from typing import Iterable, List
 
 from .document import Document
 
-DEFAULT_CHUNK_SIZE = 450
-DEFAULT_CHUNK_OVERLAP = 75
+DEFAULT_CHUNK_SIZE = 900
+DEFAULT_CHUNK_OVERLAP = 120
 
 
 def _normalize_text(text: str) -> str:
     text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
     return re.sub(r"\s+", " ", text)
+
+
+def _normalize_block(block: str) -> str:
+    lines = [line.rstrip() for line in block.replace("\r\n", "\n").replace("\r", "\n").splitlines()]
+    return "\n".join(line for line in lines if line.strip()).strip()
+
+
+def _split_markdown_blocks(text: str) -> List[str]:
+    text = text.replace("\r\n", "\n").replace("\r", "\n").strip()
+    if not text:
+        return []
+
+    raw_blocks = re.split(r"\n\s*\n+", text)
+    blocks = [_normalize_block(block) for block in raw_blocks]
+    return [block for block in blocks if block]
 
 
 def _split_sentences(text: str) -> List[str]:
@@ -49,54 +64,93 @@ def _split_long_sentence(sentence: str, max_size: int) -> List[str]:
     return chunks
 
 
-def _retained_overlap(sentences: List[str], overlap: int) -> List[str]:
-    if overlap <= 0 or not sentences:
+def _retained_overlap(units: List[str], overlap: int) -> List[str]:
+    if overlap <= 0 or not units:
         return []
 
     retained: List[str] = []
     total = 0
-    for sentence in reversed(sentences):
-        sentence_length = len(sentence) + 1
-        if total + sentence_length > overlap and retained:
+    for unit in reversed(units):
+        unit_length = len(unit) + 2
+        if total + unit_length > overlap and retained:
             break
-        retained.insert(0, sentence)
-        total += sentence_length
+        retained.insert(0, unit)
+        total += unit_length
 
     return retained
 
 
+def _split_large_block(block: str, chunk_size: int) -> List[str]:
+    if len(block) <= chunk_size:
+        return [block]
+
+    if block.lstrip().startswith(("- ", "* ", "+ ")) or re.match(r"^\s*\d+\.\s+", block):
+        lines = [line.strip() for line in block.splitlines() if line.strip()]
+        chunks: List[str] = []
+        current: List[str] = []
+        current_length = 0
+        for line in lines:
+            if current and current_length + len(line) + 1 > chunk_size:
+                chunks.append("\n".join(current))
+                current = []
+                current_length = 0
+            current.append(line)
+            current_length += len(line) + 1
+        if current:
+            chunks.append("\n".join(current))
+        return chunks
+
+    sentence_chunks: List[str] = []
+    for sentence in _split_sentences(block):
+        sentence_chunks.extend(_split_long_sentence(sentence, chunk_size))
+    return sentence_chunks
+
+
+def _join_units(units: List[str]) -> str:
+    return "\n\n".join(unit.strip() for unit in units if unit.strip()).strip()
+
+
+def _extract_heading(text: str) -> str | None:
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            return stripped.lstrip("#").strip()
+    return None
+
+
 def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[str]:
-    sentences = _split_sentences(text)
+    blocks = _split_markdown_blocks(text)
     chunks: List[str] = []
-    current_sentences: List[str] = []
+    current_units: List[str] = []
     current_length = 0
 
-    for sentence in sentences:
-        sentence_parts = _split_long_sentence(sentence, chunk_size)
-        for sentence_part in sentence_parts:
-            if current_length + len(sentence_part) + 1 > chunk_size and current_sentences:
-                chunks.append(" ".join(current_sentences).strip())
-                current_sentences = _retained_overlap(current_sentences, chunk_overlap)
-                current_length = len(" ".join(current_sentences))
+    for block in blocks:
+        block_parts = _split_large_block(block, chunk_size)
+        for block_part in block_parts:
+            separator_length = 2 if current_units else 0
+            if current_units and current_length + len(block_part) + separator_length > chunk_size:
+                chunks.append(_join_units(current_units))
+                current_units = _retained_overlap(current_units, chunk_overlap)
+                current_length = len(_join_units(current_units))
 
-            if len(sentence_part) > chunk_size:
-                if current_sentences:
-                    chunks.append(" ".join(current_sentences).strip())
-                    current_sentences = []
+            if len(block_part) > chunk_size:
+                if current_units:
+                    chunks.append(_join_units(current_units))
+                    current_units = []
                     current_length = 0
-                chunks.append(sentence_part)
+                chunks.append(block_part.strip())
                 continue
 
-            current_sentences.append(sentence_part)
-            current_length = len(" ".join(current_sentences))
+            current_units.append(block_part)
+            current_length = len(_join_units(current_units))
 
             if current_length >= chunk_size:
-                chunks.append(" ".join(current_sentences).strip())
-                current_sentences = _retained_overlap(current_sentences, chunk_overlap)
-                current_length = len(" ".join(current_sentences))
+                chunks.append(_join_units(current_units))
+                current_units = _retained_overlap(current_units, chunk_overlap)
+                current_length = len(_join_units(current_units))
 
-    if current_sentences:
-        final_chunk = " ".join(current_sentences).strip()
+    if current_units:
+        final_chunk = _join_units(current_units)
         if not chunks or chunks[-1] != final_chunk:
             chunks.append(final_chunk)
 
@@ -105,17 +159,23 @@ def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: i
 
 def chunk_document(document: Document, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[Document]:
     text_chunks = chunk_text(document.text, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return [
-        Document(
-            text=chunk,
-            metadata={
-                **document.metadata,
-                "chunk_index": index,
-                "chunk_size": len(chunk),
-            },
-        )
-        for index, chunk in enumerate(text_chunks, start=1)
-    ]
+    output: List[Document] = []
+    current_heading = document.metadata.get("title")
+
+    for index, chunk in enumerate(text_chunks, start=1):
+        heading = _extract_heading(chunk)
+        if heading:
+            current_heading = heading
+        metadata = {
+            **document.metadata,
+            "chunk_index": index,
+            "chunk_size": len(chunk),
+        }
+        if current_heading:
+            metadata["heading"] = current_heading
+        output.append(Document(text=chunk, metadata=metadata))
+
+    return output
 
 
 def chunk_documents(documents: Iterable[Document], chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[Document]:

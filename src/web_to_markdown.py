@@ -47,6 +47,18 @@ SKIPPED_LINK_EXTENSIONS = {
 
 
 def _normalize_markdown(text: str) -> str:
+    replacements = {
+        "â€œ": "\"",
+        "â€": "\"",
+        "â€˜": "'",
+        "â€™": "'",
+        "â€“": "-",
+        "â€”": "-",
+        "Â ": " ",
+        "AÎ²": "Aβ",
+    }
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
     text = re.sub(r" *\n *", "\n", text)
@@ -147,7 +159,7 @@ def extract_links(html: str, base_url: str) -> list[str]:
 
 class _ReadableMarkdownParser(HTMLParser):
     _SKIP_TAGS = {"script", "style", "noscript", "template", "svg", "canvas", "iframe"}
-    _NOISE_TAGS = {"nav", "footer", "aside"}
+    _NOISE_TAGS = {"nav", "footer", "aside", "header"}
     _BLOCK_TAGS = {
         "article",
         "blockquote",
@@ -325,6 +337,70 @@ class _ReadableMarkdownParser(HTMLParser):
         return _normalize_markdown(" ".join(self.title_parts))
 
 
+def _is_noise_line(line: str) -> bool:
+    stripped = line.strip()
+    normalized = stripped.lower()
+    normalized_text = re.sub(r"[*_`#\-\[\]().:/|]+", " ", normalized)
+    normalized_text = re.sub(r"\s+", " ", normalized_text).strip()
+
+    if not stripped:
+        return False
+    if stripped.startswith("<!--") and stripped.endswith("-->"):
+        return False
+    if normalized_text in {
+        "menu",
+        "en",
+        "a a a",
+        "繁",
+        "简",
+        "參",
+        "觀",
+        "申",
+        "請",
+        "参",
+        "观",
+        "申",
+        "请",
+    }:
+        return True
+    if re.fullmatch(r"[-*]\s*(繁|简|en|a\s*a\s*a)", normalized):
+        return True
+    if len(stripped) <= 2 and not re.search(r"[A-Za-z0-9]", stripped):
+        return True
+    return False
+
+
+def clean_markdown_text(markdown: str) -> str:
+    """Remove website chrome that is not useful for retrieval."""
+    cleaned_lines: list[str] = []
+    previous_nonblank = ""
+    previous_heading = ""
+
+    markdown = _normalize_markdown(markdown)
+
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if _is_noise_line(stripped):
+            continue
+        if stripped.startswith("<!--") and stripped.endswith("-->"):
+            continue
+        normalized_line = re.sub(r"[^a-z0-9]+", " ", stripped.lower()).strip()
+        if previous_heading and normalized_line == previous_heading:
+            continue
+        if stripped and stripped == previous_nonblank:
+            continue
+        cleaned_lines.append(line.rstrip())
+        if stripped:
+            previous_nonblank = stripped
+            if stripped.startswith("#"):
+                previous_heading = re.sub(r"[^a-z0-9]+", " ", stripped.lower()).strip()
+
+    text = "\n".join(cleaned_lines)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"(?m)^\s+$", "", text)
+    return text.strip()
+
+
 def html_to_markdown(html: str, base_url: str | None = None) -> str:
     """Convert website HTML into readable markdown suitable for chunking."""
     parser = _ReadableMarkdownParser(base_url=base_url)
@@ -334,8 +410,9 @@ def html_to_markdown(html: str, base_url: str | None = None) -> str:
     title = parser.title()
 
     if title and not markdown.startswith("#"):
-        return f"# {title}\n\n{markdown}".strip()
-    return markdown
+        markdown = f"# {title}\n\n{markdown}".strip()
+    return clean_markdown_text(markdown)
+
 
 
 def website_html_to_markdown_document(

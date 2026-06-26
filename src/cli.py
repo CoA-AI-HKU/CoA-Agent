@@ -68,6 +68,9 @@ def build_agent(
     persist_dir: Path | str = ".chroma/ling_rag",
     force_reindex: bool = False,
     min_shared_query_terms: int = 1,
+    retrieve_top_k: int = 8,
+    answer_top_k: int = 3,
+    min_relevance_score: float = 0.35,
 ) -> "RagAgent":
     # import RagAgent lazily to avoid heavy dependencies at import time
     from .rag_agent import RagAgent
@@ -80,6 +83,9 @@ def build_agent(
         offline_embeddings=offline_embeddings,
         vector_store=vector_store,
         min_shared_query_terms=min_shared_query_terms,
+        retrieve_top_k=retrieve_top_k,
+        answer_top_k=answer_top_k,
+        min_relevance_score=min_relevance_score,
     )
 
     if skip_index:
@@ -131,6 +137,9 @@ def build_agent(
                 offline_embeddings=offline_embeddings,
                 vector_store=vector_store,
                 min_shared_query_terms=min_shared_query_terms,
+                retrieve_top_k=retrieve_top_k,
+                answer_top_k=answer_top_k,
+                min_relevance_score=min_relevance_score,
             )
             agent.index_documents(docs)
         _save_manifest(manifest_path, current_manifest)
@@ -142,9 +151,11 @@ def build_agent(
 
 def interactive_loop(
     agent: RagAgent,
-    deepseek_callable: Callable[[str], str],
+    deepseek_callable: Callable[[str], str] | None,
     fallback_to_top_chunk: bool = False,
     reload_agent: Callable[[], RagAgent] | None = None,
+    show_sources: bool = False,
+    debug_rag: bool = False,
 ) -> None:
     print("Enter questions (empty line to quit). Type 'reload' to re-index documents.")
     while True:
@@ -156,9 +167,24 @@ def interactive_loop(
             continue
         if fallback_to_top_chunk:
             answer = agent.answer_with_top_chunk(query)
+            print("Answer:\n", answer)
         else:
-            answer = agent.answer(query, deepseek_callable)
-        print("Answer:\n", answer)
+            result = agent.answer_question(query, answer_callable=deepseek_callable)
+            if debug_rag:
+                print(f"Question: {query}")
+                print(f"Search query: {result.get('debug', {}).get('search_query', query)}")
+            if show_sources or debug_rag:
+                print("Retrieved sources:")
+                sources = result.get("sources", [])
+                scores = result.get("debug", {}).get("scores", [])
+                if sources:
+                    for index, source in enumerate(sources, start=1):
+                        score = scores[index - 1] if index - 1 < len(scores) else None
+                        score_text = f" score={score:.3f}" if isinstance(score, (int, float)) else ""
+                        print(f"{index}. {source}{score_text}")
+                else:
+                    print("None")
+            print("Answer:\n", result["answer"])
 
 
 def _extract_deepseek_text(data: dict) -> str:
@@ -193,6 +219,11 @@ def main() -> None:
     parser.add_argument("--deepseek-model", default=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), help="DeepSeek model name")
     parser.add_argument("--fallback-to-top-chunk", action="store_true", help="Return the top retrieved chunk instead of calling DeepSeek")
     parser.add_argument("--min-shared-query-terms", type=int, default=int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")), help="Minimum meaningful query terms that must appear in a retrieved chunk")
+    parser.add_argument("--retrieve-top-k", type=int, default=int(os.getenv("RAG_RETRIEVE_TOP_K", "8")), help="Number of candidate chunks to retrieve before answer filtering")
+    parser.add_argument("--answer-top-k", type=int, default=int(os.getenv("RAG_ANSWER_TOP_K", "3")), help="Number of best chunks to use for answer synthesis")
+    parser.add_argument("--min-relevance-score", type=float, default=float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.35")), help="Minimum normalized relevance score required before answering")
+    parser.add_argument("--show-sources", action="store_true", help="Print retrieved source files with the answer")
+    parser.add_argument("--debug-rag", action="store_true", help="Print RAG retrieval and synthesis debug details")
     args = parser.parse_args()
 
     deepseek_url = args.deepseek_url
@@ -232,7 +263,7 @@ def main() -> None:
             print("Failed to configure remote DeepSeek callable; falling back to local stub.")
             deepseek_callable = default_deepseek_callable
     else:
-        deepseek_callable = default_deepseek_callable
+        deepseek_callable = None
 
     def create_agent(force_reindex: bool = False) -> "RagAgent":
         return build_agent(
@@ -244,6 +275,9 @@ def main() -> None:
             persist_dir=args.persist_dir,
             force_reindex=force_reindex,
             min_shared_query_terms=args.min_shared_query_terms,
+            retrieve_top_k=args.retrieve_top_k,
+            answer_top_k=args.answer_top_k,
+            min_relevance_score=args.min_relevance_score,
         )
 
     agent = create_agent(force_reindex=args.force_reindex)
@@ -252,6 +286,8 @@ def main() -> None:
         deepseek_callable,
         fallback_to_top_chunk=args.fallback_to_top_chunk,
         reload_agent=lambda: create_agent(force_reindex=True),
+        show_sources=args.show_sources,
+        debug_rag=args.debug_rag,
     )
 
 

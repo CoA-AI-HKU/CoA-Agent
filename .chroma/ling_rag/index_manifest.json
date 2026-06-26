@@ -1,161 +1,596 @@
 {
-  "chunk_overlap": 75,
-  "chunk_size": 450,
+  "chunk_overlap": 120,
+  "chunk_size": 900,
   "documents": [
     {
-      "chars": 9108,
-      "sha256": "1119cc9e21b4fb882a0e4e0d1c8a3830d9bd19dcd2b32ff77f241edcb2e5dd13",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-brain-health-tips-7e45d21d68.md"
+      "chars": 5225,
+      "sha256": "ae751c6af73e3ff2542c5b60e029c97885fd9c0ffb6981f85ca1059b1a069858",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-7f202e4810.md"
     },
     {
-      "chars": 8297,
-      "sha256": "e4cd8addb619c0d6553643c2955f3cd4b99f3c88ddf82afb7e0db27f4f5ad5e5",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-3d13317d8f.md"
+      "chars": 5081,
+      "sha256": "bcc46740ad7f8f44dc8b3ebcd9b4f5ab5278e9df5db8ac0493824104c97ad8e7",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-brain-health-tips-dc8c456514.md"
     },
     {
-      "chars": 9515,
-      "sha256": "d2d54114d98da5ebc044917fb644f345e188d7ad26abfa6c8fbad440bbcaaf19",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-communication-9483d7d36b.md"
+      "chars": 5246,
+      "sha256": "0be43ca172456124e52a9b119d9856116f3606e54709496521e9a1cd2ce3a01f",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-105e54138c.md"
     },
     {
-      "chars": 10730,
-      "sha256": "c3b088b6152bec02ce8e9ed576542ec9a9c997fd8c38fe874f42925407a57dcf",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-dementia-medications-eb785f9416.md"
+      "chars": 5469,
+      "sha256": "5412713f5ef18fcbe8bc79e7c94ccb82fa0eca973c4c738d2ea15a8f352731ea",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-communication-15f9e7a321.md"
     },
     {
-      "chars": 8000,
-      "sha256": "fbdf26cc2bba3cf55597bdf310ea90152f27b1b7e613a3a199dab2524397bbfe",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-distressed-behaviour-and-dementia-related-responses-06a402d840.md"
+      "chars": 5708,
+      "sha256": "5b268d0a7afc94d30fe9b735162875d2f2d212832acdfef6ba6e3b34ca08e95f",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-dementia-medications-358f15bdfa.md"
     },
     {
-      "chars": 9747,
-      "sha256": "3c66b55f6a96af31d63c3cdc29e73fc384c1c904ed1b87cabac69c6b153111e1",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-eating-and-swallowing-f8eb558fc7.md"
+      "chars": 4901,
+      "sha256": "e5e14ce31ffd86e93349980a9f394774e65c40defadb23784db52bf3eba35eff",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-distressed-behaviour-and-dementia-related-responses-ad0b02e90b.md"
     },
     {
-      "chars": 6898,
-      "sha256": "a80f3829b2af975a562de066b976698122991e4701cbcb745b2b77d966bc1929",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-fall-prevention-tips-fcc9db4536.md"
+      "chars": 5422,
+      "sha256": "7431bdd91e553832b886010643eff765eaa3b30405f69d406242e0d98917f7e5",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-eating-and-swallowing-ccb5659a15.md"
     },
     {
-      "chars": 9567,
-      "sha256": "bebef4cb1d2c2eea0cc15438ba45cec300af91573e195698787d1ea498498781",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-food-and-nutrition-d818ff7fa8.md"
+      "chars": 4553,
+      "sha256": "f5290b3f5c73c8ef90dd4a8f18c9cdbea196d8e505f4d7af998d4b8342d68474",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-fall-prevention-tips-5c91c2a4ac.md"
     },
     {
-      "chars": 6772,
-      "sha256": "8637928039d4317101cb16f90d843563ca965b7182e21f33ee42fe564f744f11",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-bathroom-baa5ad49f1.md"
+      "chars": 5405,
+      "sha256": "eae0f80cd4f5e417f1aceb63cad9909efc9d474e50d92a64849049fbf196ff24",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-food-and-nutrition-64d105ec2c.md"
     },
     {
-      "chars": 6600,
-      "sha256": "027739aae5130fb802d71f3dc94db708f1beb0ed5ee222b7a8d2e5d702bc599d",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-bedroom-273a38a722.md"
+      "chars": 5884,
+      "sha256": "ac88acd32968f4cae2f81f278fe59436e5bfafcdd31744ed178768c8e3b38080",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-home-safety-16c2f5a147.md"
     },
     {
-      "chars": 10605,
-      "sha256": "eb8b985853d0c66a62621c3c587af204256491997266081d7862e52e9e518730",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-d2d9c0fbf9.md"
+      "chars": 5277,
+      "sha256": "8f600266919d18cc2e481e6364ccb2a9ac2dca6e4842fecb1b440a785f0c7957",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-incontinence-prevention-tips-bc1bb21a57.md"
     },
     {
-      "chars": 7548,
-      "sha256": "c806956c6ac451f4a8fd84fd740dd1ed609b1ba9c2d45d81f8b188ce3f11323f",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-dining-room-be164e4441.md"
+      "chars": 5827,
+      "sha256": "c104e6ecf87bbcca20dbd1e8ced04ad2ee9a2a343c2b54d4b3646c7e820eb136",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-medical-care-and-financial-arrangement-a2d61108a9.md"
     },
     {
-      "chars": 6470,
-      "sha256": "0d31dd6ce79993e1dd1e895c0b49a0948f4dda89a8eda2d729e29ceeb83b5962",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-home-safety-kitchen-1f833a085e.md"
+      "chars": 5893,
+      "sha256": "c03e02033b5b0c25f5368fd3a3cadf560615d88db7f3fc0a1293371422670318",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-minimize-the-risk-of-getting-lost-2359a5e8d4.md"
     },
     {
-      "chars": 9305,
-      "sha256": "2686af5b9b4036770f93ac15f1172d9bcb930e9e29d65f9208cf064de0b8187a",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-incontinence-prevention-tips-534fd36256.md"
+      "chars": 5372,
+      "sha256": "89bb127ccc8d1a29bf88910833edd2614b61ae19aa004a71dfe4848ce5fc174f",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-oral-care-8cadd36b3a.md"
     },
     {
-      "chars": 10806,
-      "sha256": "ed6382dc01ddb36c400229fd87adbb9c187f767d78472766af54884718b87750",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-medical-care-and-financial-arrangement-c7dbe87c45.md"
+      "chars": 4619,
+      "sha256": "e5e79eda9f89dadd25b510bde5e999eb1887128d289eec8152ded9b4ab089bbc",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-safe-lifting-5febadd328.md"
     },
     {
-      "chars": 10688,
-      "sha256": "058a592744ced080e202cd947dbf461dfb5b1d23d0a87bbf20ea6a23858dbb70",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-minimize-the-risk-of-getting-lost-0fa50e4f68.md"
+      "chars": 4437,
+      "sha256": "07a64f38500faafcbd5ac0312da6dc8c9a52c3d498b146c469c8d2129db06217",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-safety-for-caregivers-26e3c6e4e8.md"
     },
     {
-      "chars": 8946,
-      "sha256": "4b9ade3f01d11dfdccb046231380ce61771e59448c4b9636d52acdf5744321e3",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-oral-care-605b7b19f5.md"
+      "chars": 6245,
+      "sha256": "73a5cf873a7fef75e651fce4ab9e698f66e75622654368ea367791252d1ac5b1",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-tips-for-caregivers-f6bb91120a.md"
     },
     {
-      "chars": 7522,
-      "sha256": "3f45d3505afcd3c12491be5b9b056548e6016c615cb00ff86a20802ba234418c",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-safe-lifting-2b375663e9.md"
+      "chars": 5917,
+      "sha256": "86de0fedc0ce13da958483a9cdaa33b03faad650b326744eef5a58150122483a",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-understanding-people-with-dementia-4c4742beed.md"
     },
     {
-      "chars": 7056,
-      "sha256": "dc2ff4b0e2dc37c0fc8971802a9399784936c1ce351cf8400cd8c8be2f6cea7a",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-safety-for-caregivers-a9e2fc41e4.md"
+      "chars": 4359,
+      "sha256": "c14aabb9af28d58aa13eb9733a9aa2f40e3328d317712694bfdf6d8b48905613",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-wheelchair-safety-tips-64f75e2deb.md"
     },
     {
-      "chars": 11237,
-      "sha256": "b296528aa701913394f7c99bdcd80e4198325f605556d9d0743eb840edfc690e",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-tips-for-caregivers-865f5486a9.md"
+      "chars": 4122,
+      "sha256": "efd59c162b9b813c295e0e4c755724073a40b6f85010acc0a83de741740fbd25",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-community-resources-238e9b7b8c.md"
     },
     {
-      "chars": 12006,
-      "sha256": "e9068a203f5d0e9156ed9623277d1274211b3ef6c137ff67ec813cf5e31cbb9c",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-understanding-people-with-dementia-912bdce1eb.md"
+      "chars": 4393,
+      "sha256": "8628ee209a45bcae839ac5bff7b53f3965a7edc1631ece88f76f4b39c10852a3",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-dementia-screening-test-590aa6bff4.md"
     },
     {
-      "chars": 6877,
-      "sha256": "54a704c93a58442305cd641fea13c72275ad87f5076517616b0e6a55c6287094",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-caring-tips-wheelchair-safety-tips-3b8ca46776.md"
+      "chars": 7130,
+      "sha256": "e9ad7560e6f165ff43ce7a6fc3b8c7ab02f59dc84b746c84d37d58c409855183",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-faq-78a6cee4ca.md"
     },
     {
-      "chars": 5720,
-      "sha256": "75ac74deeca84f87226bb7c922a498ff25f214d1ea1522274d27065b969da565",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-community-resources-9d82365a06.md"
+      "chars": 6469,
+      "sha256": "9dc8228adb4f6a232bf1a43f4133dd2db022afb95c7d9797ab54913c5800f93e",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-find-your-suitable-services-53f8f940a3.md"
     },
     {
-      "chars": 6544,
-      "sha256": "f2133f3725dce4ea8c946bfce44ad8893d96dc446616ada8249c8c40d5af70da",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-dementia-screening-test-9caf49220a.md"
+      "chars": 5206,
+      "sha256": "f556cbf7ca44270257f39e37d2beb5aa132d6ae2a27182cf36613d7aa49ee4d4",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-tips-for-domestic-helpers-c0e2b66268.md"
     },
     {
-      "chars": 11946,
-      "sha256": "314c38431f1dbdeb2763837b643f78ecdaece274e7ba44d1c6f47775f014c286",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-dementia-screening-test-survey-cc4073bd55.md"
+      "chars": 8161,
+      "sha256": "e29560f348a06f26151e7e8fa925d6569e5926734cec58812c971f9479b7cc5d",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-useful-information-6692ce59f2.md"
     },
     {
-      "chars": 7555,
-      "sha256": "966c05e77ecc3d2aff9b2ceeff227805b45c25bb8501fcb444cf23abbde4a25e",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-f22f39ccd5.md"
+      "chars": 7950,
+      "sha256": "cef212488c4f78b7666d2d5c890d8d1717ea9fd245cec0bafdc508dcf03760e5",
+      "source": "data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-what-is-dementia-2135bc8c1d.md"
     },
     {
-      "chars": 15573,
-      "sha256": "3163792eb8eaf380c536f086e7f96119bad85cddc2202632edeef2c230d9e4c0",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-faq-29120a9e43.md"
+      "chars": 8853,
+      "sha256": "27a5d94727587e3ec244af9a8892b71d482d969f245782157b446093384f18ce",
+      "source": "data/mds/web/www.jccpa.org.hk/about-us/www-jccpa-org-hk-about-us-177f54d497.md"
     },
     {
-      "chars": 11551,
-      "sha256": "a4bebc941ff3467fabeedc086890c6c0cff3fe3b2e0ef756e4bf19c4163205cc",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-find-your-suitable-services-360c6fb878.md"
+      "chars": 6629,
+      "sha256": "83b1b30eada944d9b145c3fd5ded104bb2550773281dcd9b99026585f26e931a",
+      "source": "data/mds/web/www.jccpa.org.hk/about-us/www-jccpa-org-hk-about-us-ambassadors-1cde16dd96.md"
     },
     {
-      "chars": 8218,
-      "sha256": "392e15c8fe9b49ae1ce197893066a791b37d72b23e779eb414dfd15935b2404b",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-tips-for-domestic-helpers-6290186afd.md"
+      "chars": 4820,
+      "sha256": "0398daea912bc91543a05ca32fd9b9a7c8102f1f1baad3347a18ca8183ed7044",
+      "source": "data/mds/web/www.jccpa.org.hk/about-us/www-jccpa-org-hk-about-us-organisation-chart-c8fe8f7f16.md"
     },
     {
-      "chars": 13580,
-      "sha256": "16bf77b48ffe3f7a0b0a28a2abe57bd6a6d6ef9230e78b4c9664cd327a22faa6",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-useful-information-3599cbf564.md"
+      "chars": 16955,
+      "sha256": "c867445697ede328aa0b4b1f205e7f09d51709fbf46ed63b01d2ed915a0e3203",
+      "source": "data/mds/web/www.jccpa.org.hk/about-us/www-jccpa-org-hk-about-us-team-5bc4c9f3bd.md"
     },
     {
-      "chars": 15642,
-      "sha256": "3bddfeb2199f7c311b9f1c945cec1615998bc197f4c48c866f85deb341a02deb",
-      "source": "data/mds/web/www-jccpa-org-hk-en-about-dementia-what-is-dementia-4352cf3b40.md"
+      "chars": 5428,
+      "sha256": "9da96c44bb7676d29dddadaa3a7c325e6f40b0ae1134a752f2dee91a6b20c19e",
+      "source": "data/mds/web/www.jccpa.org.hk/career/www-jccpa-org-hk-career-bc89719acb.md"
+    },
+    {
+      "chars": 5862,
+      "sha256": "de7c6cd597b108b11ce1a621ba98d7b152763e57f1e58aa1accd287217bf8dc8",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-05-33912b966f.md"
+    },
+    {
+      "chars": 5400,
+      "sha256": "ff73c827035620ca0c72956a203145544cb5ad3e634a10aed94b1c3a35bc721a",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-06-9579d3335f.md"
+    },
+    {
+      "chars": 5729,
+      "sha256": "566b2e977f14b52cd43e1eda8762cf926e32571608ac3fd028775a1d510c93f5",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-07-bfdf4cd20c.md"
+    },
+    {
+      "chars": 5678,
+      "sha256": "88f51ccd880793641ffd570f272f6e910690c6bd90f7a36be789bfedc4c5642c",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-08-0f3ae66382.md"
+    },
+    {
+      "chars": 5844,
+      "sha256": "01e9e9df8ee7e000843915631330e10be415023893e4de4117922c786a3782d0",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-09-7b53ee1988.md"
+    },
+    {
+      "chars": 5110,
+      "sha256": "df91c57b9f5a7baa09c03c398fe3d645adb99e2a7ba96fa91c8ba5bdb0ba0486",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-10-6cc64655bb.md"
+    },
+    {
+      "chars": 5700,
+      "sha256": "a1688db1fad122190225dd4438cfcdc53657d984de311c36fdb29e3f4a4bfe5e",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-11-11a6ae37be.md"
+    },
+    {
+      "chars": 5877,
+      "sha256": "d1b3d9caca580a9d9a109babefd45f55e74260c2889435471c6f12294ca68280",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2021-12-663c44ff4d.md"
+    },
+    {
+      "chars": 5316,
+      "sha256": "0df196cdd2c0f466571eec0dc18c6205e305afcc1444f04e983583a1108cbfd6",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-01-2c67b4d487.md"
+    },
+    {
+      "chars": 5034,
+      "sha256": "4df820ab538648da752957f8a5792377fcb78a9d2381c8a0ce80508cf3bca877",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-02-0da7035f15.md"
+    },
+    {
+      "chars": 5013,
+      "sha256": "dffa15e94822d9a5a06711b47a262fb8b1af2d6f85aa95b89372b58c7d98bb04",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-03-49a642413d.md"
+    },
+    {
+      "chars": 4912,
+      "sha256": "c8ff022f0a436953fc835b9d0adc2517c31ec0434fd48237ef13d0d7a213f949",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-04-81e22ec657.md"
+    },
+    {
+      "chars": 4885,
+      "sha256": "944933aedb44a6aebec98dbbe9e1608e5f3f47941df9f39c2ce355b4e46357d1",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-05-fad86a8b69.md"
+    },
+    {
+      "chars": 5255,
+      "sha256": "2e71d48c0918f66189df688e366ee2202f4536535ae9e7227cf3bf1053fb1a78",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-06-e9899f6ff1.md"
+    },
+    {
+      "chars": 5496,
+      "sha256": "1083d0e1cc66e1b3f78f2f1c7a0db57939a32115316ba98e431ba2d6175d053e",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-07-dcdfffb586.md"
+    },
+    {
+      "chars": 5370,
+      "sha256": "86fc7bfafac5f534741aa3d9b0a0fed51920011e1f81d4e00f02467cd3d644f9",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-08-a462b6a1b9.md"
+    },
+    {
+      "chars": 5140,
+      "sha256": "a24114269d23ef02cda856f0cdad864d11de95b28a570e37139d0f6f23c63a85",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-09-6b958f31b4.md"
+    },
+    {
+      "chars": 4696,
+      "sha256": "4e176e4a146a2e05020c4fd236edb40dd99122cefe7c3304a7bdd46f83586280",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-10-4182ea342a.md"
+    },
+    {
+      "chars": 6800,
+      "sha256": "6d5d0a028454ecfea16700b7a6c92c152573f2df95b48e4eb2ea55d0e5537924",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-11-3dddfe3d61.md"
+    },
+    {
+      "chars": 4735,
+      "sha256": "ed7396a505a62e5d9d270e1fcc024a16e56c876d6f9accbb4ee1314935370d5d",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2022-12-0f7ed63746.md"
+    },
+    {
+      "chars": 4576,
+      "sha256": "20854cea77a465f0a4c34fee4eb3a949561d6eba05d90a159c39e395050a956c",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-01-2addbcf64c.md"
+    },
+    {
+      "chars": 5475,
+      "sha256": "f8d12affa3e718037e1ffd185cb5429d6c130465835eeadb6feee4a2d25edaf0",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-02-fde9aa8b8c.md"
+    },
+    {
+      "chars": 4783,
+      "sha256": "64cd5adbf336eb54b1b82d5189193d3f5846aa9fa1a4c3676c3089118dc98b3f",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-03-704ef572c6.md"
+    },
+    {
+      "chars": 5629,
+      "sha256": "bac8de6715c3deac7726e35a9c801c374e6222ec0e67d96e8601e144b597536b",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-04-bd94f1fb89.md"
+    },
+    {
+      "chars": 4775,
+      "sha256": "a8fb60c6f39ce2d7ab6e7bc91c53efaa40813bc8ba198d1e78c3660e60b9be86",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-05-eb769239aa.md"
+    },
+    {
+      "chars": 4876,
+      "sha256": "5a70824cb93275ff1437312648f0b6f170fa81fe23eff666551ea163f00a8c4f",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-06-e4743edc65.md"
+    },
+    {
+      "chars": 4905,
+      "sha256": "f75221370726c0694484a3d9c1924c95ffac012935ae6d0ee4ba4dcda205275d",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-07-80ec2a1e76.md"
+    },
+    {
+      "chars": 5199,
+      "sha256": "5592f392c4d141f71c8757da52f094b9b22c3cb247260fc3fad33e6fdb00a01a",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-08-043bdaca07.md"
+    },
+    {
+      "chars": 4526,
+      "sha256": "18eca6415fa00c42427a4c5cc1a6cdd0b5d205a38ff686f1b59007879f2a67a2",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-09-d78a963dcd.md"
+    },
+    {
+      "chars": 4641,
+      "sha256": "fe650871c7b8b80f36104ee5e91b46204df03b9d20160b4b4e13113e7c811ce9",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-10-eadbd10980.md"
+    },
+    {
+      "chars": 5758,
+      "sha256": "991a035be8db0069da4052053924f0e16123948dcf72318932a5f8ed78e81a9f",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-11-d5a9e6e3c8.md"
+    },
+    {
+      "chars": 4522,
+      "sha256": "c71aa48ad558b2605b02f34ef86eec065f8e3ff961141229671c2849072b755f",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2023-12-3718cfccd2.md"
+    },
+    {
+      "chars": 5471,
+      "sha256": "af3b5d42d0de9cf3475037efcf15b636d1b207ad7b2b2a39908b0b0715c423cc",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-01-d558357ee4.md"
+    },
+    {
+      "chars": 5028,
+      "sha256": "c7589f7a9ba764e48505fa2fdf690218e6d06e015f215644a7fba670ac61f585",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-02-8bb65a3a51.md"
+    },
+    {
+      "chars": 5809,
+      "sha256": "f3c760c017d059f226f055ff3df95c2fb28800daff719426a41ce3ec40f53439",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-03-47bf67335c.md"
+    },
+    {
+      "chars": 5303,
+      "sha256": "39eb5f02e39b4334b124100a7710b761c89a3c810fefa1aca52de7c6676b6b69",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-04-1f70c29b78.md"
+    },
+    {
+      "chars": 5672,
+      "sha256": "a0b3af1662de26aff2e334eb26a22f8e5e488448a0f80587785b0e2bd54d3120",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-05-acb1efb696.md"
+    },
+    {
+      "chars": 6385,
+      "sha256": "1ef175b903ca854401835356c659a6bd16d880162078f4877d6aa5a478015e10",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-06-d52a421764.md"
+    },
+    {
+      "chars": 4951,
+      "sha256": "deda9abe16b1a9ecca87218f087d068cc3fab9b9774bf8f3fe7d5c160fedbcad",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-07-84cc9df3b1.md"
+    },
+    {
+      "chars": 4960,
+      "sha256": "d1f01a789a35cb8d2ad1ab3105aaf09ba27feeb0001a223fd0eb4ffa71d3bc9e",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-08-db4a5cfc9d.md"
+    },
+    {
+      "chars": 6164,
+      "sha256": "23db7246f17aa6b65001ed78781014068b1a687922d6cc7b64dcfd33e3254bee",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-09-6d0b6091d0.md"
+    },
+    {
+      "chars": 5653,
+      "sha256": "36df42c67275a134e1956823d1403c34db4770db039fb37bfd48986dd6ad0e2e",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-10-8a4cbaebbf.md"
+    },
+    {
+      "chars": 6099,
+      "sha256": "360106d54e9dc20f07729e55cb153bcb0bda6bf3d8c1eec90534a124ebdd9c39",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-11-f44bcb5517.md"
+    },
+    {
+      "chars": 6617,
+      "sha256": "092a1ab65a78b549d9fbcbe146b85f379f0b22d2c954cf674a907e9caf307a19",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2024-12-a21328e2f6.md"
+    },
+    {
+      "chars": 4578,
+      "sha256": "075cb57445460fbe148b5265ee5c32e8483ffa9d77457e53cfcb46848f9fdf38",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-01-8825ee4400.md"
+    },
+    {
+      "chars": 5307,
+      "sha256": "270ef1c23b297d84f14344368c54f2bad0162e129c9c0f08cb48660f4a60573a",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-02-79e343c621.md"
+    },
+    {
+      "chars": 5117,
+      "sha256": "83c479887099a627c07338e37a0deb336a8715528ee0ddb5b7a5810e4e6eb69b",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-03-19507b5eb8.md"
+    },
+    {
+      "chars": 4471,
+      "sha256": "99deab24f2ff39865baa4301528ab599ac7770cbf4f2da48b16c178fa1ec9537",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-04-bb16cbdbc8.md"
+    },
+    {
+      "chars": 5799,
+      "sha256": "7f8be12948391627f0b176e4539e7a8d4b9ac18e372e144c9c25b1f409b0d81a",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-05-5f06b5a33e.md"
+    },
+    {
+      "chars": 5862,
+      "sha256": "a17929c3286378f6a2a8a287db6501dd301eff4d8f31a3facd4fefd6b32ae46f",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-06-1599570145.md"
+    },
+    {
+      "chars": 5359,
+      "sha256": "b34ec98247d229310137546b77136b70cebe9253c2d6a45dc553f3da48074784",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-07-7997c5dae9.md"
+    },
+    {
+      "chars": 5313,
+      "sha256": "cc0d60ceebacc4c6b9c9e30d547ba31a19978f09343673fe4d4edceff5b355c7",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-08-cab8caadea.md"
+    },
+    {
+      "chars": 6223,
+      "sha256": "065013219711fce1a5aabd2b219eedabee1d6fa9a2aa4149bc257494851ab4a1",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-09-2f3c8050b5.md"
+    },
+    {
+      "chars": 5984,
+      "sha256": "e81e883da50edc592c3c63eb2b4e46fa2a7a616f1882d4a011c4cf4508294ff5",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-10-0e43570d38.md"
+    },
+    {
+      "chars": 5786,
+      "sha256": "c16b83e43bd010faf24d2e9a992a5585afc7ade73cefe2c666d58a6250cfcf2c",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-11-90259339b6.md"
+    },
+    {
+      "chars": 5146,
+      "sha256": "1ae747e58440538bd5edacf3f078dc1e7e5b231d9b9d264759f6851a635b5665",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2025-12-00a12fab74.md"
+    },
+    {
+      "chars": 5703,
+      "sha256": "d3405f80e23515204d6ad568a55c5b3d87977064e2fb1fcb1056d50554c26053",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2026-01-0b66c03f25.md"
+    },
+    {
+      "chars": 6083,
+      "sha256": "bdc6d7bd6474552e3ab81a739131d8e74e01a7a6749697d6643da977a3f5c8af",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2026-02-c0cc8ebda7.md"
+    },
+    {
+      "chars": 6484,
+      "sha256": "f7c42a8aeff77e460ba0b957dc30a04565451ed4ee8c7ef4040bc7a0dfe83d78",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2026-03-22e61adf52.md"
+    },
+    {
+      "chars": 7220,
+      "sha256": "dd0460be5b0e15f06a6a7d454f49273b336e13087b994d081297831710967c24",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2026-04-0779dadd71.md"
+    },
+    {
+      "chars": 6175,
+      "sha256": "a4a1a1fef1260a2267509777862111303310fe424538d096da40b082b11dfc50",
+      "source": "data/mds/web/www.jccpa.org.hk/centre-news/www-jccpa-org-hk-centre-news-2026-05-07e28e4c3f.md"
+    },
+    {
+      "chars": 4965,
+      "sha256": "856d618537d16ceb574a85d7e76856e68c44fc2348f483151fb1e4c6d7fdf74b",
+      "source": "data/mds/web/www.jccpa.org.hk/contact-us/www-jccpa-org-hk-contact-us-e28d5b4ba8.md"
+    },
+    {
+      "chars": 5167,
+      "sha256": "84dfeeef83113985e70fe67ef5b86439d7ab65c4b4eeb44b8b68e5dc022e5e34",
+      "source": "data/mds/web/www.jccpa.org.hk/data-access-request/www-jccpa-org-hk-data-access-request-8f28332626.md"
+    },
+    {
+      "chars": 4774,
+      "sha256": "7f83ca7840e78f91eb04679f4cf54bbcd8740a9d06d79e10d5b84cb64493256d",
+      "source": "data/mds/web/www.jccpa.org.hk/disclaimer/www-jccpa-org-hk-disclaimer-be8c821cfc.md"
+    },
+    {
+      "chars": 4299,
+      "sha256": "27708b509fd17e2d37e43651f6d77343ab20498223c3c354bd27aec71c4f3381",
+      "source": "data/mds/web/www.jccpa.org.hk/donation/www-jccpa-org-hk-donation-553551b4f7.md"
+    },
+    {
+      "chars": 7437,
+      "sha256": "1a1ce016cc922baf57a34612084f7e92fd462a60038f3d66284fed49e8561843",
+      "source": "data/mds/web/www.jccpa.org.hk/key-projects/www-jccpa-org-hk-key-projects-487bacaa3a.md"
+    },
+    {
+      "chars": 106892,
+      "sha256": "d05be1fb67e482041b72efce961e3288ca3b85ef5ab98b5f3df05f2a7fe3f849",
+      "source": "data/mds/web/www.jccpa.org.hk/media/www-jccpa-org-hk-media-64187f70c6.md"
+    },
+    {
+      "chars": 26184,
+      "sha256": "85847de3fa5ffe0a9b12026a7c9f9d5ad790c0d2010aebe43255e659910290e6",
+      "source": "data/mds/web/www.jccpa.org.hk/news-and-events/www-jccpa-org-hk-news-and-events-0b321b5a52.md"
+    },
+    {
+      "chars": 5035,
+      "sha256": "af2b36a953556f3e4a545fd4869d97c55946488a54ccabc61039299887cd1b21",
+      "source": "data/mds/web/www.jccpa.org.hk/privacy-policy/www-jccpa-org-hk-privacy-policy-b45840bf43.md"
+    },
+    {
+      "chars": 5850,
+      "sha256": "a5e6cc03f112a80700e9de417ab65338569cd18cc9deeb9a25ff4ffb6dba125a",
+      "source": "data/mds/web/www.jccpa.org.hk/projects/www-jccpa-org-hk-projects-ccd-56ea2fb4e9.md"
+    },
+    {
+      "chars": 5914,
+      "sha256": "34b28e4a48b1d4d63efef1d8d5fac1027b40e41cbde04ad743f12ba505734b95",
+      "source": "data/mds/web/www.jccpa.org.hk/projects/www-jccpa-org-hk-projects-dscs-5d5b56efc3.md"
+    },
+    {
+      "chars": 5540,
+      "sha256": "dd918b3c70a562f5c30e8c4e54369809d329eee0f31712c6e8d13e76640cf5cc",
+      "source": "data/mds/web/www.jccpa.org.hk/projects/www-jccpa-org-hk-projects-pdp-d17343a9db.md"
+    },
+    {
+      "chars": 32338,
+      "sha256": "9b3a38c017a3aa68653bd766c4f3029baef1040f76296e5f23eceab111c3a716",
+      "source": "data/mds/web/www.jccpa.org.hk/research/www-jccpa-org-hk-research-f4c16c73fe.md"
+    },
+    {
+      "chars": 4910,
+      "sha256": "4cc2a8f052e83dce1c672106c54c933d756977af8da2870384b20d16c4f7266b",
+      "source": "data/mds/web/www.jccpa.org.hk/services/www-jccpa-org-hk-services-29a83dce2a.md"
+    },
+    {
+      "chars": 5883,
+      "sha256": "e74759119dc242e27d1f3c365a63cfa7957f5e5ec25528fab3db1f511afa2be5",
+      "source": "data/mds/web/www.jccpa.org.hk/services/www-jccpa-org-hk-services-day-care-service-066c50c546.md"
+    },
+    {
+      "chars": 8779,
+      "sha256": "54cec4197ab25f527f222a5299f8d6920ffd70c4ceffe1e5bfff61f9e4ac0d34",
+      "source": "data/mds/web/www.jccpa.org.hk/services/www-jccpa-org-hk-services-environment-and-facilities-18e8661ad3.md"
+    },
+    {
+      "chars": 4444,
+      "sha256": "718342b405981030e61cbc553e96a71aae4e09af04ac5edc51a86949dd181a8d",
+      "source": "data/mds/web/www.jccpa.org.hk/services/www-jccpa-org-hk-services-memory-clinic-5be0a0ac91.md"
+    },
+    {
+      "chars": 5478,
+      "sha256": "dc748eeb03b5b802789c6bb627591dc8fe5f71bf50de9a805646cd47dd97eb4a",
+      "source": "data/mds/web/www.jccpa.org.hk/services/www-jccpa-org-hk-services-residential-service-1b4432d407.md"
+    },
+    {
+      "chars": 3967,
+      "sha256": "1e0d3b9740c5c4625df2be19f254ac7c84412ada6ab2e08b53d45753f76c0718",
+      "source": "data/mds/web/www.jccpa.org.hk/sitemap/www-jccpa-org-hk-sitemap-fb0dffb8af.md"
+    },
+    {
+      "chars": 5020,
+      "sha256": "5c7147e539103776336b42b3264e621cde473957f6bbdc001605e221e16509ce",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-7e358979ca.md"
+    },
+    {
+      "chars": 6305,
+      "sha256": "940c79d9ba8e0338e19a44c0abf3e5f894c0ea0e3c0151ec020db386f2c56d8b",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-advanced-diploma-3e6f2c1d4c.md"
+    },
+    {
+      "chars": 4462,
+      "sha256": "7634b262223bc89c576328edf73634679b2eba091fbc33d5482b2b8299bbfabb",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-corporates-and-organisations-2452a0ffbb.md"
+    },
+    {
+      "chars": 4257,
+      "sha256": "e45062bf58ba3f5e8b9555c9b8ba3cc1c0602efcf8b529e4fa110bd50e09bd00",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-domestic-helpers-0460fbe069.md"
+    },
+    {
+      "chars": 16034,
+      "sha256": "f1ce333b8df8f889173962fb205626e59bd3fe4222f36832db2c737a2319557f",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-family-caregivers-184ee6d527.md"
+    },
+    {
+      "chars": 9141,
+      "sha256": "d72fb6fa1c54b990f33dc70b3022a1dcbb9f9c30514d5e741b13846f01a83ccd",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-professional-workers-996fe9cc0f.md"
+    },
+    {
+      "chars": 6362,
+      "sha256": "8abc2c64c52b8f094b1c7dc1c4cc08772495776f249076320c3608a200afbbb0",
+      "source": "data/mds/web/www.jccpa.org.hk/training/www-jccpa-org-hk-training-public-education-bb258276bb.md"
+    },
+    {
+      "chars": 6399,
+      "sha256": "c85dba780aef2d1d86f65e66c83097e4609e68deeac2ff9c67531cabd8f2c5a8",
+      "source": "data/mds/web/www.jccpa.org.hk/website/www-jccpa-org-hk-website-061ef294b9.md"
     }
   ],
   "embedder_model": "all-MiniLM-L6-v2",

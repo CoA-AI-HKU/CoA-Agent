@@ -1,0 +1,195 @@
+# 腦退化症常見問題｜服務及支援｜賽馬會耆智園
+
+查看香港腦退化症照顧的常見問題，涵蓋記憶力問題、日間護理、暫託住宿、院舍照顧及照顧者支援。耆智園提供實用指引，協助家屬了解腦退化症人士可使用的服務及照顧選項。
+
+展開全部
+
+關閉全部
+
+## 1. 開始發覺家人出現記性問題，應該如何處理？
+
+答： 首先可以留意行為是否近期突然出現，並持續發生，如短期記憶力亦同時變差的話，我們建議盡快安排醫療評估及檢查，亦可致電 2636 6323 與本中心社工聯絡，了解情況，並商討照顧方法。
+
+## 2. 有什麼服務可以幫助腦退化症人士或家屬？
+
+| 腦退化症人士方面： | 家屬方面：
+| （一）經濟援助
+可往社會保障辦事處申請傷殘津貼金、綜合社會保障援助或入住私營老人院特別津貼等。 | （一） 家屬訓練課程
+耆智園及不同的服務單位透過講座和課程，讓家屬了解腦退化症人士的病情發展及照顧技巧，無論在溝通方法或行為處理均有不同的認識。
+
+（二）日間護理中心
+為有需要的早、中期腦退化症人士，提供日間的照顧服務。
+| （二） 家屬支援小組：
+耆智園及不同的中心均設有家屬支援服務，可致電予附近中心查詢。
+| （三）醫療服務
+老人科或老人精神科的專科門診或住院服務，為不同階段的腦退化症人士提供評估、護理及康復服務。 | （三） 暫託服務：
+一般的院舍服務裡，其中會有一至兩張床位，為提供暫時服務而設。家屬因事短期內(一至兩週)不能照顧病者時可以申請。亦有自負盈虧單位提供暫託服務，如耆智園。
+| （四）家務助理
+家務助理員會上門協助腦退化症人士及其家人家居清潔、送飯、陪診等。
+| （五） 上門家居訓練及支援服務：
+耆智園及部份服務腦退化症之單位設有上門家居訓練服務，由職業治療師提供認知訓練及家居環境改善意見，加強照顧。 | （四） 熱線服務：
+耆智園及部份服務腦退化症之單位均設有熱線服務，照顧者可以查詢有關照顧方法及情緒支援，了解社區的資源配合
+| （六）院舍服務
+政府資助的安老院、護理安老院、護養院及醫管局轄下的療養院均會為不同階段的腦退化症人士提供二十四小時的住宿照顧及護理服務，但輪候時間較長。 | （五） 照顧者討論區：
+耆智園及部份服務腦退化症之單位均設有網上照顧者討論區，定期更新及解答家屬不同的查詢。
+| （七） 私人院舍服務：
+在各區均設有不同的私營院舍，家人必須了解該院舍的運作及質素，才能決定使用或申請。 | （六）情緒輔導
+耆智園及不同的中心均有輔導服務，加強照顧者的情緒支援。
+
+## 3.如何申請政府為腦退化症長者提供的服務？
+
+1. 可以到就近的長者鄰舍中心／所屬長者地區中心申請
+2. 如果腦退化症長者仍在醫院，可尋找所屬醫院之醫務社會服務部協助申請
+
+備註：一般申請人須年滿65歲或以上，至於60-64歲申請人將個別考慮，60歲以下則不接受申請政府之長期護理服務。申請後仍需經過社署評估，合資格的長者才可輪候政府服務。
+
+## 4.如何申請暫托服務（短暫住宿）？
+
+1. 到住所所屬的長者地區中心，請社工協助申請
+2. 考慮申請耆智園服務
+3. 致電區內的私營安老院舍申請
+
+備註：申請政府短暫住宿服務一年不能超過42日，並需由社工填寫申請表，再安排進行入院前之體格檢驗報告書(甲) (MEF-A)，才能成功入住，最好在三至六個月前準備。如需住宿超過42日，便需要尋找私營安老院舍。
+
+## 5.我日間未能照顧長者，怎樣申請日間中心服務？
+
+1. 政府服務：須向所屬的長者地區中心申請
+2. 自負盈虧服務: 家人可直接致電區內個別院舍/日間中心申請
+3. 耆智園服務：長者須由醫生確診為腦退化症，家人可直接申請本中心服務
+
+備註：一般申請人需年滿65歲或以上，至於60-64歲申請人將個別考慮，60歲以下則不接受申請政府之日間中心。至於自負盈虧日間中心則視乎個別情況，大部分須年滿60歲或以上
+
+## 6.腦退化症人士於日間中心會有什麼活動？
+
+不同日間中心都會按照實際需要定立恆常之活動日程，當中包括早操、遊戲活動訓練和個別治療等，希望透過社交生活和活動增強腦退化症人士的能力，然而現時大部分日間中心為綜合性照顧服務，並未能因應不同情況的人士設定相對活動(如腦退化症人士)，故有特別需要或情況之人士可向專門照顧的日間中心查詢。
+
+## 7.如何申請私營安老院舍？
+
+1. 致電予所屬長者地區中心尋找資料
+2. 如腦退化症長者仍在醫院，可尋找所屬醫院之醫務社會服務部協助提供資料
+3. 直接致電區內不同的私營安老院舍 ，申請後由院方通知入住時期，入院前亦需要進行體格檢驗報告書(甲) (MEF-A)。
+
+## 8.如何選擇質素較好的老人院？
+
+院舍的質素可因應其空間、設施、人手比例、饍食和照顧實況等判斷，所以最好在選擇前首先參觀該院舍一次。另須留意環境及衛生問題，因為對長者健康十分重要。實際上，安老院全部需要牌照登記，如想進一步查詢可到社署網頁，安老服務中的安老院名單「全港已領有牌照的私營安老院名單」查詢。
+
+## 9.如何為腦退化症人士申請傷殘津貼？
+
+1. 如腦退化症人士在政府醫院覆診，可直接向該醫生查詢，再交由醫務社工轉介申請
+2. 如已持有醫管局轄下的醫生證明信，可往所屬的社會福利辦事處申請
+
+## 10. 如何申請上門送飯、陪診的服務？
+
+1. 政府服務：須向所屬的長者地區中心申請
+2. 非政府機構服務：直接致電個別綜合家居照顧隊申請
+
+## 11.腦退化症人士曾經出現走失問題，有何預防方法？
+
+腦退化症人士出現走失的情況，實不能忽視，家人必須要衡量腦退化症人士是否能繼續於社區中生活，建議作進一步認知檢查，以防再次走失。可嘗試採取以下的預防方法：
+
+1. 安裝一些隱蔽或複雜的門鎖，亦可在較高或隱蔽位置另加裝橫鎖
+2. 在家中的大門加裝一些會發出聲響的感應儀器，如防盜器
+3. 在腦退化症人士的衣服上縫上聯絡電話及他們的名字，並給他戴上有聯絡資料的手鐲或名牌
+4. 將腦退化症人士容易迷途的情況，告知保安員或一些友好鄰居，以便幫忙帶領他們回家
+5. 為腦退化症人士拍下一些半身及全身生活近照，並減少衣服的配搭及數量，以記起腦退化症人士通常的衣著，方便尋找
+
+## 12.腦退化症人士曾經出現幻覺／妄想，應該如何處理？
+
+如出現類似情況，首先應了解腦退化症人士會否因此而導致情緒不穩，衡量現有危機(如會否突然失控，傷害自己或他人等即時危險)，腦退化症人士亦有可能受環境因素或身體不適影響。如此情況持續出現，便需要安排精神科醫生跟進。一般可從政府門診排期，亦可安排私家醫生，如有緊急情況可致電救護車送院。
+
+## 13.腦退化症人士經常說有人偷了他的錢，應該怎麼辦？
+
+1. 盡量不要與腦退化症人士爭辯，因這只會刺激他的情緒
+2. 以平靜的態度去幫助他尋找遺失了的東西
+3. 詢問腦退化症人士如何得知被人偷東西，讓他講述被偷的經過，了解其想法
+4. 嘗試了解腦退化症人士尋找該物件的原因
+5. 可以從中轉換話題或用別的東西轉移視線
+6. 重覆教導腦退化症人士用同一地方擺放東西，並每次在他尋找物件時提醒擺放的位置
+7. 透過重複訓練是可以學習並減低遺失物件，如情況持續及開始強烈地表達不滿，便需要請教精神科醫生
+8. 如果腦退化症人士與其他人同住(例如傭工)，宜觀察傭工的動靜，有機會腦退化症人士是反映實況
+
+## 14. 誰符合資格申請香港腦退化症院舍照顧？
+
+答︰腦退化症人士如需要長期個人照顧、護理或起居支援，而有關支援未能完全在家中提供，便可考慮申請院舍照顧。就受資助院舍照顧服務而言，申請人一般須年滿65歲或以上，並經社署「安老服務統一評估機制」評估為有相關服務需要。60至64歲人士亦可提出申請，但須證實確有健康或社會方面的住宿照顧需要。
+
+腦退化症風險因素評估
+
+[了解更多](https://dementia.org.hk/)
+
+認識耆智園
+
+- [認識耆智園](https://www.jccpa.org.hk/about-us/)
+- [發展里程事](https://www.jccpa.org.hk/about-us/#timeline)
+- [專業團隊](https://www.jccpa.org.hk/about-us/team/)
+- [架構圖](https://www.jccpa.org.hk/about-us/organisation-chart/)
+- [親善大使](https://www.jccpa.org.hk/about-us/ambassadors/)
+
+認識腦退化症
+
+- [認識腦退化症](https://www.jccpa.org.hk/about-dementia/)
+- [腦退化症知識](https://www.jccpa.org.hk/about-dementia/what-is-dementia/)
+- [實用照顧錦囊](https://www.jccpa.org.hk/about-dementia/caring-tips/)
+- [01. 照顧者貼士](https://www.jccpa.org.hk/about-dementia/caring-tips/tips-for-caregivers/)
+- [02. 了解腦退化症人士](https://www.jccpa.org.hk/about-dementia/caring-tips/understanding-people-with-dementia/)
+- [03. 溝通方式](https://www.jccpa.org.hk/about-dementia/caring-tips/communication/)
+- [04. 家居安全​](https://www.jccpa.org.hk/about-dementia/caring-tips/home-safety/)
+- [05. 進食及吞嚥](https://www.jccpa.org.hk/about-dementia/caring-tips/eating-and-swallowing/)
+- [06. 飲食與營養](https://www.jccpa.org.hk/about-dementia/caring-tips/food-and-nutrition/)
+- [07. 口腔護理](https://www.jccpa.org.hk/about-dementia/caring-tips/oral-care/)
+- [08. 預防走失](https://www.jccpa.org.hk/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
+- [09. 預防跌倒](https://www.jccpa.org.hk/about-dementia/caring-tips/fall-prevention-tips/)
+- [10. 預防失禁](https://www.jccpa.org.hk/about-dementia/caring-tips/incontinence-prevention-tips/)
+- [11. 受壓下的行為表現](https://www.jccpa.org.hk/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
+- [12. 照顧者自身的安全](https://www.jccpa.org.hk/about-dementia/caring-tips/safety-for-caregivers/)
+- [13. 扶抱技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/safe-lifting/)
+- [14. 輪椅安全使用技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/wheelchair-safety-tips/)
+- [15. 醫療、護理及財務安排](https://www.jccpa.org.hk/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
+- [16. 藥物治療](https://www.jccpa.org.hk/about-dementia/caring-tips/dementia-medications/)
+- [家傭溝通](https://www.jccpa.org.hk/about-dementia/tips-for-domestic-helpers/)
+- [常見問題](https://www.jccpa.org.hk/about-dementia/faq/)
+- [護腦貼士](https://www.jccpa.org.hk/about-dementia/brain-health-tips/)
+- [腦退化初步快速測試](https://www.jccpa.org.hk/about-dementia/dementia-screening-test/)
+- [尋找合適服務](https://www.jccpa.org.hk/about-dementia/find-your-suitable-services/)
+- [社區資源地圖](https://www.jccpa.org.hk/about-dementia/community-resources/)
+- [下載有用資料](https://www.jccpa.org.hk/about-dementia/useful-information/)
+
+核心服務
+
+- [核心服務](https://www.jccpa.org.hk/services/)
+- [記憶診所](https://www.jccpa.org.hk/services/memory-clinic/)
+- [日間中心服務](https://www.jccpa.org.hk/services/day-care-service/)
+- [住宿服務](https://www.jccpa.org.hk/services/residential-service/)
+- [環境設施](https://www.jccpa.org.hk/services/environment-and-facilities/)
+- [參觀申請](https://www.jccpa.org.hk/services/environment-and-facilities/#application)
+
+焦點項目
+
+- [焦點項目](https://www.jccpa.org.hk/key-projects/)
+- [賽馬會「智康健」腦退化檢測及社區支援計劃](https://www.jccpa.org.hk/projects/dscs/)
+- [「友里蹤跡」社區計劃](https://www.jccpa.org.hk/projects/ccd/)
+- [「回家易」離院復康計劃](https://www.jccpa.org.hk/projects/pdp/)
+
+訓練及課程
+
+- [訓練及課程](https://www.jccpa.org.hk/training/)
+- [家屬照顧者](https://www.jccpa.org.hk/training/family-caregivers/)
+- [業界同工](https://www.jccpa.org.hk/training/professional-workers/)
+- [家庭傭工](https://www.jccpa.org.hk/training/domestic-helpers/)
+- [企業機構](https://www.jccpa.org.hk/training/corporates-and-organisations/)
+- [公眾教育活動](https://www.jccpa.org.hk/training/public-education/)
+- [腦退化症網上學習平台](https://edu.jccpa.org.hk/)
+- [支援腦退化症實務高等文憑課程](https://www.jccpa.org.hk/training/advanced-diploma/)
+
+研究成果
+
+- [研究成果](https://www.jccpa.org.hk/research/)
+- [進行中的研究](https://www.jccpa.org.hk/research/#sec01)
+- [已完成的研究](https://www.jccpa.org.hk/research/#sec02)
+- [腦退化症研究專題](https://www.jccpa.org.hk/research/#sec03)
+- [腦退化症風險因素評估](https://dementia.org.hk/)
+
+菜單Menu
+
+1
+
+賽馬會耆智園是香港中文大學全資擁有的附屬機構

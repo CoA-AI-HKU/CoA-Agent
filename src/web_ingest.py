@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
 from collections import deque
 from pathlib import Path
 from urllib.parse import urldefrag, urlparse
@@ -22,6 +23,16 @@ DEFAULT_WEBSITE_LIST_PATH = Path(__file__).resolve().parents[1] / "data" / "webs
 DEFAULT_MAX_CRAWL_PAGES = 100
 DEFAULT_MAX_CRAWL_DEPTH = 4
 DEFAULT_CRAWL_SCOPE = "path-prefix"
+DEFAULT_CRAWL_DELAY_SECONDS = 0.2
+SKIP_PATH_CONTAINS = {
+    "/feed",
+    "/wp-json",
+    "/xmlrpc",
+}
+SKIP_PATH_SUFFIXES = {
+    "/print",
+    "/embed",
+}
 
 
 def _slugify(value: str) -> str:
@@ -31,13 +42,25 @@ def _slugify(value: str) -> str:
     return value or "website"
 
 
+def _slugify_host(value: str) -> str:
+    host = value.lower()
+    if "@" in host:
+        host = host.rsplit("@", 1)[-1]
+    host = host.split(":", 1)[0]
+    host = re.sub(r"[^a-z0-9.]+", "-", host).strip("-.")
+    return host or "website"
+
+
 def markdown_path_for_url(url: str, markdown_root: Path = DEFAULT_WEB_MARKDOWN_ROOT) -> Path:
     parsed = urlparse(url)
-    host = _slugify(parsed.netloc)
-    path = _slugify(parsed.path)
+    host = _slugify_host(parsed.netloc)
+    path_segments = [_slugify(segment) for segment in parsed.path.split("/") if segment.strip()]
     url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()[:10]
-    filename = f"{host}-{path}-{url_hash}.md" if path else f"{host}-{url_hash}.md"
-    return markdown_root / filename
+    if path_segments:
+        *parents, leaf = path_segments
+        filename = f"{leaf}-{url_hash}.md"
+        return markdown_root.joinpath(host, *parents, filename)
+    return markdown_root / host / f"index-{url_hash}.md"
 
 
 def _normalized_url(url: str) -> str:
@@ -78,12 +101,18 @@ def _within_crawl_scope(url: str, root_url: str, crawl_scope: str) -> bool:
     raise ValueError(f"Unknown crawl scope: {crawl_scope}")
 
 
+def _should_skip_crawl_url(url: str) -> bool:
+    parsed = urlparse(url)
+    path = parsed.path.lower().rstrip("/")
+    if any(fragment in path for fragment in SKIP_PATH_CONTAINS):
+        return True
+    if any(path.endswith(suffix) for suffix in SKIP_PATH_SUFFIXES):
+        return True
+    return False
+
+
 def _metadata_header(source: str, requested_url: str) -> list[str]:
-    return [
-        f"<!-- source: {source} -->",
-        f"<!-- requested_url: {requested_url} -->",
-        "<!-- type: website -->",
-    ]
+    return []
 
 
 def convert_website_url(
@@ -125,6 +154,7 @@ def crawl_website(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
     crawl_scope: str = DEFAULT_CRAWL_SCOPE,
+    delay_seconds: float = DEFAULT_CRAWL_DELAY_SECONDS,
 ) -> list[Path]:
     start_url = _normalized_url(start_url)
     queue = deque([(start_url, 0)])
@@ -154,16 +184,26 @@ def crawl_website(
                 metadata_header=_metadata_header(final_url, url),
             )
         converted.append(target_path)
+        print(f"[{len(converted)}/{max_pages}] {final_url}")
 
         if depth >= max_depth:
+            if delay_seconds > 0:
+                time.sleep(delay_seconds)
             continue
 
         for link in extract_links(html, base_url=final_url):
             normalized_link = _normalized_url(link)
-            if normalized_link in seen or not _within_crawl_scope(normalized_link, start_url, crawl_scope):
+            if normalized_link in seen:
+                continue
+            if _should_skip_crawl_url(normalized_link):
+                continue
+            if not _within_crawl_scope(normalized_link, start_url, crawl_scope):
                 continue
             seen.add(normalized_link)
             queue.append((normalized_link, depth + 1))
+
+        if delay_seconds > 0:
+            time.sleep(delay_seconds)
 
     return converted
 
@@ -177,6 +217,7 @@ def crawl_website_urls(
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
     max_bytes: int = DEFAULT_MAX_BYTES,
     crawl_scope: str = DEFAULT_CRAWL_SCOPE,
+    delay_seconds: float = DEFAULT_CRAWL_DELAY_SECONDS,
 ) -> list[Path]:
     converted: list[Path] = []
     for url in urls:
@@ -190,6 +231,7 @@ def crawl_website_urls(
                 timeout=timeout,
                 max_bytes=max_bytes,
                 crawl_scope=crawl_scope,
+                delay_seconds=delay_seconds,
             )
         )
     return converted
@@ -216,6 +258,7 @@ def main() -> None:
     parser.add_argument("--max-depth", type=int, default=DEFAULT_MAX_CRAWL_DEPTH, help="Maximum link depth to crawl from each starting website")
     parser.add_argument("--timeout", type=int, default=DEFAULT_TIMEOUT_SECONDS, help="Fetch timeout in seconds per page")
     parser.add_argument("--max-bytes", type=int, default=DEFAULT_MAX_BYTES, help="Maximum bytes to read per page")
+    parser.add_argument("--delay", type=float, default=DEFAULT_CRAWL_DELAY_SECONDS, help="Delay between page fetches")
     parser.add_argument(
         "--crawl-scope",
         choices=["path-prefix", "same-site"],
@@ -249,6 +292,7 @@ def main() -> None:
             timeout=args.timeout,
             max_bytes=args.max_bytes,
             crawl_scope=args.crawl_scope,
+            delay_seconds=args.delay,
         )
     print(f"Converted {len(converted)} website page(s) to markdown under {args.markdown_root}")
     for path in converted:

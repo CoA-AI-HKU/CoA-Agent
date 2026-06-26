@@ -1,0 +1,19 @@
+[
+  {
+    "question": "What is computational linguistics?",
+    "expected_contains": ["scientific", "engineering", "language"],
+    "expected_source": "Introducing_computational_linguistics.md",
+    "max_sentences": 3
+  },
+  {
+    "question": "What should a caregiver do if a dementia patient repeats the same question?",
+    "expected_contains": ["calm", "reassure"],
+    "expected_source_contains": "dementia",
+    "max_sentences": 3
+  },
+  {
+    "question": "What is the capital of France?",
+    "expected_answer": "I don't know from the provided documents.",
+    "expected_found": false
+  }
+]

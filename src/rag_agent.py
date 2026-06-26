@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Callable, List, Optional
 
-from .chunker import chunk_documents
+from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
 from .embedder import Embedder
+from .prompts import ANSWER_PROMPT, FALLBACK_ANSWER
 from .vector_store import get_default_vector_store
 
 
-UNKNOWN_ANSWER = "I don't know."
+UNKNOWN_ANSWER = FALLBACK_ANSWER
+RETRIEVE_TOP_K = 8
+ANSWER_TOP_K = 3
+MIN_RELEVANCE_SCORE = 0.35
 
 STOPWORDS = {
     "about",
@@ -114,6 +118,26 @@ def _document_relevance_score(query: str, document: Document) -> float:
     return score
 
 
+def _normalized_relevance_score(query: str, document: Document) -> float:
+    query_terms = _content_terms(query)
+    if not query_terms:
+        return 0.0
+
+    document_terms = _content_terms(document.text)
+    shared_ratio = len(query_terms & document_terms) / len(query_terms)
+    lexical_score = min(_document_relevance_score(query, document) / 20.0, 1.0)
+    distance = document.metadata.get("distance")
+    distance_score = 0.0
+    if isinstance(distance, (int, float)):
+        distance_score = max(0.0, min(1.0, 1.0 / (1.0 + float(distance))))
+
+    return max(shared_ratio, lexical_score, distance_score * 0.75)
+
+
+def rewrite_query(question: str) -> str:
+    return question.strip()
+
+
 class RagAgent:
     def __init__(
         self,
@@ -122,12 +146,15 @@ class RagAgent:
         embedder_model_name: Optional[str] = None,
         embedder_provider: str = "auto",
         offline_embeddings: bool = False,
-        chunk_size: int = 450,
-        chunk_overlap: int = 75,
+        chunk_size: int = DEFAULT_CHUNK_SIZE,
+        chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
         top_k: int = 3,
         max_context_chars: int = 1800,
         per_chunk_chars: int = 500,
         min_shared_query_terms: int = 1,
+        retrieve_top_k: int = RETRIEVE_TOP_K,
+        answer_top_k: int = ANSWER_TOP_K,
+        min_relevance_score: float = MIN_RELEVANCE_SCORE,
     ) -> None:
         self._embedder = embedder
         self.embedder_model_name = embedder_model_name
@@ -140,6 +167,9 @@ class RagAgent:
         self.max_context_chars = max_context_chars
         self.per_chunk_chars = per_chunk_chars
         self.min_shared_query_terms = min_shared_query_terms
+        self.retrieve_top_k = retrieve_top_k
+        self.answer_top_k = answer_top_k
+        self.min_relevance_score = min_relevance_score
 
     @property
     def embedder(self) -> Embedder:
@@ -196,33 +226,26 @@ class RagAgent:
         return supported
 
     def build_prompt(self, query: str, retrieved_docs: List[Document]) -> str:
+        context = self.format_context(retrieved_docs)
+        return ANSWER_PROMPT.format(context=context, question=query)
+
+    def format_context(self, retrieved_docs: List[Document]) -> str:
         parts: List[str] = []
         total = 0
-        for doc in retrieved_docs:
+        for index, doc in enumerate(retrieved_docs, start=1):
             text = doc.text or ""
             if len(text) > self.per_chunk_chars:
                 text = text[: self.per_chunk_chars].rstrip() + "..."
-            entry = f"Source: {doc.metadata.get('source', 'unknown')}\n{text}"
+            source = doc.metadata.get("source", "unknown")
+            heading = doc.metadata.get("heading")
+            label = f"{source} - {heading}" if heading else str(source)
+            entry = f"[Source {index}: {label}]\n{text}"
             entry_len = len(entry)
             if total + entry_len > self.max_context_chars and parts:
                 break
             parts.append(entry)
             total += entry_len
-
-        context = "\n\n".join(parts)
-
-        return (
-            "You are a helpful assistant.\n"
-            "Answer the question using only the provided context.\n"
-            "Keep the answer concise, specific, and well-defined: use 1-3 short paragraphs or bullets.\n"
-            "Do not invent information from outside the context.\n"
-            "If the context is only loosely related or does not explicitly answer the question, say \"I don't know.\"\n\n"
-            "Context:\n"
-            f"{context}\n\n"
-            "Question:\n"
-            f"{query}\n\n"
-            "Answer:\n"
-        )
+        return "\n\n".join(parts)
 
     def answer(self, query: str, deepseek_callable, k: Optional[int] = None) -> str:
         retrieved = self.retrieve(query, k=k)
@@ -236,3 +259,141 @@ class RagAgent:
         if not retrieved:
             return UNKNOWN_ANSWER
         return retrieved[0].text
+
+    def answer_question(
+        self,
+        question: str,
+        answer_callable: Optional[Callable[[str], str]] = None,
+        retrieve_top_k: Optional[int] = None,
+        answer_top_k: Optional[int] = None,
+        min_relevance_score: Optional[float] = None,
+    ) -> dict[str, Any]:
+        search_query = rewrite_query(question)
+        retrieve_k = retrieve_top_k or self.retrieve_top_k
+        use_k = answer_top_k or self.answer_top_k
+        threshold = self.min_relevance_score if min_relevance_score is None else min_relevance_score
+
+        retrieved = self.retrieve(search_query, k=retrieve_k)
+        scored = [
+            doc.copy_with_metadata(relevance_score=_normalized_relevance_score(search_query, doc))
+            for doc in retrieved
+        ]
+        scored.sort(key=lambda doc: doc.metadata.get("relevance_score", 0.0), reverse=True)
+        best_score = float(scored[0].metadata.get("relevance_score", 0.0)) if scored else 0.0
+
+        if not scored or best_score < threshold:
+            return {
+                "found": False,
+                "answer": FALLBACK_ANSWER,
+                "sources": [],
+                "context_used": "",
+                "debug": {
+                    "search_query": search_query,
+                    "top_k_retrieved": retrieve_k,
+                    "top_k_used": 0,
+                    "retrieved_count": len(scored),
+                    "best_score": best_score,
+                    "min_relevance_score": threshold,
+                },
+            }
+
+        best_chunks = scored[:use_k]
+        context = self.format_context(best_chunks)
+        prompt = ANSWER_PROMPT.format(context=context, question=question)
+        answer = answer_callable(prompt).strip() if answer_callable else self._extractive_answer(question, best_chunks)
+        if not answer:
+            answer = FALLBACK_ANSWER
+
+        sources = []
+        for doc in best_chunks:
+            source = str(doc.metadata.get("source", "unknown"))
+            if source not in sources:
+                sources.append(source)
+
+        answer_with_sources = _format_answer_with_sources(answer, sources)
+        return {
+            "found": answer != FALLBACK_ANSWER,
+            "answer": answer,
+            "answer_with_sources": answer_with_sources,
+            "sources": sources,
+            "context_used": context,
+            "debug": {
+                "search_query": search_query,
+                "top_k_retrieved": retrieve_k,
+                "top_k_used": len(best_chunks),
+                "retrieved_count": len(scored),
+                "best_score": best_score,
+                "min_relevance_score": threshold,
+                "scores": [doc.metadata.get("relevance_score", 0.0) for doc in best_chunks],
+            },
+        }
+
+    def _extractive_answer(self, question: str, retrieved_docs: List[Document]) -> str:
+        question_terms = _content_terms(question)
+        candidate_sentences: list[tuple[float, str]] = []
+        for doc in retrieved_docs:
+            for sentence in _split_answer_sentences(doc.text):
+                if _is_low_value_answer_sentence(sentence):
+                    continue
+                sentence_terms = _content_terms(sentence)
+                shared = question_terms & sentence_terms
+                if not shared:
+                    continue
+                score = float(len(shared))
+                if len(sentence) > 80:
+                    score += 0.5
+                if re.search(r"\bis\b|\bare\b|\bmeans\b|\brefers\b", sentence.lower()):
+                    score += 0.5
+                candidate_sentences.append((score, sentence.strip()))
+
+        if not candidate_sentences:
+            return FALLBACK_ANSWER
+
+        candidate_sentences.sort(key=lambda item: item[0], reverse=True)
+        answer = candidate_sentences[0][1]
+        return answer if answer.endswith((".", "!", "?")) else f"{answer}."
+
+
+def _split_answer_sentences(text: str) -> list[str]:
+    prose_lines: list[str] = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            prose_lines.append("")
+            continue
+        if stripped.startswith("#"):
+            continue
+        if stripped.startswith("[Source "):
+            continue
+        if re.fullmatch(r"[-*+]\s*", stripped):
+            continue
+        prose_lines.append(re.sub(r"^[-*+]\s+", "", stripped))
+
+    normalized = re.sub(r"\s+", " ", "\n".join(prose_lines)).strip()
+    if not normalized:
+        return []
+    return [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", normalized) if sentence.strip()]
+
+
+def _is_low_value_answer_sentence(sentence: str) -> bool:
+    stripped = sentence.strip()
+    if len(stripped) < 40:
+        return True
+    if stripped.startswith("#"):
+        return True
+    if stripped.endswith("?"):
+        return True
+    return False
+
+
+def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
+    if answer == FALLBACK_ANSWER or not sources:
+        return answer
+
+    source_names = []
+    for source in sources[:2]:
+        source_name = Path(source).name
+        if source_name not in source_names:
+            source_names.append(source_name)
+    suffix = "; ".join(source_names)
+    return f"{answer}\n\nSource: {suffix}"

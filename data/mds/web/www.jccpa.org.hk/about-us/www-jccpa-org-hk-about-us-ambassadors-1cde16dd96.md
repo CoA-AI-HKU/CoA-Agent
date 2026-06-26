@@ -1,0 +1,197 @@
+# 親善大使 - 賽馬會耆智園 | 一站式腦退化症服務中心
+
+## 腦友寶寶
+
+###### 代表腦退化症人士。腦友寶寶頭上的擦膠，如同腦退化症一樣，逐漸抹去腦海中的記憶和大腦認知能力，令他的生活充滿各種挑戰。
+
+###### 大家可以在 <<腦友寶寶之日常>> 中了解更多由真人真事改編的腦退化症人士生活。
+
+## 耆跡天使
+
+###### 代表關注腦退化症的熱心人士和照顧者。耆跡天使熱心善良，樂於助人，願意聆聽和理解腦退化症人士的世界。他經常陪伴著腦友寶寶，當察覺到寶寶有需要時，便給予支援和鼓勵！
+
+###### 我們期望社區有越來越多人成為耆跡天使，在日常生活中留意及關懷腦友寶寶，共建腦退化症友善社區，讓他們可以繼續開心和安全地在社區生活！
+
+## 耆智園老
+
+###### 「耆智園老」是一位在腦退化症領域具備深厚學術造詣的博士，長年投身研究與教育工作，累積了廣博的專業知識與臨床經驗。
+
+## 腦友寶寶之日常
+
+###### 腦退化症人士的照顧者在照顧路途上， 遇到過許多特別時刻
+或許，是苦中有樂，或許，是酸中帶甜
+八個真人真事改編的漫畫故事， 您，可有共鳴……
+
+01
+
+### 執筆忘字
+
+很多人也有健忘的情況，例如執筆忘字，或話到口唇邊卻記不起想說的話，甚至經常丟東掉西如失魂魚。當這些情況持續出現時，也不禁會懷疑自己是否開始有腦退化症的可能。
+
+要診斷是否有腦退化症當然不能只看幾件事就能作出判斷，而是需要由專家評估其日常生活、情緒及與人相處等情況而判斷。倘若發現家人出現記憶力退化或認知問題，最好盡早找專家詳細評估，適當治療和非藥物介入可相對地減慢退化速度，亦能讓照顧者有時間做好準備，一起面對將來的挑戰。
+
+02
+
+### 寶寶有寶
+
+不同的腦退化症會影響大腦不同的部份，有些負責記憶、有些負責情緒。情緒和記憶也有互動的關係，我們有不同程度的記憶，可能因為有情感和判斷是否重要的影響，所以有些人覺得自己愈在乎的事物，愈有可能會記得，但亦是因人而異。
+
+當腦退化症人士情緒起伏時，可能會有點偏執，又或者容易胡思亂想，疑心較重，擔心身邊的人想傷害或欺騙自己。因此，照顧者需要給腦退化症人士多點安全感和信心，讓他們感到被關心及關顧。
+
+03
+
+### 喜好
+
+腦退化症人士參與活動的動機較低，有時怕做得不理想或出現尷尬而拒絕參加，並非「不合作」和「不合群」，因此選擇適合他們的能力和興趣的活動十分重要。
+
+遇到這種情況，可以參考能力為本 (Strength-based) 的概念，觀察他們「能做什麼」及「喜歡做什麼」，由於人會偏向從事自己擅長的活動，因而較容易得到滿足感。試試觀察一下腦退化症人士的喜好，為他們挑選合意和有意義的活動，讓他們每天活得更開心。
+
+04
+
+### 食咗飯未?
+
+食肆如酒樓、快餐店等均是許多長者常到的地方，無論是食肆職員或是店內的顧客，都可以主動為腦退化症人士提供協助，適時伸出援手︰
+
+- 腦退化症人士有時未能掌握時間和周遭的環境而出現情緒緊張
+
+- 若無法清晰地表達自己的意思時，耐心聆聽他的需要，並協助提供所需資訊
+
+- 當重覆點相同食品時，可以提醒他們，並可以主動作出溝通
+
+- 如付款或找續時遇到困難，技巧地提供協助，例如︰「不如我幫你一齊數一數，好嗎？」
+
+05
+
+### 唔知好嬲定好笑
+
+腦退化症人士的行爲和情緒出現起伏是很普遍的，其中，較常見的表現可能是不願和別人傾談、食慾改變、因某些事情而容易焦慮或情緒激動。在醫學評估中，某些行為更可定義為具攻擊性，至於重複的動作、叫喊、徘徊、抑鬱、多疑、妄想和失眠亦偶有發生，腦退化症人士有時未能適當地控制自己的行爲。
+
+雖然如此，他們所說的和所做的，也是反映他們實際的感受和背後的需要。若照顧者有了這份了解，便能對腦退化症人士的行為作出適當的預期和反應。
+
+06
+
+### 失用
+
+由於腦退化症人士的短期記憶力較弱，亦有機會逐步減退，故會常常忘記剛發生的事，他們會忘記物件放在哪兒。有時部份腦退化症人士會將物件放入未必恰當的地方，例如將錢包誤放入雪櫃、衣物收藏於不同抽屜，如情況沒有跟進，甚至有機會將微波爐當夾萬，把首飾放入微波爐，容易發生家居意外。我們可考慮用紙張寫上「微波爐」作提示，或以圖畫顯示，貼在物件上。另外亦有腦退化症人士曾誤認遙控器當手機打電話，家人最好了解腦退化症人士的日常需要，並提供正確的協助方法和安排。
+
+07
+
+### 有得揀
+
+腦退化症人士有時會難以用適當名稱去形容物件，因此不應以空泛的語句去代替人物／物件／地方的名稱，例如「我去嗰度囉」、「我食緊啲嘢」、「我想搵嗰個人呀」等，最好清楚說出內容，並一次問一個問題為原則。
+
+當腦退化症人士在選擇時遇到困難，建議可給予兩至三個選擇或將實物呈現出來，例如：「你想著綠色定藍色衫？」又或者「你想食薯片定果仁呢？」。這樣，我們能尊重他們的決定之餘亦會較容易理解腦退化症人士的真正需要。
+
+08
+
+### 咯咯咯咯
+
+記憶力退化是部份腦退化症人士主要出現的情況，初期的腦退化症人士可能對長期記憶十分清晰，而短期記憶則反而會模糊，甚至忘記。
+
+他們會經常提起一些多年前或年輕時的往事（即長期記憶），並能清晰地表達出來；對於近期發生的事（即短期記憶）則無法記起。除了短期記憶減退外，腦退化症人士還有機會出現判斷力減弱、對時間及空間出現混亂，例如日夜顛倒等的表現，因此盡早檢測和及早介入尤其重要。
+
+如發現身邊長者或家人持續出現以上情況， 可以致電賽馬會耆智園記憶在線(2333-2393)尋求協助。
+
+## 貼圖包
+
+###### 適用於Signal、Telegram、WhatsApp 及 iMessage
+
+[ 按此下載 ](https://www.sigstick.com/pack/gRpQDn09MRYTosrMlHWP)
+
+#### 靜態貼圖包 – Part 1
+
+](https://whatsticker.online/p/510611xv8BKg/HK/zh)
+
+#### 靜態貼圖包 – Part 2
+
+](https://whatsticker.online/p/4684514XzwxLB/HK/zh)
+
+#### 動態貼圖包 – Part 1
+
+](https://whatsticker.online/p/479430fqI3nHs/HK/zh)
+
+#### 動態貼圖包 – Part 2
+
+](https://whatsticker.online/p/4794387PPOnAY/HK/zh)
+
+腦退化症風險因素評估
+
+[了解更多](https://dementia.org.hk/)
+
+認識耆智園
+
+- [認識耆智園](https://www.jccpa.org.hk/about-us/)
+- [發展里程事](https://www.jccpa.org.hk/about-us/#timeline)
+- [專業團隊](https://www.jccpa.org.hk/about-us/team/)
+- [架構圖](https://www.jccpa.org.hk/about-us/organisation-chart/)
+- [親善大使](https://www.jccpa.org.hk/about-us/ambassadors/)
+
+認識腦退化症
+
+- [認識腦退化症](https://www.jccpa.org.hk/about-dementia/)
+- [腦退化症知識](https://www.jccpa.org.hk/about-dementia/what-is-dementia/)
+- [實用照顧錦囊](https://www.jccpa.org.hk/about-dementia/caring-tips/)
+- [01. 照顧者貼士](https://www.jccpa.org.hk/about-dementia/caring-tips/tips-for-caregivers/)
+- [02. 了解腦退化症人士](https://www.jccpa.org.hk/about-dementia/caring-tips/understanding-people-with-dementia/)
+- [03. 溝通方式](https://www.jccpa.org.hk/about-dementia/caring-tips/communication/)
+- [04. 家居安全​](https://www.jccpa.org.hk/about-dementia/caring-tips/home-safety/)
+- [05. 進食及吞嚥](https://www.jccpa.org.hk/about-dementia/caring-tips/eating-and-swallowing/)
+- [06. 飲食與營養](https://www.jccpa.org.hk/about-dementia/caring-tips/food-and-nutrition/)
+- [07. 口腔護理](https://www.jccpa.org.hk/about-dementia/caring-tips/oral-care/)
+- [08. 預防走失](https://www.jccpa.org.hk/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
+- [09. 預防跌倒](https://www.jccpa.org.hk/about-dementia/caring-tips/fall-prevention-tips/)
+- [10. 預防失禁](https://www.jccpa.org.hk/about-dementia/caring-tips/incontinence-prevention-tips/)
+- [11. 受壓下的行為表現](https://www.jccpa.org.hk/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
+- [12. 照顧者自身的安全](https://www.jccpa.org.hk/about-dementia/caring-tips/safety-for-caregivers/)
+- [13. 扶抱技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/safe-lifting/)
+- [14. 輪椅安全使用技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/wheelchair-safety-tips/)
+- [15. 醫療、護理及財務安排](https://www.jccpa.org.hk/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
+- [16. 藥物治療](https://www.jccpa.org.hk/about-dementia/caring-tips/dementia-medications/)
+- [家傭溝通](https://www.jccpa.org.hk/about-dementia/tips-for-domestic-helpers/)
+- [常見問題](https://www.jccpa.org.hk/about-dementia/faq/)
+- [護腦貼士](https://www.jccpa.org.hk/about-dementia/brain-health-tips/)
+- [腦退化初步快速測試](https://www.jccpa.org.hk/about-dementia/dementia-screening-test/)
+- [尋找合適服務](https://www.jccpa.org.hk/about-dementia/find-your-suitable-services/)
+- [社區資源地圖](https://www.jccpa.org.hk/about-dementia/community-resources/)
+- [下載有用資料](https://www.jccpa.org.hk/about-dementia/useful-information/)
+
+核心服務
+
+- [核心服務](https://www.jccpa.org.hk/services/)
+- [記憶診所](https://www.jccpa.org.hk/services/memory-clinic/)
+- [日間中心服務](https://www.jccpa.org.hk/services/day-care-service/)
+- [住宿服務](https://www.jccpa.org.hk/services/residential-service/)
+- [環境設施](https://www.jccpa.org.hk/services/environment-and-facilities/)
+- [參觀申請](https://www.jccpa.org.hk/services/environment-and-facilities/#application)
+
+焦點項目
+
+- [焦點項目](https://www.jccpa.org.hk/key-projects/)
+- [賽馬會「智康健」腦退化檢測及社區支援計劃](https://www.jccpa.org.hk/projects/dscs/)
+- [「友里蹤跡」社區計劃](https://www.jccpa.org.hk/projects/ccd/)
+- [「回家易」離院復康計劃](https://www.jccpa.org.hk/projects/pdp/)
+
+訓練及課程
+
+- [訓練及課程](https://www.jccpa.org.hk/training/)
+- [家屬照顧者](https://www.jccpa.org.hk/training/family-caregivers/)
+- [業界同工](https://www.jccpa.org.hk/training/professional-workers/)
+- [家庭傭工](https://www.jccpa.org.hk/training/domestic-helpers/)
+- [企業機構](https://www.jccpa.org.hk/training/corporates-and-organisations/)
+- [公眾教育活動](https://www.jccpa.org.hk/training/public-education/)
+- [腦退化症網上學習平台](https://edu.jccpa.org.hk/)
+- [支援腦退化症實務高等文憑課程](https://www.jccpa.org.hk/training/advanced-diploma/)
+
+研究成果
+
+- [研究成果](https://www.jccpa.org.hk/research/)
+- [進行中的研究](https://www.jccpa.org.hk/research/#sec01)
+- [已完成的研究](https://www.jccpa.org.hk/research/#sec02)
+- [腦退化症研究專題](https://www.jccpa.org.hk/research/#sec03)
+- [腦退化症風險因素評估](https://dementia.org.hk/)
+
+菜單Menu
+
+1
+
+賽馬會耆智園是香港中文大學全資擁有的附屬機構

@@ -1,0 +1,290 @@
+# 腦退化症是什麼？症狀、診斷與治療方法 | 賽馬會耆智園
+
+## 腦退化症是什麼？
+
+腦退化症是一個統稱，包括約十多種腦部退化病症。腦退化症人士會在注意力、執行能力、記憶力、語言能力、感覺及動作整合、社交能力等方面出現明顯的退化該退化程度對生活造成影響，甚至可能出現性格轉變、日夜顛倒、妄想或幻覺等情況。
+
+醫護人員現時多根據美國精神醫學學會（American Psychiatric Association）所發表的《精神疾病診斷標準則手冊第五版》（DSM-V）內所列的徵狀，診斷一個人是否有腦退化症。此外，智能測驗、電腦斷層掃描、核磁共振造影檢查、血液檢驗等均可協助醫護人員判斷該名人士是否出現腦退化症徵狀，抑或是因為其他疾病而導致類似徵狀。
+
+心血管疾病、抑鬱症、中風、肥胖等均是高危因素，與腦退化症出現機率有關，所以保持身心健康非常重要。
+
+## 如何診斷腦退化症？
+
+醫生會根據臨床評估、認知測試、掃描檢查、血液檢驗，以及對症狀和病歷的評估，診斷腦退化症。
+
+### 智能測驗
+
+醫護人員可能透過「蒙特利爾認知評估香港版」(HK-MoCA) 及「阿氏腦退化症功能性評估量表」等工具，評估腦退化症人士各方面的認知能力及功能性表現，以協助醫生作出診斷。
+
+### 電腦斷層掃描 (CT Scan) 和核磁共振造影檢查 (MRI)
+
+由於腦退化症人士的掃描或檢查結果可能沒有明顯病變，又或可能與患上其他疾病的人相若，所以，掃描結果多用於判斷腦退化症人士是否因腦部腫瘤、腦梗塞或出血而出現徵狀。
+
+### 血液檢驗
+
+- 血液檢驗可檢查腦退化症人士是否因缺乏維他命、肝病、腎病、代謝疾病或甲狀腺疾病等其他因素影響而出現腦退化症徵狀。
+- 新的「血液生物標誌物檢測」* 可以輔助醫生更早診斷「阿茲海默症」。根據當事人的病況，醫生可能建議以下一種或多於一種的血液測試，而異常的水平則顯示他們可能患有「阿茲海默症」。這項檢測可為醫生提供更具體的臨床資料以作出診斷，讓腦退化症人士及早接受治療。#
+
+血液檢測
+
+磷酸化濤蛋白-181（p-Tau 181)
+
+高於正常的水平
+
+磷酸化濤蛋白-217（p-Tau 217)
+
+高於正常的水平
+
+澱粉樣蛋白42/40比例（Aβ42/40）
+
+低於正常水平
+
+神經絲蛋白輕鏈（NfL)
+
+高於正常的水平
+
+* 《美國醫學會雜誌》在2024年7月刊登了一項瑞典的研究報告指出，同時使用「磷酸化濤蛋白-217」和「澱粉樣蛋白42/40比例」的血液檢測，可以提升基層和專科醫生診斷「阿茲海默症」的準確性，分別由61% 和73%，增加至91%。
+
+### 醫生的臨床經驗
+(根據病史及身體檢查）
+
+醫生常以臨床經驗出發，根據當事人和家人提供的病史，以及身體檢查結果，再參考《精神疾病診斷標準則手冊第五版》內所例徵狀及其他檢驗結果，判斷該名人士是否有腦退化症。主要徵狀如下：
+
+1. 整體注意力
+例如：無法記住新訊息（如：剛說的電話號碼或訊息）、容易因環境刺激而分心（如：電視或說話聲音）、無法用心算計數、思考比以前花時間。
+
+1. 執行功能
+例如：不肯嘗試困難的任務、只能一次做一件事、需別人協助處理日常雜務或做決定（如：打電話或購物）。
+
+1. 學習與記憶
+例如：談話期間會重複內容、無法按清單購齊物品、需要不斷提醒才能完成簡單的事情、遺忘生命中的重要片段或回憶、忘記如何做熟悉的事情。
+
+1. 語言
+例如：用語言表達自己時有困難，或瞭解語言時有困難（如：經常用模稜兩可的說話回答、說話時文法上有錯誤、只會說單調反覆的話）。
+
+1. 感覺及動作整合
+包括空間感、對視野中物品的察覺及辨認、如何計劃怎樣做一個動作、手眼協調等。
+例如：無法在雜亂的物品中尋找特定物品、難以跟隨指示做簡單的動作（如：不懂跟隨指示揮手、舉起手）、臨摹文字或簡單圖畫有困難、進行熟習的編織或縫合工作時有困難。
+
+1. 社交認知
+例如：在社交應對、禮儀打扮、聊天交談方面出現問題；做出他人難以接受的行為、不再尊重家人或朋友。
+
+資料來源：
+Diagnostic and Statistical Manual of Mental Disorders, Fifth Edition, Text Revision
+
+#「血液生物標誌物檢測」部份由馬漢明醫生提供
+
+## 認清不同種類的腦退化症
+
+### 阿茲
+海默症
+
+- 最常見的腦退化症種類，約佔所有個案的50%至70%，在女性中較為普遍。
+- 病情通常進展緩慢，最早出現的常見徵狀是短期記憶、儲存資料和學習新事物出現困難。
+
+### 血管性
+腦退化症
+
+- 65歲或以上人士中第二常見的腦退化症種類，約佔所有個案的30%，在男性中較為普遍。
+- 它與中風、心臟病和血液循環問題有密切關係。
+
+### 額顳葉型
+腦退化症
+
+- 35至75歲人士中第二常見的腦退化症種類。
+- 最早出現的徵狀並非記憶力衰退，而是難以安排日常生活、處理事件之優先次序出現問題、情緒控制方面出現困難等。
+
+### 路易氏體型腦退化症
+
+- 由腦部底部基底核及黑質紋狀體部份的細胞壞死引致的非遺傳性疾病。
+- 可能會出現幻覺、混亂、集中力及警覺性反覆轉變、睡眠障礙、容易跌倒等，判斷力或會較弱。情感上或會表現冷漠。
+
+### 其他
+
+- 缺乏維他命B12、甲狀線功能失調、長期酗酒、神經性梅毒感染、腦腫瘤等亦可能導致認知功能減退。
+
+dementia/_BLY4647
+
+## 腦退化症有哪些徵兆？
+
+- 變得冷漠
+- 不願嘗試新事物
+- 決策或計劃能力下降
+- 將錯放的東西指控為別人偷竊
+- 忘記近期的事情
+
+- 混淆時間與地點
+- 突然發怒或焦慮
+- 對以往喜愛的事物興趣減退
+- 不善於適應改變
+- 較難掌握複雜的概念
+
+- 主觀性較強
+- 重複講話或動作
+- 處理個人衛生或飲食安排上有困難
+- 出現幻覺/幻聽情況
+
+## 掌握腦退化症的病情發展
+
+腦退化症的發展大致可分為三個階段，腦退化症人士的各種能力會隨著進入不同階段而下降，建議最好由專業人士作出評估。照顧者可參考腦退化症人士身處的階段，提供適合的照顧（以下例子只作參考）。
+| 事項 | 早期(第1-3年) | 中期(第3-8年) | 晚期 (第8-10年)
+| 沒有協助下處理較複雜的事情，如：處理銀行戶口 | | |
+| 從熟悉的地方回家 | | |
+| 說出大概的日期和時間 | | |
+| 感受身邊發生的事情 | | |
+| 表達自己的想法 | | |
+| 日常生活的自我照顧 | | |
+| 控制大小便 | | |
+
+*年期長短受照顧的質素所影響，因此也有不同的變化。
+
+✔✔✔=能夠做到
+
+✔✔=需要提示或指示才能做到
+
+✔=需要協助才能做到
+
+✘=未能做到
+
+[ 下載「基本認識」單張
+
+](https://www.jccpa.org.hk/wp-content/uploads/2021/07/1.pdf)
+
+## 治療方法
+
+當你知道家人有腦退化症時，必定會四出找尋治療方法。腦退化症雖然暫時仍未能診治，但在適當的治療和個人化的社區支援下，腦退化症人士的身心情況是可以改善的。治療方法可分為藥物治療及非藥物介入方法，在早期接受治療可延緩衰退。醫護及社福界均建議先嘗試非藥物介入方法，在必要時才以藥物控制情緒或受壓下的行為表現。
+
+### 非藥物介入方法​
+
+#### 社交生活小組
+
+透過社交聯誼活動改善溝通及情緒，維持有意義的人際關係
+
+#### 智能激勵訓練
+
+改善專注力、記憶力、計算能力、語言能力及解難能力
+
+#### 現實導向
+
+以引導和提醒方式，讓腦退化症人士了解周遭事物，如現時的日期、時間和地點等，有效增加安全感及穩定情緒
+
+#### 懷緬活動治療
+
+透過講述往事，讓腦退化症人士獲得肯定和支持，並鞏固遠期記憶
+
+#### 藝術/音樂探索治療
+
+透過藝術或音樂，讓腦退化症人士放鬆心情，表達感受，增強滿足感和信心
+
+#### 其他方法
+
+書法治療、感官刺激治療、香薰治療、竉物治療、園藝治療等
+
+### 藥物治療​
+
+#### 針對改善阿茲海默人士的認知能力
+
+- 乙醯膽鹼酯抑制劑 (Acetylcholinesterase Inhibitors)或膽鹼分解抑制劑 (Cholinesterase Inhibitors)，例如：Donepezil(Aricept®)、Rivastigmine(Exelon®)、Galantamine(Reminyl®)
+- 谷氨酸鹽受體拮抗劑 (N-Methyl-D-Aspartate (NMDA) Receptor Antagonists)，例如︰Memantine (Namenda®、Ebixa®)
+
+#### 改善情緒及行為表現
+
+- 抗癲癇藥或情緒穩定劑 (Anticonvulsants or Mood-Stabilizers)
+- 抗精神病藥 (Antipsychotics)
+- 抗抑鬱藥 (Antidepressants)
+- 抗焦慮藥 (Anxiolytics)
+- 助眠劑／安眠藥 (Hypnotics)
+
+#### 針對非阿茲海默人士的藥物
+
+- 高血壓藥物、糖尿病藥物、心臟病藥物等（針對因中風或慢性腦血管栓塞引起的腦退化症高危人士）
+- 抗血小板凝集劑及抗凝固劑等（預防因中風或慢性腦血管栓塞引起的腦退化症人士再次中風）
+- 維他命丸、維生素補充劑等（針對因維生素不足而出現腦退化症病徵的人士）
+
+[ 下載「治療方法」單張
+
+](https://www.jccpa.org.hk/wp-content/uploads/2021/06/2.pdf)
+
+以上資料只供參考，如有疑問，請向醫生查詢，切勿自行購買藥物服用，以免出現不良的藥物反應 。
+
+腦退化症風險因素評估
+
+[了解更多](https://dementia.org.hk/)
+
+認識耆智園
+
+- [認識耆智園](https://www.jccpa.org.hk/about-us/)
+- [發展里程事](https://www.jccpa.org.hk/about-us/#timeline)
+- [專業團隊](https://www.jccpa.org.hk/about-us/team/)
+- [架構圖](https://www.jccpa.org.hk/about-us/organisation-chart/)
+- [親善大使](https://www.jccpa.org.hk/about-us/ambassadors/)
+
+認識腦退化症
+
+- [認識腦退化症](https://www.jccpa.org.hk/about-dementia/)
+- [腦退化症知識](https://www.jccpa.org.hk/about-dementia/what-is-dementia/)
+- [實用照顧錦囊](https://www.jccpa.org.hk/about-dementia/caring-tips/)
+- [01. 照顧者貼士](https://www.jccpa.org.hk/about-dementia/caring-tips/tips-for-caregivers/)
+- [02. 了解腦退化症人士](https://www.jccpa.org.hk/about-dementia/caring-tips/understanding-people-with-dementia/)
+- [03. 溝通方式](https://www.jccpa.org.hk/about-dementia/caring-tips/communication/)
+- [04. 家居安全​](https://www.jccpa.org.hk/about-dementia/caring-tips/home-safety/)
+- [05. 進食及吞嚥](https://www.jccpa.org.hk/about-dementia/caring-tips/eating-and-swallowing/)
+- [06. 飲食與營養](https://www.jccpa.org.hk/about-dementia/caring-tips/food-and-nutrition/)
+- [07. 口腔護理](https://www.jccpa.org.hk/about-dementia/caring-tips/oral-care/)
+- [08. 預防走失](https://www.jccpa.org.hk/about-dementia/caring-tips/minimize-the-risk-of-getting-lost/)
+- [09. 預防跌倒](https://www.jccpa.org.hk/about-dementia/caring-tips/fall-prevention-tips/)
+- [10. 預防失禁](https://www.jccpa.org.hk/about-dementia/caring-tips/incontinence-prevention-tips/)
+- [11. 受壓下的行為表現](https://www.jccpa.org.hk/about-dementia/caring-tips/distressed-behaviour-and-dementia-related-responses/)
+- [12. 照顧者自身的安全](https://www.jccpa.org.hk/about-dementia/caring-tips/safety-for-caregivers/)
+- [13. 扶抱技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/safe-lifting/)
+- [14. 輪椅安全使用技巧](https://www.jccpa.org.hk/about-dementia/caring-tips/wheelchair-safety-tips/)
+- [15. 醫療、護理及財務安排](https://www.jccpa.org.hk/about-dementia/caring-tips/medical-care-and-financial-arrangement/)
+- [16. 藥物治療](https://www.jccpa.org.hk/about-dementia/caring-tips/dementia-medications/)
+- [家傭溝通](https://www.jccpa.org.hk/about-dementia/tips-for-domestic-helpers/)
+- [常見問題](https://www.jccpa.org.hk/about-dementia/faq/)
+- [護腦貼士](https://www.jccpa.org.hk/about-dementia/brain-health-tips/)
+- [腦退化初步快速測試](https://www.jccpa.org.hk/about-dementia/dementia-screening-test/)
+- [尋找合適服務](https://www.jccpa.org.hk/about-dementia/find-your-suitable-services/)
+- [社區資源地圖](https://www.jccpa.org.hk/about-dementia/community-resources/)
+- [下載有用資料](https://www.jccpa.org.hk/about-dementia/useful-information/)
+
+核心服務
+
+- [核心服務](https://www.jccpa.org.hk/services/)
+- [記憶診所](https://www.jccpa.org.hk/services/memory-clinic/)
+- [日間中心服務](https://www.jccpa.org.hk/services/day-care-service/)
+- [住宿服務](https://www.jccpa.org.hk/services/residential-service/)
+- [環境設施](https://www.jccpa.org.hk/services/environment-and-facilities/)
+- [參觀申請](https://www.jccpa.org.hk/services/environment-and-facilities/#application)
+
+焦點項目
+
+- [焦點項目](https://www.jccpa.org.hk/key-projects/)
+- [賽馬會「智康健」腦退化檢測及社區支援計劃](https://www.jccpa.org.hk/projects/dscs/)
+- [「友里蹤跡」社區計劃](https://www.jccpa.org.hk/projects/ccd/)
+- [「回家易」離院復康計劃](https://www.jccpa.org.hk/projects/pdp/)
+
+訓練及課程
+
+- [訓練及課程](https://www.jccpa.org.hk/training/)
+- [家屬照顧者](https://www.jccpa.org.hk/training/family-caregivers/)
+- [業界同工](https://www.jccpa.org.hk/training/professional-workers/)
+- [家庭傭工](https://www.jccpa.org.hk/training/domestic-helpers/)
+- [企業機構](https://www.jccpa.org.hk/training/corporates-and-organisations/)
+- [公眾教育活動](https://www.jccpa.org.hk/training/public-education/)
+- [腦退化症網上學習平台](https://edu.jccpa.org.hk/)
+- [支援腦退化症實務高等文憑課程](https://www.jccpa.org.hk/training/advanced-diploma/)
+
+研究成果
+
+- [研究成果](https://www.jccpa.org.hk/research/)
+- [進行中的研究](https://www.jccpa.org.hk/research/#sec01)
+- [已完成的研究](https://www.jccpa.org.hk/research/#sec02)
+- [腦退化症研究專題](https://www.jccpa.org.hk/research/#sec03)
+- [腦退化症風險因素評估](https://dementia.org.hk/)
+
+菜單Menu
+
+1
+
+賽馬會耆智園是香港中文大學全資擁有的附屬機構

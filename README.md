@@ -39,7 +39,7 @@ Add one URL per line in `data/websites.txt`, then run:
 python -m src.web_ingest
 ```
 
-This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
+This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/<host>/...`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
 
 By default, website ingestion crawls links under the starting URL path prefix. For example, starting from `https://www.jccpa.org.hk/en/about-dementia/` keeps the crawl focused under `/en/about-dementia/` instead of pulling in news, services, training, and other unrelated site sections. It skips obvious non-HTML assets and stops at bounded limits so large sites do not run forever.
 
@@ -51,6 +51,7 @@ python -m src.web_ingest --url-file urls.txt --overwrite
 python -m src.web_ingest --no-crawl https://example.org/article
 python -m src.web_ingest --max-pages-per-site 250 --max-depth 6
 python -m src.web_ingest --crawl-scope same-site
+python -m src.web_ingest --delay 0.5 --timeout 30
 ```
 
 ## Notes
@@ -81,6 +82,14 @@ python -m src.cli
 ```
 
 If no real embedding backend is available, the CLI falls back to the deterministic `dummy` embedder so local indexing can still run. Use `--embedder-provider local` with a cached sentence-transformers model, or configure `OPENAI_API_KEY`, for better retrieval quality.
+
+For answer-mode debugging:
+
+```bash
+python -m src.cli --retrieve-top-k 8 --answer-top-k 3 --show-sources --debug-rag
+```
+
+`--fallback-to-top-chunk` is only for retrieval debugging. It bypasses answer synthesis and should not be used for final Telegram/Nanobot replies.
 
 Environment variables (optional):
 
@@ -115,3 +124,9 @@ See `docs/nanobot_integration.md` for:
 - the `dementia_rag` MCP server config snippet,
 - Telegram channel config using `TELEGRAM_BOT_TOKEN` from the environment,
 - agent policy instructions for document-grounded dementia questions.
+
+See `docs/rag_debugging.md` for retrieval/answer debugging commands and the lightweight eval:
+
+```bash
+python -m tests.run_rag_eval
+```
