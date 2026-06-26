@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import os
 import re
+import shutil
+import sys
 from pathlib import Path
 from typing import Any, Callable, List, Optional
 
@@ -15,6 +20,7 @@ UNKNOWN_ANSWER = FALLBACK_ANSWER
 RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 3
 MIN_RELEVANCE_SCORE = 0.35
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 STOPWORDS = {
     "about",
@@ -143,20 +149,20 @@ def rewrite_query(question: str) -> str:
     query = question.strip()
     lowered = query.lower()
     replacements = {
-        "dementia": "腦退化症",
-        "symptoms": "症狀",
-        "symptom": "症狀",
-        "caregiver": "照顧者",
-        "caregivers": "照顧者",
-        "diagnosis": "診斷",
-        "diagnose": "診斷",
-        "treatment": "治療",
-        "what is": "是什麼",
+        "dementia": "\u8166\u9000\u5316\u75c7",
+        "symptoms": "\u75c7\u72c0",
+        "symptom": "\u75c7\u72c0",
+        "caregiver": "\u7167\u9867\u8005",
+        "caregivers": "\u7167\u9867\u8005",
+        "diagnosis": "\u8a3a\u65b7",
+        "diagnose": "\u8a3a\u65b7",
+        "treatment": "\u6cbb\u7642",
+        "what is": "\u662f\u4ec0\u9ebc",
     }
     translated_terms = [value for key, value in replacements.items() if key in lowered]
-    reversed_definition = re.search(r"什麼是([^？?，,。.\s]+)", query)
+    reversed_definition = re.search("\u4ec0\u9ebc\u662f([^\uff1f?\uff0c,\u3002.\\s]+)", query)
     if reversed_definition:
-        translated_terms.append(f"{reversed_definition.group(1)}是什麼")
+        translated_terms.append(f"{reversed_definition.group(1)}\u662f\u4ec0\u9ebc")
     if translated_terms:
         return f"{query} {' '.join(dict.fromkeys(translated_terms))}"
     return query
@@ -402,7 +408,7 @@ def _split_answer_sentences(text: str) -> list[str]:
     normalized = re.sub(r"\s+", " ", "\n".join(prose_lines)).strip()
     if not normalized:
         return []
-    return [sentence.strip() for sentence in re.split(r"(?<=[.!?。！？])\s*", normalized) if sentence.strip()]
+    return [sentence.strip() for sentence in re.split("(?<=[.!?\u3002\uff01\uff1f])\\s*", normalized) if sentence.strip()]
 
 
 def _is_low_value_answer_sentence(sentence: str) -> bool:
@@ -420,7 +426,7 @@ def _is_low_value_answer_sentence(sentence: str) -> bool:
 
 def _is_definition_question(question: str) -> bool:
     normalized = question.lower()
-    return any(pattern in normalized for pattern in ("what is", "什麼是", "是什麼", "何謂"))
+    return any(pattern in normalized for pattern in ("what is", "\u4ec0\u9ebc\u662f", "\u662f\u4ec0\u9ebc", "\u4f55\u8b02"))
 
 
 def _paragraphs_after_headings(text: str) -> list[tuple[str, str]]:
@@ -457,13 +463,13 @@ def _extract_direct_paragraph_answer(question: str, retrieved_docs: List[Documen
             score = float(len(shared))
             heading_text = heading.lower()
             normalized_paragraph = paragraph.strip()
-            if definition_question and ("是" in paragraph or " is " in f" {paragraph.lower()} "):
+            if definition_question and ("\u662f" in paragraph or " is " in f" {paragraph.lower()} "):
                 score += 4.0
-            if definition_question and re.match(r"^[\u3400-\u9fff]{2,12}是", normalized_paragraph):
+            if definition_question and re.match(r"^[\u3400-\u9fff]{2,12}\u662f", normalized_paragraph):
                 score += 6.0
-            if definition_question and ("what-is" in source_text or "是什麼" in heading_text):
+            if definition_question and ("what-is" in source_text or "\u662f\u4ec0\u9ebc" in heading_text):
                 score += 4.0
-            if definition_question and "是否" in paragraph:
+            if definition_question and "\u662f\u5426" in paragraph:
                 score -= 3.0
             if heading and query_terms & _content_terms(heading):
                 score += 2.0
@@ -492,4 +498,335 @@ def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
         if source_name not in source_names:
             source_names.append(source_name)
     suffix = "; ".join(source_names)
-    return f"{answer}\n\n資料來源：{suffix}"
+    return f"{answer}\n\n\u8cc7\u6599\u4f86\u6e90\uff1a{suffix}"
+
+
+def _resolve_project_path(path_value: str | Path) -> Path:
+    path = Path(path_value).expanduser()
+    if path.is_absolute():
+        return path
+    return PROJECT_ROOT / path
+
+
+def build_default_rag_config(mode: str = "shared", overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Build the shared runtime config used by CLI and MCP."""
+    overrides = overrides or {}
+    config = {
+        "cwd": str(Path.cwd()),
+        "docs_dir": _resolve_project_path(overrides.get("docs_dir") or os.getenv("RAG_DATA_DIR", "data/mds")),
+        "chroma_dir": _resolve_project_path(overrides.get("chroma_dir") or os.getenv("CHROMA_DIR", ".chroma/ling_rag")),
+        "collection_name": overrides.get("collection_name") or os.getenv("CHROMA_COLLECTION", "ling_rag"),
+        "embedder_provider": overrides.get("embedder_provider") or os.getenv("EMBEDDER_PROVIDER", "dummy"),
+        "embedder_model": overrides.get("embedder_model") or os.getenv("EMBEDDER_MODEL") or None,
+        "offline_embeddings": bool(
+            overrides.get("offline_embeddings")
+            if "offline_embeddings" in overrides
+            else os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}
+        ),
+        "retrieve_top_k": int(overrides.get("retrieve_top_k") or os.getenv("RAG_RETRIEVE_TOP_K", RETRIEVE_TOP_K)),
+        "answer_top_k": int(overrides.get("answer_top_k") or os.getenv("RAG_ANSWER_TOP_K", ANSWER_TOP_K)),
+        "min_relevance_score": float(
+            overrides.get("min_relevance_score") or os.getenv("RAG_MIN_RELEVANCE_SCORE", MIN_RELEVANCE_SCORE)
+        ),
+        "min_shared_query_terms": int(
+            overrides.get("min_shared_query_terms") or os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")
+        ),
+        "chunk_size": int(overrides.get("chunk_size") or os.getenv("RAG_CHUNK_SIZE", DEFAULT_CHUNK_SIZE)),
+        "chunk_overlap": int(overrides.get("chunk_overlap") or os.getenv("RAG_CHUNK_OVERLAP", DEFAULT_CHUNK_OVERLAP)),
+        "max_context_chars": int(overrides.get("max_context_chars") or os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
+        "per_chunk_chars": int(overrides.get("per_chunk_chars") or os.getenv("RAG_PER_CHUNK_CHARS", "500")),
+        "mode": overrides.get("mode") or mode or os.getenv("RAG_MODE", "shared"),
+        "force_reindex": bool(overrides.get("force_reindex", False)),
+        "auto_index": bool(
+            overrides.get("auto_index")
+            if "auto_index" in overrides
+            else os.getenv("RAG_AUTO_INDEX", "1").lower() in {"1", "true", "yes"}
+        ),
+        "deepseek_url": overrides.get("deepseek_url") or os.getenv("DEEPSEEK_URL"),
+        "deepseek_key": overrides.get("deepseek_key") or os.getenv("DEEPSEEK_API_KEY"),
+        "deepseek_model": overrides.get("deepseek_model") or os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
+        "openrouter_key": overrides.get("openrouter_key") or os.getenv("OPENROUTER_API_KEY"),
+        "openrouter_model": overrides.get("openrouter_model") or os.getenv("OPENROUTER_MODEL"),
+        "openrouter_base_url": overrides.get("openrouter_base_url")
+        or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions"),
+    }
+    config["embedding_model"] = config["embedder_model"] or config["embedder_provider"]
+    config["llm_model"] = (
+        config["openrouter_model"]
+        or (config["deepseek_model"] if config["deepseek_url"] and config["deepseek_key"] else None)
+        or "extractive-fallback"
+    )
+    return config
+
+
+def _runtime_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
+    overrides = overrides or {}
+    return build_default_rag_config(str(overrides.get("mode") or "shared"), overrides)
+
+
+def _index_manifest(docs: List[Document], config: dict[str, Any], embedder_provider: str | None = None) -> dict[str, Any]:
+    document_entries = []
+    for document in docs:
+        source = str(document.metadata.get("source", ""))
+        text_hash = hashlib.sha256(document.text.encode("utf-8")).hexdigest()
+        document_entries.append({"source": source, "sha256": text_hash, "chars": len(document.text)})
+    return {
+        "documents": sorted(document_entries, key=lambda item: item["source"]),
+        "chunk_size": config["chunk_size"],
+        "chunk_overlap": config["chunk_overlap"],
+        "embedder_provider": embedder_provider or config["embedder_provider"],
+        "embedder_model": config["embedder_model"] or "all-MiniLM-L6-v2",
+    }
+
+
+def _load_manifest(path: Path) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+
+
+def _save_manifest(path: Path, manifest: dict[str, Any]) -> None:
+    _ensure_directory(path.parent)
+    path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _ensure_directory(path: Path) -> None:
+    target = path.resolve(strict=False)
+    workspace = PROJECT_ROOT.resolve()
+    if target == workspace or workspace not in target.parents:
+        raise ValueError(f"Refusing to create vector index directory outside the project: {target}")
+
+    parts = []
+    current = target
+    while current != current.parent:
+        parts.append(current)
+        if current.exists():
+            break
+        current = current.parent
+
+    for part in reversed(parts):
+        if os.path.lexists(part) and not part.is_dir():
+            part.unlink()
+        try:
+            part.mkdir(exist_ok=True)
+        except FileExistsError:
+            if part.is_dir():
+                continue
+            part.unlink()
+            part.mkdir(exist_ok=True)
+
+
+def _clear_chroma_dir(path: Path) -> None:
+    target = path.resolve()
+    workspace = PROJECT_ROOT.resolve()
+    if target == workspace or workspace not in target.parents:
+        raise ValueError(f"Refusing to clear vector index outside the project: {target}")
+    if target.exists() and target.is_dir():
+        shutil.rmtree(target)
+    elif target.exists():
+        target.unlink()
+
+
+def _extract_model_text(data: dict[str, Any]) -> str:
+    if data.get("answer"):
+        return str(data["answer"])
+    if data.get("text"):
+        return str(data["text"])
+    choices = data.get("choices") or []
+    if choices:
+        first_choice = choices[0]
+        message = first_choice.get("message") or {}
+        if message.get("content"):
+            return str(message["content"])
+        if first_choice.get("text"):
+            return str(first_choice["text"])
+    return ""
+
+
+def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | None:
+    try:
+        import requests
+    except ImportError:
+        return None
+
+    if config["openrouter_key"] and config["openrouter_model"]:
+        url = str(config["openrouter_base_url"])
+        model = str(config["openrouter_model"])
+        headers = {"Authorization": f"Bearer {config['openrouter_key']}", "Content-Type": "application/json"}
+    elif config["deepseek_url"] and config["deepseek_key"]:
+        url = str(config["deepseek_url"])
+        model = str(config["deepseek_model"])
+        headers = {"Authorization": f"Bearer {config['deepseek_key']}", "Content-Type": "application/json"}
+    else:
+        return None
+
+    def answer_callable(prompt: str) -> str:
+        payload = {
+            "model": model,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+        }
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        if response.status_code in {400, 404, 422}:
+            response = requests.post(url, headers=headers, json={"prompt": prompt}, timeout=30)
+        response.raise_for_status()
+        return _extract_model_text(response.json()).strip()
+
+    return answer_callable
+
+
+def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, Any]]:
+    from .markdown_loader import load_markdown_documents
+
+    docs = load_markdown_documents(config["docs_dir"])
+    manifest_path = config["chroma_dir"] / "index_manifest.json"
+    current_manifest = _index_manifest(docs, config)
+    saved_manifest = _load_manifest(manifest_path)
+    manifest_changed = saved_manifest != current_manifest
+
+    if docs and config["auto_index"] and (config["force_reindex"] or manifest_changed):
+        _clear_chroma_dir(config["chroma_dir"])
+
+    _ensure_directory(config["chroma_dir"])
+    vector_store = get_default_vector_store(
+        persist_directory=config["chroma_dir"],
+        collection_name=config["collection_name"],
+    )
+    agent = RagAgent(
+        embedder_provider=config["embedder_provider"],
+        embedder_model_name=config["embedder_model"],
+        offline_embeddings=config["offline_embeddings"],
+        vector_store=vector_store,
+        chunk_size=config["chunk_size"],
+        chunk_overlap=config["chunk_overlap"],
+        max_context_chars=config["max_context_chars"],
+        per_chunk_chars=config["per_chunk_chars"],
+        min_shared_query_terms=config["min_shared_query_terms"],
+        retrieve_top_k=config["retrieve_top_k"],
+        answer_top_k=config["answer_top_k"],
+        min_relevance_score=config["min_relevance_score"],
+    )
+
+    store_count = vector_store.count() if hasattr(vector_store, "count") else 0
+    if docs and config["auto_index"] and (store_count <= 0 or config["force_reindex"] or manifest_changed):
+        try:
+            if hasattr(vector_store, "clear"):
+                vector_store.clear()
+            agent.index_documents(docs)
+        except RuntimeError as exc:
+            if agent.embedder_provider != "auto" or "No real embedding backend is available" not in str(exc):
+                raise
+            if hasattr(vector_store, "clear"):
+                vector_store.clear()
+            agent._embedder = None
+            agent.embedder_provider = "dummy"
+            agent.index_documents(docs)
+            current_manifest = _index_manifest(docs, config, embedder_provider="dummy")
+        _save_manifest(manifest_path, current_manifest)
+        store_count = vector_store.count() if hasattr(vector_store, "count") else 0
+
+    debug = {
+        "cwd": config["cwd"],
+        "docs_dir": str(config["docs_dir"]),
+        "chroma_dir": str(config["chroma_dir"]),
+        "collection_name": config["collection_name"],
+        "embedding_model": config["embedding_model"],
+        "embedder_provider": config["embedder_provider"],
+        "llm_model": config["llm_model"],
+        "llm_provider": "openrouter"
+        if config["openrouter_key"] and config["openrouter_model"]
+        else ("deepseek" if config["deepseek_url"] and config["deepseek_key"] else "extractive"),
+        "mode": config["mode"],
+        "fallback_active": config["llm_model"] == "extractive-fallback",
+        "store_count": store_count,
+        "chunk_count": store_count,
+        "chunk_size": config["chunk_size"],
+        "chunk_overlap": config["chunk_overlap"],
+        "retrieve_top_k": config["retrieve_top_k"],
+        "answer_top_k": config["answer_top_k"],
+        "min_relevance_score": config["min_relevance_score"],
+    }
+    return agent, debug
+
+
+def _emit_runtime_debug(result: dict[str, Any]) -> None:
+    debug = result.get("debug", {})
+    if debug.get("mode") != "mcp" and os.getenv("RAG_DEBUG", "").lower() not in {"1", "true", "yes"}:
+        return
+    fields = [
+        "cwd",
+        "docs_dir",
+        "chroma_dir",
+        "embedding_model",
+        "embedder_provider",
+        "llm_model",
+        "llm_provider",
+        "mode",
+        "collection_name",
+        "chunk_count",
+        "retrieve_top_k",
+        "answer_top_k",
+        "min_relevance_score",
+        "fallback_active",
+        "sources",
+        "scores",
+    ]
+    for field in fields:
+        value = result.get("sources") if field == "sources" else debug.get(field)
+        print(f"RAG_DEBUG {field}={value}", file=sys.stderr)
+
+
+def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Shared high-level RAG answer pipeline used by CLI and MCP."""
+    runtime_config = _runtime_config(config)
+    if not question or not question.strip():
+        result = {
+            "found": False,
+            "answer": FALLBACK_ANSWER,
+            "sources": [],
+            "context_used": "",
+            "debug": {
+                "cwd": runtime_config["cwd"],
+                "docs_dir": str(runtime_config["docs_dir"]),
+                "chroma_dir": str(runtime_config["chroma_dir"]),
+                "embedding_model": runtime_config["embedding_model"],
+                "embedder_provider": runtime_config["embedder_provider"],
+                "llm_model": runtime_config["llm_model"],
+                "llm_provider": "openrouter"
+                if runtime_config["openrouter_key"] and runtime_config["openrouter_model"]
+                else ("deepseek" if runtime_config["deepseek_url"] and runtime_config["deepseek_key"] else "extractive"),
+                "mode": runtime_config["mode"],
+                "collection_name": runtime_config["collection_name"],
+                "chunk_count": 0,
+                "retrieve_top_k": runtime_config["retrieve_top_k"],
+                "answer_top_k": runtime_config["answer_top_k"],
+                "min_relevance_score": runtime_config["min_relevance_score"],
+                "fallback_active": runtime_config["llm_model"] == "extractive-fallback",
+                "retrieved_count": 0,
+                "best_score": 0.0,
+                "scores": [],
+            },
+        }
+        _emit_runtime_debug(result)
+        return result
+
+    agent, runtime_debug = _build_runtime_agent(runtime_config)
+    answer_callable = _build_answer_callable(runtime_config)
+    fallback_active = answer_callable is None
+    try:
+        result = agent.answer_question(question, answer_callable=answer_callable)
+    except Exception as exc:
+        runtime_debug["answer_model_error"] = str(exc)
+        fallback_active = True
+        result = agent.answer_question(question, answer_callable=None)
+
+    result_debug = dict(result.get("debug", {}))
+    result_debug.update(runtime_debug)
+    result_debug["fallback_active"] = fallback_active
+    result_debug["scores"] = result_debug.get("scores", [])
+    result["debug"] = result_debug
+    _emit_runtime_debug(result)
+    return result

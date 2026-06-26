@@ -69,14 +69,14 @@ SKIPPED_LINK_EXTENSIONS = {
 
 def _normalize_markdown(text: str) -> str:
     replacements = {
-        "Ã¢â‚¬Å“": "\"",
-        "Ã¢â‚¬Â": "\"",
-        "Ã¢â‚¬Ëœ": "'",
-        "Ã¢â‚¬â„¢": "'",
-        "Ã¢â‚¬â€œ": "-",
-        "Ã¢â‚¬â€": "-",
-        "Ã‚Â ": " ",
-        "AÃŽÂ²": "AÎ²",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ": "\"",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â": "\"",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã¢â‚¬Â¹Ãƒâ€¦Ã¢â‚¬Å“": "'",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¾Ãƒâ€šÃ‚Â¢": "'",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“": "-",
+        "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡Ãƒâ€šÃ‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â": "-",
+        "ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã…Â¡ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â ": " ",
+        "AÃƒÆ’Ã†â€™Ãƒâ€¦Ã‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â²": "AÃƒÆ’Ã…Â½Ãƒâ€šÃ‚Â²",
     }
     for bad, good in replacements.items():
         text = text.replace(bad, good)
@@ -107,6 +107,46 @@ def _decode_html(raw: bytes, content_type: str | None) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+def _request_headers(user_agent: str) -> dict[str, str]:
+    return {
+        "User-Agent": user_agent,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "zh-HK,zh-Hant;q=0.9,en;q=0.7",
+    }
+
+
+def _fetch_website_html_with_requests(
+    url: str,
+    timeout: int,
+    max_bytes: int,
+    user_agent: str,
+) -> tuple[str, str, str | None]:
+    try:
+        import requests
+    except ImportError as exc:
+        raise RuntimeError("requests is not installed") from exc
+
+    try:
+        with requests.get(url, headers=_request_headers(user_agent), timeout=timeout, stream=True) as response:
+            response.raise_for_status()
+            content_type = response.headers.get("Content-Type")
+            if content_type and "html" not in content_type.lower():
+                raise ValueError(f"Expected an HTML response from {url}, got Content-Type: {content_type}")
+
+            chunks: list[bytes] = []
+            total = 0
+            for chunk in response.iter_content(chunk_size=65536):
+                if not chunk:
+                    continue
+                chunks.append(chunk)
+                total += len(chunk)
+                if total > max_bytes:
+                    raise ValueError(f"Website response is larger than the {max_bytes} byte limit: {url}")
+            return _decode_html(b"".join(chunks), content_type), response.url, content_type
+    except Exception as exc:
+        raise RuntimeError(f"Failed to fetch {url}: {exc}") from exc
+
+
 def fetch_website_html(
     url: str,
     timeout: int = DEFAULT_TIMEOUT_SECONDS,
@@ -117,14 +157,13 @@ def fetch_website_html(
     if not _is_usable_url(url):
         raise ValueError(f"Expected an http(s) URL, got: {url}")
 
-    request = Request(
-        url,
-        headers={
-            "User-Agent": user_agent,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "zh-HK,zh-Hant;q=0.9,en;q=0.7",
-        },
-    )
+    try:
+        return _fetch_website_html_with_requests(url, timeout=timeout, max_bytes=max_bytes, user_agent=user_agent)
+    except RuntimeError as exc:
+        if "requests is not installed" not in str(exc):
+            raise
+
+    request = Request(url, headers=_request_headers(user_agent))
     try:
         with urlopen(request, timeout=timeout) as response:
             content_type = response.headers.get("Content-Type")
@@ -273,6 +312,87 @@ def extract_main_html(html: str) -> tuple[str, str]:
         parser.feed(html)
         parser.close()
         return html, parser.title()
+
+
+def _useful_text_length(text: str) -> int:
+    text = re.sub(r"\[[^\]]+\]\([^)]+\)", "", text)
+    text = re.sub(r"[*_`#>\-|]+", "", text)
+    return len(re.sub(r"\s+", "", text))
+
+
+def _title_from_html(html: str) -> str:
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        parser = _ReadableMarkdownParser()
+        parser.feed(html)
+        parser.close()
+        return parser.title()
+
+    soup = BeautifulSoup(html, "html.parser")
+    return _normalize_markdown(soup.title.get_text(" ", strip=True) if soup.title else "")
+
+
+def _html_to_markdown_with_trafilatura(html: str, base_url: str | None) -> str | None:
+    try:
+        import trafilatura
+    except ImportError:
+        return None
+
+    markdown = trafilatura.extract(
+        html,
+        url=base_url,
+        output_format="markdown",
+        include_comments=False,
+        include_formatting=True,
+        include_images=False,
+        include_links=False,
+        include_tables=True,
+    )
+    if not markdown or _useful_text_length(markdown) < 100:
+        return None
+
+    title = _title_from_html(html)
+    markdown = clean_markdown_text(markdown)
+    if title and markdown and not markdown.startswith("#"):
+        markdown = f"# {title}\n\n{markdown}"
+    return clean_markdown_text(markdown)
+
+
+def _html_to_markdown_with_markdownify(html: str, base_url: str | None) -> str | None:
+    try:
+        from markdownify import markdownify
+    except ImportError:
+        return None
+
+    main_html, extracted_title = extract_main_html(html)
+    markdown = markdownify(
+        main_html,
+        heading_style="ATX",
+        bullets="-",
+        strip=["script", "style", "svg", "canvas", "iframe"],
+    )
+    if not markdown or _useful_text_length(markdown) < 100:
+        return None
+
+    title = _title_from_html(html) or extracted_title
+    markdown = clean_markdown_text(markdown)
+    if title and markdown and not markdown.startswith("#"):
+        markdown = f"# {title}\n\n{markdown}"
+    return clean_markdown_text(markdown)
+
+
+def _html_to_markdown_with_stdlib_parser(html: str, base_url: str | None) -> str:
+    html, extracted_title = extract_main_html(html)
+    parser = _ReadableMarkdownParser(base_url=base_url)
+    parser.feed(html)
+    parser.close()
+    markdown = parser.markdown()
+    title = parser.title() or extracted_title
+
+    if title and not markdown.startswith("#"):
+        markdown = f"# {title}\n\n{markdown}".strip()
+    return clean_markdown_text(markdown)
 
 
 class _ReadableMarkdownParser(HTMLParser):
@@ -479,24 +599,24 @@ def _is_noise_line(line: str) -> bool:
         "menu",
         "en",
         "a a a",
-        "ç¹",
-        "ç®€",
-        "åƒ",
-        "è§€",
-        "ç”³",
-        "è«‹",
-        "å‚",
-        "è§‚",
-        "è¯·",
+        "\u7e41",
+        "\u7b80",
+        "\u53c3",
+        "\u89c0",
+        "\u7533",
+        "\u8acb",
+        "\u53c2",
+        "\u89c2",
+        "\u8bf7",
     }:
         return True
-    if re.fullmatch(r"[-*]\s*(ç¹|ç®€|en|a\s*a\s*a)", normalized):
+    if re.fullmatch(r"[-*]\s*(\u7e41|\u7b80|en|a\s*a\s*a)", normalized):
         return True
     if len(stripped) <= 2 and not re.search(r"[A-Za-z0-9]", stripped):
         return True
     if re.fullmatch(r"\[[^\]]{1,40}\]\([^)]+\)", stripped):
         return True
-    if re.fullmatch(r"(ä¸Šä¸€é |ä¸‹ä¸€é |è¿”å›ž|æ›´å¤š|è©³æƒ…|äº†è§£æ›´å¤š|é–±è®€æ›´å¤š|read more|more)", normalized_text):
+    if re.fullmatch(r"(\u4e0a\u4e00\u9801|\u4e0b\u4e00\u9801|\u8fd4\u56de|\u66f4\u591a|\u8a73\u60c5|\u4e86\u89e3\u66f4\u591a|\u95b1\u8b80\u66f4\u591a|read more|more)", normalized_text):
         return True
     return False
 
@@ -552,16 +672,14 @@ def clean_markdown_text(markdown: str) -> str:
 
 def html_to_markdown(html: str, base_url: str | None = None) -> str:
     """Convert website HTML into readable markdown suitable for chunking."""
-    html, extracted_title = extract_main_html(html)
-    parser = _ReadableMarkdownParser(base_url=base_url)
-    parser.feed(html)
-    parser.close()
-    markdown = parser.markdown()
-    title = parser.title() or extracted_title
-
-    if title and not markdown.startswith("#"):
-        markdown = f"# {title}\n\n{markdown}".strip()
-    return clean_markdown_text(markdown)
+    for converter in (
+        _html_to_markdown_with_trafilatura,
+        _html_to_markdown_with_markdownify,
+    ):
+        markdown = converter(html, base_url)
+        if markdown:
+            return markdown
+    return _html_to_markdown_with_stdlib_parser(html, base_url)
 
 
 

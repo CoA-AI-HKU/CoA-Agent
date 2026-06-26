@@ -5,8 +5,8 @@ from typing import Iterable, List
 
 from .document import Document
 
-DEFAULT_CHUNK_SIZE = 900
-DEFAULT_CHUNK_OVERLAP = 120
+DEFAULT_CHUNK_SIZE = 1200
+DEFAULT_CHUNK_OVERLAP = 160
 
 
 def _normalize_text(text: str) -> str:
@@ -34,13 +34,41 @@ def _split_sentences(text: str) -> List[str]:
     if not normalized:
         return []
 
-    sentences = re.split(r"(?<=[.!?])\s+", normalized)
+    sentences = re.split(r"(?<=[.!?。！？])\s*", normalized)
     return [sentence.strip() for sentence in sentences if sentence.strip()]
+
+
+def _split_clauses(text: str) -> List[str]:
+    clauses = re.split(r"(?<=[,;:，；：、])\s*", text.strip())
+    return [clause.strip() for clause in clauses if clause.strip()]
 
 
 def _split_long_sentence(sentence: str, max_size: int) -> List[str]:
     if len(sentence) <= max_size:
         return [sentence]
+
+    clauses = _split_clauses(sentence)
+    if len(clauses) > 1:
+        chunks: List[str] = []
+        current: list[str] = []
+        current_length = 0
+        for clause in clauses:
+            separator_length = 1 if current else 0
+            if current and current_length + len(clause) + separator_length > max_size:
+                chunks.append(" ".join(current))
+                current = []
+                current_length = 0
+            if len(clause) > max_size:
+                chunks.extend(_split_long_sentence(clause, max_size))
+                continue
+            current.append(clause)
+            current_length += len(clause) + separator_length
+        if current:
+            chunks.append(" ".join(current))
+        return chunks
+
+    if not re.search(r"\s", sentence):
+        return [sentence[index : index + max_size] for index in range(0, len(sentence), max_size)]
 
     words = sentence.split()
     chunks: List[str] = []
@@ -119,6 +147,9 @@ def _extract_heading(text: str) -> str | None:
 
 
 def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[str]:
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    chunk_overlap = max(0, min(chunk_overlap, chunk_size // 3))
     blocks = _split_markdown_blocks(text)
     chunks: List[str] = []
     current_units: List[str] = []

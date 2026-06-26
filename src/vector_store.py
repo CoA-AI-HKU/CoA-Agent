@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 from uuid import uuid4
@@ -106,11 +107,34 @@ class ChromaVectorStore:
         from chromadb import PersistentClient
 
         if self.persist_directory is not None:
+            self._ensure_persist_directory()
             self.client = PersistentClient(path=str(self.persist_directory), settings=self._settings)
         else:
             from chromadb import Client
 
             self.client = Client(self._settings)
+
+    def _ensure_persist_directory(self) -> None:
+        if self.persist_directory is None:
+            return
+        target = Path(self.persist_directory)
+        parts = []
+        current = target.resolve(strict=False)
+        while current != current.parent:
+            parts.append(current)
+            if current.exists():
+                break
+            current = current.parent
+        for part in reversed(parts):
+            if os.path.lexists(part) and not part.is_dir():
+                part.unlink()
+            try:
+                part.mkdir(exist_ok=True)
+            except FileExistsError:
+                if part.is_dir():
+                    continue
+                part.unlink()
+                part.mkdir(exist_ok=True)
 
     def _refresh_collection(self) -> None:
         self._create_client()
