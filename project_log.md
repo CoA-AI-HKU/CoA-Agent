@@ -47,7 +47,12 @@ Avatar: Based on prior work on older adults’ virtual-agent preferences, we sel
 
 
 
-Image parsing
+Image parsing:
+
+Cloud-server:
+TBD: figure out colab
+
+Connect to whatsapp: --needs virtual number
 
 
 ##Week 4
