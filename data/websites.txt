@@ -4,3 +4,7 @@
 # Example:
 # https://example.org/article
 https://www.jccpa.org.hk/
+https://www.smartpatient.ha.org.hk/smart-patient-web/disease-management/disease-information/disease/Dementia
+https://www3.ha.org.hk/cph/imh/tc/mental-health-info/4/1/2/anti-dementia-agents
+
+https://www.elderly.gov.hk/tc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html
