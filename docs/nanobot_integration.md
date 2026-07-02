@@ -17,6 +17,7 @@ Example `~/.nanobot/config.json` fragment:
           "cd '/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent' && source .venv/bin/activate && python -m src.dementia_rag_mcp_server"
         ],
         "enabledTools": [
+          "handle_dementia_user_message",
           "search_dementia_knowledge",
           "answer_from_dementia_knowledge"
         ],
@@ -87,21 +88,20 @@ Use the bot token from the process environment:
 Add this to the Nanobot agent instruction or policy block:
 
 ```text
-For document-grounded questions about dementia, caregiving, symptoms, safety,
-assessment, interventions, or knowledge-base content, call the
-answer_from_dementia_knowledge MCP tool before answering.
+For every Telegram user message, call the MCP tool
+`handle_dementia_user_message` before answering.
 
-If the tool returns found=true, send `answer_with_sources` mostly unchanged when
-present; otherwise send `answer` mostly unchanged. If found=false, say that the
-provided documents do not contain enough information. Do not answer
-document-grounded questions from general model knowledge alone.
+Do not answer dementia, MCI, caregiving, medication, symptom, memory, daily
+care, or patient-support questions from model knowledge alone.
 
-Use search_dementia_knowledge only for retrieval debugging. For dementia-support
-questions, reply in Traditional Chinese unless the user clearly asks for another
-language. Keep responses calm, short, and reassuring. Avoid diagnosis,
-treatment, medication, or emergency medical advice. If there is immediate danger,
-wandering risk, severe confusion, injury, or self-harm risk, advise contacting a
-caregiver, emergency services, or a qualified clinician.
+Your final reply must be based only on the returned tool result.
+
+If the tool says the database has insufficient information, repeat that fallback
+and do not add outside information.
+
+Use search_dementia_knowledge only for retrieval debugging. Use
+answer_from_dementia_knowledge only for direct RAG debugging; Telegram replies
+should use handle_dementia_user_message.
 ```
 
 ## Security

@@ -53,6 +53,8 @@ Connect to whatsapp: --needs virtual number
 - Telegram and CLI now use the same or consistent RAG answer pipeline.
 - Intent recognizer has been implemented.
 - New websites were parsed
+- Added intent router to diffrentiate between different questions
+- improved safety with safety layer and medicine layer
 - Introduction of paper done
 
 ## Week 4
