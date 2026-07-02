@@ -16,7 +16,11 @@ from .prompts import ANSWER_PROMPT, FALLBACK_ANSWER
 from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
 from ..meds.medicine_normalizer import normalize_medicine_mentions
-from ..safety.medication_guard import build_medication_safety_response, is_medication_decision_question
+from ..safety.medication_guard import (
+    build_medication_safety_response,
+    detect_red_flags,
+    is_medication_decision_question,
+)
 
 
 UNKNOWN_ANSWER = FALLBACK_ANSWER
@@ -862,12 +866,16 @@ def _medication_guardrail_response(
         if "caregiver_available" in runtime_config
         else _has_caregiver(patient_profile)
     )
-    symptoms = runtime_config.get("symptoms") or question
+    symptoms = runtime_config.get("symptoms")
+    if isinstance(symptoms, list):
+        symptoms_text = " ".join(str(symptom) for symptom in symptoms)
+    else:
+        symptoms_text = str(symptoms or question)
+    red_flags = detect_red_flags(symptoms_text)
     answer = build_medication_safety_response(
         patient_profile=patient_profile,
         detected_medicines=detected_medicines,
-        symptoms=symptoms,
-        caregiver_available=caregiver_available,
+        red_flags=red_flags,
     )
 
     result = {
@@ -878,10 +886,10 @@ def _medication_guardrail_response(
         "context_used": "",
         "detected_medicines": [
             {
-                "canonical_name": mention.canonical_name,
-                "matched_alias": mention.matched_alias,
-                "confidence": mention.confidence,
-                "source": mention.source,
+                "canonical_name": mention.get("canonical_name"),
+                "matched_alias": mention.get("matched_alias"),
+                "confidence": mention.get("confidence"),
+                "source": mention.get("source"),
             }
             for mention in detected_medicines
         ],
@@ -905,6 +913,8 @@ def _medication_guardrail_response(
             "scores": [],
             "boundary_handler": "medication_safety",
             "normal_rag_skipped": True,
+            "red_flags": red_flags,
+            "caregiver_available": caregiver_available,
         },
     }
     return _attach_intent_debug(result, intent_result)

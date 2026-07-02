@@ -1,36 +1,52 @@
 {
-  "aspirin": [
-    "aspirin",
-    "ASA",
-    "acetylsalicylic acid",
-    "阿司匹林",
-    "亞士匹靈",
-    "阿士匹靈",
-    "阿斯匹靈"
-  ],
-  "donepezil": [
-    "donepezil",
-    "Aricept",
-    "多奈哌齊",
-    "多奈哌齐"
-  ],
-  "paracetamol": [
-    "paracetamol",
-    "acetaminophen",
-    "Panadol",
-    "必理痛",
-    "撲熱息痛",
-    "对乙酰氨基酚"
-  ],
-  "metformin": [
-    "metformin",
-    "二甲雙胍",
-    "二甲双胍"
-  ],
-  "amlodipine": [
-    "amlodipine",
-    "Norvasc",
-    "氨氯地平"
-  ]
+  "aspirin": {
+    "aliases": [
+      "aspirin",
+      "ASA",
+      "acetylsalicylic acid",
+      "阿司匹林",
+      "亞士匹靈",
+      "阿士匹靈",
+      "阿斯匹靈"
+    ],
+    "category": "medicine"
+  },
+  "donepezil": {
+    "aliases": [
+      "donepezil",
+      "Aricept",
+      "多奈哌齊",
+      "多奈哌齐"
+    ],
+    "category": "medicine"
+  },
+  "paracetamol": {
+    "aliases": [
+      "paracetamol",
+      "acetaminophen",
+      "Panadol",
+      "必理痛",
+      "撲熱息痛",
+      "扑热息痛",
+      "對乙酰氨基酚",
+      "对乙酰氨基酚"
+    ],
+    "category": "medicine"
+  },
+  "metformin": {
+    "aliases": [
+      "metformin",
+      "二甲雙胍",
+      "二甲双胍"
+    ],
+    "category": "medicine"
+  },
+  "amlodipine": {
+    "aliases": [
+      "amlodipine",
+      "Norvasc",
+      "氨氯地平"
+    ],
+    "category": "medicine"
+  }
 }
-

@@ -3,26 +3,26 @@ from __future__ import annotations
 from src.meds.medicine_normalizer import normalize_medicine_mentions
 
 
-def _canonical_names(text: str) -> list[str]:
-    return [mention.canonical_name for mention in normalize_medicine_mentions(text)]
+def test_normalize_aspirin_chinese() -> None:
+    meds = normalize_medicine_mentions("可以食阿司匹林嗎？")
+    assert any(m["canonical_name"] == "aspirin" for m in meds)
 
 
-def test_aspirin_chinese_alias_normalizes_to_aspirin() -> None:
-    assert "aspirin" in _canonical_names("阿司匹林")
+def test_normalize_aspirin_hk_variant() -> None:
+    meds = normalize_medicine_mentions("可以食亞士匹靈嗎？")
+    assert any(m["canonical_name"] == "aspirin" for m in meds)
 
 
-def test_aspirin_cantonese_alias_normalizes_to_aspirin() -> None:
-    assert "aspirin" in _canonical_names("亞士匹靈")
+def test_normalize_asa() -> None:
+    meds = normalize_medicine_mentions("Can I take ASA?")
+    assert any(m["canonical_name"] == "aspirin" for m in meds)
 
 
-def test_asa_normalizes_to_aspirin() -> None:
-    assert "aspirin" in _canonical_names("ASA")
+def test_normalize_panadol() -> None:
+    meds = normalize_medicine_mentions("可以食必理痛嗎？")
+    assert any(m["canonical_name"] == "paracetamol" for m in meds)
 
 
-def test_panadol_chinese_alias_normalizes_to_paracetamol() -> None:
-    assert "paracetamol" in _canonical_names("必理痛")
-
-
-def test_aricept_normalizes_to_donepezil() -> None:
-    assert "donepezil" in _canonical_names("Aricept")
-
+def test_normalize_donepezil_brand() -> None:
+    meds = normalize_medicine_mentions("Can I stop Aricept?")
+    assert any(m["canonical_name"] == "donepezil" for m in meds)
