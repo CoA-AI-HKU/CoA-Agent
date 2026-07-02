@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any, Iterable
+from typing import Any
 
 
 ENGLISH_DECISION_PATTERNS = [
@@ -23,7 +23,6 @@ ENGLISH_DECISION_PATTERNS = [
 
 CHINESE_DECISION_TERMS = [
     "可唔可以食",
-    "可不可以食",
     "可以食",
     "應唔應該食",
     "要唔要食",
@@ -43,18 +42,17 @@ CHINESE_DECISION_TERMS = [
 ]
 
 RED_FLAG_TERMS = [
-    "worst headache",
     "severe headache",
     "sudden headache",
+    "worst headache",
     "chest pain",
     "shortness of breath",
     "difficulty breathing",
     "weakness",
     "numbness",
-    "confused",
     "vomiting",
-    "vision loss",
     "blurred vision",
+    "vision loss",
     "fainted",
     "fell",
     "fall",
@@ -62,11 +60,13 @@ RED_FLAG_TERMS = [
     "overdose",
     "好劇烈",
     "突然好痛",
+    "突然頭好痛",
     "胸口痛",
     "呼吸困難",
     "手腳無力",
     "半邊身",
     "講嘢唔清楚",
+    "睇嘢模糊",
     "睇唔清",
     "視力模糊",
     "嘔",
@@ -79,6 +79,10 @@ RED_FLAG_TERMS = [
 
 
 def is_medication_decision_question(text: str) -> bool:
+    """
+    Return True if the user asks whether they can take, stop, repeat,
+    add, mix, or change the dose of medication.
+    """
     normalized = " ".join(text.lower().split())
     if not normalized:
         return False
@@ -88,6 +92,7 @@ def is_medication_decision_question(text: str) -> bool:
 
 
 def detect_red_flags(text: str) -> list[str]:
+    """Return detected emergency warning signs."""
     normalized = " ".join(text.lower().split())
     matches: list[str] = []
     for term in RED_FLAG_TERMS:
@@ -98,109 +103,82 @@ def detect_red_flags(text: str) -> list[str]:
     return matches
 
 
+def build_short_medication_safety_response(
+    patient_profile: dict,
+    detected_medicines: list[dict],
+    red_flags: list[str],
+) -> str:
+    """
+    Build the final short medication-safety response.
+    This function controls the final wording and does not call RAG/LLM.
+    """
+    name = _get_patient_name(patient_profile)
+    caregivers = _get_caregiver_text(patient_profile)
+    emergency_number = _get_emergency_number(patient_profile)
+    medicine = _get_medicine_display(detected_medicines)
+
+    if red_flags:
+        return (
+            f"{name}，我唔可以話你食唔食得{medicine}。\n\n"
+            f"你而家先唔好自己食藥、加藥，或者食多次。"
+            f"請即刻叫 {caregivers} 幫你。"
+            f"如果頭痛突然好犀利，或者有嘔、好暈、睇嘢模糊、講嘢唔清楚、"
+            f"手腳無力、胸口痛、呼吸困難，就打 {emergency_number}。"
+        )
+
+    return (
+        f"{name}，我唔可以話你食唔食得{medicine}。\n\n"
+        f"你而家先唔好自己食藥、加藥，或者食多次。"
+        f"請叫 {caregivers} 幫你睇藥盒，再問醫生或藥劑師確認。"
+    )
+
+
 def build_medication_safety_response(
     patient_profile: dict,
-    detected_medicines: Iterable[Any],
+    detected_medicines: list[dict],
     red_flags: list[str],
 ) -> str:
-    patient_name = _preferred_name(patient_profile)
-    caregiver_names = _caregiver_names(patient_profile)
-    emergency_number = _emergency_number(patient_profile)
-    medicine_names = _medicine_names(detected_medicines)
-    language = _profile_language(patient_profile)
-
-    if language not in {"cantonese", "zh-hk", "yue", "chinese", "traditional chinese"}:
-        return _english_response(medicine_names, caregiver_names, emergency_number, red_flags)
-
-    greeting = f"{patient_name}，" if patient_name else ""
-    caregiver_text = " 或 ".join(caregiver_names) if caregiver_names else "照顧者"
-    clinician_text = "醫生、藥劑師，或者照顧者"
-    medicine_text = f"（你提到：{', '.join(medicine_names)}）" if medicine_names else ""
-
-    response = (
-        f"{greeting}我唔可以幫你決定可唔可以食、停、加、重複、混合，或者改劑量呢隻藥{medicine_text}，"
-        f"因為呢個要由{clinician_text}幫你確認。"
-        "你而家先唔好自己加藥、重複食藥、停藥，或者改藥量。"
-        f"請叫 {caregiver_text} 幫你睇藥盒同藥物紀錄，再問醫生或藥劑師確認。"
-    )
-    if red_flags:
-        response += (
-            "如果頭痛突然好劇烈，或者有暈、嘔、睇嘢模糊、講嘢唔清楚、手腳無力、胸口痛、呼吸困難，"
-            f"就即刻叫 {caregiver_text} 幫你打 {emergency_number}，或者即刻求助緊急服務。"
-        )
-    return response
+    return build_short_medication_safety_response(patient_profile, detected_medicines, red_flags)
 
 
-def _english_response(
-    medicine_names: list[str],
-    caregiver_names: list[str],
-    emergency_number: str,
-    red_flags: list[str],
-) -> str:
-    caregiver_text = " or ".join(caregiver_names) if caregiver_names else "a caregiver"
-    medicine_text = f" Mentioned medicine: {', '.join(medicine_names)}." if medicine_names else ""
-    response = (
-        "I cannot decide whether the patient should take, stop, add, repeat, mix, or change the dose of that medicine."
-        f"{medicine_text} Please do not self-medicate, add medicine, repeat medicine, stop medicine, or change dosage. "
-        f"Please ask {caregiver_text} to check the medication box and medication record, then confirm with a doctor or pharmacist."
-    )
-    if red_flags:
-        response += f" If there are red-flag symptoms, seek urgent help or call emergency services at {emergency_number}."
-    return response
-
-
-def _preferred_name(patient_profile: Any) -> str:
+def _get_patient_name(patient_profile: dict) -> str:
     if not isinstance(patient_profile, dict):
-        return ""
-    value = patient_profile.get("preferred_name") or patient_profile.get("name") or patient_profile.get("display_name")
-    return str(value).strip() if value else ""
+        return "你"
+    return str(patient_profile.get("preferred_name") or patient_profile.get("name") or "你").strip()
 
 
-def _profile_language(patient_profile: Any) -> str:
-    if isinstance(patient_profile, dict):
-        value = (
-            patient_profile.get("primary_language")
-            or patient_profile.get("language")
-            or patient_profile.get("preferred_language")
-        )
-        if value:
-            return str(value).strip().lower()
-    return "cantonese"
-
-
-def _caregiver_names(patient_profile: Any) -> list[str]:
+def _get_caregiver_text(patient_profile: dict) -> str:
     if not isinstance(patient_profile, dict):
-        return []
-    caregivers = patient_profile.get("caregivers") or patient_profile.get("caregiver_names") or []
+        return "照顧者"
+    caregivers = patient_profile.get("caregivers", [])
     if isinstance(caregivers, str):
-        return [caregivers.strip()] if caregivers.strip() else []
-    names: list[str] = []
+        return caregivers.strip() or "照顧者"
+    names = []
     if isinstance(caregivers, list):
         for caregiver in caregivers:
-            if isinstance(caregiver, str) and caregiver.strip():
+            if isinstance(caregiver, dict) and caregiver.get("name"):
+                names.append(str(caregiver["name"]).strip())
+            elif isinstance(caregiver, str) and caregiver.strip():
                 names.append(caregiver.strip())
-            elif isinstance(caregiver, dict):
-                name = caregiver.get("name") or caregiver.get("display_name")
-                if name and str(name).strip():
-                    names.append(str(name).strip())
-    return names
+    names = [name for name in names if name]
+    if not names:
+        return "照顧者"
+    if len(names) == 1:
+        return names[0]
+    return " 或 ".join(names[:2])
 
 
-def _emergency_number(patient_profile: Any) -> str:
+def _get_emergency_number(patient_profile: dict) -> str:
     if isinstance(patient_profile, dict) and patient_profile.get("emergency_number"):
         return str(patient_profile["emergency_number"]).strip()
     return "999"
 
 
-def _medicine_names(detected_medicines: Iterable[Any]) -> list[str]:
-    names: list[str] = []
-    for medicine in detected_medicines:
-        name = getattr(medicine, "canonical_name", None)
-        if name is None and isinstance(medicine, dict):
-            name = medicine.get("canonical_name") or medicine.get("name")
-        if name and str(name) not in names:
-            names.append(str(name))
-    return names
+def _get_medicine_display(detected_medicines: list[dict]) -> str:
+    if detected_medicines:
+        medicine = detected_medicines[0]
+        return str(medicine.get("matched_alias") or medicine.get("canonical_name") or "呢隻藥")
+    return "呢隻藥"
 
 
 def _is_ascii(text: str) -> bool:

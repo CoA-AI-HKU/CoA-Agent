@@ -46,7 +46,7 @@ def test_medication_decision_questions_skip_normal_rag(tmp_path, monkeypatch) ->
             "auto_index": False,
             "patient_profile": {
                 "preferred_name": "眉眉婆婆",
-                "caregivers": [{"name": "嘉欣"}, {"name": "Maria"}],
+                "caregivers": [{"name": "Maria"}, {"name": "嘉欣"}],
                 "emergency_number": "999",
                 "primary_language": "Cantonese",
             },
@@ -57,12 +57,14 @@ def test_medication_decision_questions_skip_normal_rag(tmp_path, monkeypatch) ->
     assert result["sources"] == []
     assert result["debug"]["boundary_handler"] == "medication_safety"
     assert result["debug"]["normal_rag_skipped"] is True
-    assert "我唔可以幫你決定" in result["answer"]
-    assert "唔好自己加藥" in result["answer"]
+    assert "根據資料庫" not in result["answer"]
+    assert "來源：" not in result["answer"]
+    assert "我唔可以話你食唔食得阿司匹林" in result["answer"]
+    assert "唔好自己食藥" in result["answer"]
     assert "醫生" in result["answer"]
     assert "藥劑師" in result["answer"]
-    assert "嘉欣" in result["answer"]
     assert "Maria" in result["answer"]
+    assert "嘉欣" in result["answer"]
     assert result["detected_medicines"][0]["canonical_name"] == "aspirin"
 
 
@@ -70,7 +72,7 @@ def test_medication_response_mentions_red_flags() -> None:
     response = build_medication_safety_response(
         patient_profile={
             "preferred_name": "眉眉婆婆",
-            "caregivers": [{"name": "嘉欣"}, {"name": "Maria"}],
+            "caregivers": [{"name": "Maria"}, {"name": "嘉欣"}],
             "emergency_number": "999",
             "primary_language": "Cantonese",
         },
@@ -79,33 +81,30 @@ def test_medication_response_mentions_red_flags() -> None:
     )
 
     assert "眉眉婆婆" in response
-    assert "嘉欣" in response
     assert "Maria" in response
+    assert "嘉欣" in response
     assert "999" in response
-    assert "緊急服務" in response
+    assert "即刻" in response
 
 
 def test_medication_response_does_not_recommend_yes_or_no() -> None:
-    patient_profile = {
-        "preferred_name": "眉眉婆婆",
-        "caregivers": [
-            {"name": "嘉欣", "relationship": "daughter"},
-            {"name": "Maria", "relationship": "live-in caregiver"},
-        ],
-        "emergency_number": "999",
-        "primary_language": "Cantonese",
-    }
-
     response = build_medication_safety_response(
-        patient_profile=patient_profile,
+        patient_profile={
+            "preferred_name": "眉眉婆婆",
+            "caregivers": [{"name": "Maria"}, {"name": "嘉欣"}],
+            "emergency_number": "999",
+            "primary_language": "Cantonese",
+        },
         detected_medicines=[{"canonical_name": "aspirin", "matched_alias": "阿司匹林"}],
         red_flags=[],
     )
 
     unsafe_phrases = [
         "可以食阿司匹林",
+        "唔可以食阿司匹林",
         "唔建議你食阿司匹林",
         "食一粒",
+        "食半粒",
         "take aspirin",
         "you can take",
         "you should take",

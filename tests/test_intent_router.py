@@ -1,6 +1,6 @@
 from src.intent_router import IntentResult, classify_intent
 from src.dementia_rag import search_dementia_knowledge
-from src.pipeline.rag_agent import MEDICATION_OR_DIAGNOSIS_RESPONSE, SAFETY_SENSITIVE_RESPONSE, answer_question
+from src.pipeline.rag_agent import SAFETY_SENSITIVE_RESPONSE, answer_question
 
 
 def test_classify_intent_returns_intent_result() -> None:
@@ -81,12 +81,21 @@ def test_rag_answer_question_handles_medication_without_retrieval(tmp_path, monk
 
     monkeypatch.setattr("src.pipeline.rag_agent._build_runtime_agent", fail_build_runtime_agent)
 
-    result = answer_question("我可不可以幫她停藥？", {"chroma_dir": tmp_path / "chroma", "auto_index": False})
+    result = answer_question(
+        "我可不可以幫她停藥？",
+        {
+            "chroma_dir": tmp_path / "chroma",
+            "auto_index": False,
+            "patient_profile": {"preferred_name": "眉眉婆婆", "caregivers": [{"name": "Maria"}]},
+        },
+    )
 
-    assert result["answer"] == MEDICATION_OR_DIAGNOSIS_RESPONSE
+    assert "我唔可以話你食唔食得" in result["answer"]
+    assert "Maria" in result["answer"]
     assert result["found"] is False
     assert result["sources"] == []
-    assert result["debug"]["boundary_handler"] == "medication_or_diagnosis"
+    assert result["debug"]["boundary_handler"] == "medication_safety"
+    assert result["debug"]["normal_rag_skipped"] is True
 
 
 def test_rag_answer_question_handles_urgent_safety_without_retrieval(tmp_path, monkeypatch) -> None:

@@ -17,7 +17,7 @@ from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
 from ..meds.medicine_normalizer import normalize_medicine_mentions
 from ..safety.medication_guard import (
-    build_medication_safety_response,
+    build_short_medication_safety_response,
     detect_red_flags,
     is_medication_decision_question,
 )
@@ -872,7 +872,7 @@ def _medication_guardrail_response(
     else:
         symptoms_text = str(symptoms or question)
     red_flags = detect_red_flags(symptoms_text)
-    answer = build_medication_safety_response(
+    answer = build_short_medication_safety_response(
         patient_profile=patient_profile,
         detected_medicines=detected_medicines,
         red_flags=red_flags,
