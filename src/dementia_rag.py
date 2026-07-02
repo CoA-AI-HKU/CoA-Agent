@@ -9,6 +9,7 @@ from typing import Any, Iterable, List
 
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from .document import Document
+from .intent_router import classify_intent
 from .markdown_loader import load_markdown_documents
 from .prompts import FALLBACK_ANSWER
 from .rag_agent import RagAgent, answer_question as shared_answer_question, build_default_rag_config
@@ -303,21 +304,40 @@ def _build_answer_callable():
 def search_dementia_knowledge(question: str) -> dict[str, Any]:
     """Compatibility wrapper returning the context selected by the shared answer pipeline."""
     _debug(f"search_dementia_knowledge called with question={question!r}")
+    intent_result = classify_intent(question)
     if not question or not question.strip():
         return {
             "context": SAFE_FALLBACK_CONTEXT,
             "sources": [],
             "found": False,
             "risk_level": None,
-            "debug": {"retrieved_count": 0, "best_score": 0.0},
+            "intent": intent_result.intent,
+            "intent_debug": {
+                "confidence": intent_result.confidence,
+                "matched_terms": intent_result.matched_terms,
+                "reason": intent_result.reason,
+            },
+            "debug": {
+                "retrieved_count": 0,
+                "best_score": 0.0,
+                "intent": intent_result.intent,
+                "intent_debug": {
+                    "confidence": intent_result.confidence,
+                    "matched_terms": intent_result.matched_terms,
+                    "reason": intent_result.reason,
+                },
+            },
         }
 
     answer_result = shared_answer_question(question, build_default_rag_config("mcp"))
+    intent_debug = answer_result.get("intent_debug", {})
     result = {
         "context": answer_result.get("context_used") or SAFE_FALLBACK_CONTEXT,
         "sources": answer_result.get("sources", []),
         "found": bool(answer_result.get("found")),
         "risk_level": _risk_level(question, []),
+        "intent": answer_result.get("intent", intent_result.intent),
+        "intent_debug": intent_debug,
         "debug": answer_result.get("debug", {}),
     }
     _debug(f"retrieved_count={result.get('debug', {}).get('retrieved_count')}")

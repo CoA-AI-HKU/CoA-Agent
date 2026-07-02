@@ -48,4 +48,11 @@ Cloud-server:
 TBD: figure out colab
 Connect to whatsapp: --needs virtual number
 
+### 7/2
+- CLI/Telegram mismatch has been resolved.
+- Telegram and CLI now use the same or consistent RAG answer pipeline.
+- Intent recognizer has been implemented.
+- New websites were parsed
+- Introduction of paper done
+
 ## Week 4

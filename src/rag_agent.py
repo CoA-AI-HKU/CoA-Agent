@@ -12,6 +12,7 @@ from typing import Any, Callable, List, Optional
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
 from .embedder import Embedder
+from .intent_router import IntentResult, classify_intent
 from .prompts import ANSWER_PROMPT, FALLBACK_ANSWER
 from .vector_store import get_default_vector_store
 
@@ -779,9 +780,28 @@ def _emit_runtime_debug(result: dict[str, Any]) -> None:
         print(f"RAG_DEBUG {field}={value}", file=sys.stderr)
 
 
+def _intent_debug(intent_result: IntentResult) -> dict[str, Any]:
+    return {
+        "confidence": intent_result.confidence,
+        "matched_terms": intent_result.matched_terms,
+        "reason": intent_result.reason,
+    }
+
+
+def _attach_intent_debug(result: dict[str, Any], intent_result: IntentResult) -> dict[str, Any]:
+    result["intent"] = intent_result.intent
+    result["intent_debug"] = _intent_debug(intent_result)
+    debug = dict(result.get("debug", {}))
+    debug["intent"] = intent_result.intent
+    debug["intent_debug"] = result["intent_debug"]
+    result["debug"] = debug
+    return result
+
+
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
+    intent_result = classify_intent(question)
     if not question or not question.strip():
         result = {
             "found": False,
@@ -810,6 +830,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
                 "scores": [],
             },
         }
+        _attach_intent_debug(result, intent_result)
         _emit_runtime_debug(result)
         return result
 
@@ -828,5 +849,6 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     result_debug["fallback_active"] = fallback_active
     result_debug["scores"] = result_debug.get("scores", [])
     result["debug"] = result_debug
+    _attach_intent_debug(result, intent_result)
     _emit_runtime_debug(result)
     return result
