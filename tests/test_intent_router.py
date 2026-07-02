@@ -1,6 +1,6 @@
 from src.intent_router import IntentResult, classify_intent
 from src.dementia_rag import search_dementia_knowledge
-from src.rag_agent import answer_question
+from src.rag_agent import MEDICATION_OR_DIAGNOSIS_RESPONSE, SAFETY_SENSITIVE_RESPONSE, answer_question
 
 
 def test_classify_intent_returns_intent_result() -> None:
@@ -45,6 +45,10 @@ def test_safety_priority_over_knowledge() -> None:
     assert classify_intent("腦退化症患者走失了怎麼辦？").intent == "safety_sensitive"
 
 
+def test_prevention_safety_question_stays_knowledge_qa() -> None:
+    assert classify_intent("如何預防腦退化症患者走失？").intent == "knowledge_qa"
+
+
 def test_medication_priority_over_reminder() -> None:
     assert classify_intent("提醒我停藥").intent == "medication_or_diagnosis"
 
@@ -71,9 +75,58 @@ def test_rag_answer_question_includes_intent_for_empty_message(tmp_path) -> None
     assert result["debug"]["intent_debug"]["reason"]
 
 
+def test_rag_answer_question_handles_medication_without_retrieval(tmp_path, monkeypatch) -> None:
+    def fail_build_runtime_agent(config):
+        raise AssertionError("Boundary handlers must run before RAG retrieval")
+
+    monkeypatch.setattr("src.rag_agent._build_runtime_agent", fail_build_runtime_agent)
+
+    result = answer_question("我可不可以幫她停藥？", {"chroma_dir": tmp_path / "chroma", "auto_index": False})
+
+    assert result["answer"] == MEDICATION_OR_DIAGNOSIS_RESPONSE
+    assert result["found"] is False
+    assert result["sources"] == []
+    assert result["debug"]["boundary_handler"] == "medication_or_diagnosis"
+
+
+def test_rag_answer_question_handles_urgent_safety_without_retrieval(tmp_path, monkeypatch) -> None:
+    def fail_build_runtime_agent(config):
+        raise AssertionError("Boundary handlers must run before RAG retrieval")
+
+    monkeypatch.setattr("src.rag_agent._build_runtime_agent", fail_build_runtime_agent)
+
+    result = answer_question("媽媽走失了，我找不到她", {"chroma_dir": tmp_path / "chroma", "auto_index": False})
+
+    assert result["answer"] == SAFETY_SENSITIVE_RESPONSE
+    assert result["found"] is False
+    assert result["sources"] == []
+    assert result["debug"]["boundary_handler"] == "safety_sensitive"
+
+
 def test_search_wrapper_includes_intent_for_empty_message() -> None:
     result = search_dementia_knowledge("")
 
     assert result["intent"] == "unknown"
     assert result["intent_debug"]["confidence"] == 0.0
     assert result["debug"]["intent"] == "unknown"
+
+
+def test_search_wrapper_returns_boundary_context(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "src.dementia_rag.shared_answer_question",
+        lambda question, config: {
+            "found": False,
+            "answer": SAFETY_SENSITIVE_RESPONSE,
+            "sources": [],
+            "context_used": "",
+            "intent": "safety_sensitive",
+            "intent_debug": {"confidence": 0.95, "matched_terms": ["走失"], "reason": "test"},
+            "debug": {"boundary_handler": "safety_sensitive"},
+        },
+    )
+
+    result = search_dementia_knowledge("媽媽走失了")
+
+    assert result["context"] == SAFETY_SENSITIVE_RESPONSE
+    assert result["risk_level"] == "high"
+    assert result["sources"] == []

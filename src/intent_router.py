@@ -73,6 +73,76 @@ SAFETY_TERMS = [
     "violence",
 ]
 
+NONURGENT_SAFETY_CONTEXT_TERMS = [
+    "預防",
+    "避免",
+    "減少",
+    "防止",
+    "風險",
+    "準備",
+    "安全貼士",
+    "照顧技巧",
+    "點預防",
+    "如何預防",
+    "怎樣預防",
+    "prevent",
+    "prevention",
+    "avoid",
+    "reduce risk",
+    "safety tips",
+]
+
+URGENT_SAFETY_CONTEXT_TERMS = [
+    "了",
+    "咗",
+    "而家",
+    "現在",
+    "即刻",
+    "立即",
+    "已經",
+    "正在",
+    "突然",
+    "找不到",
+    "不見",
+    "失蹤",
+    "救命",
+    "緊急",
+    "危險",
+    "急救",
+    "送院",
+    "now",
+    "right now",
+    "already",
+    "currently",
+    "suddenly",
+    "missing",
+    "emergency",
+    "urgent",
+    "danger",
+    "help",
+]
+
+HIGH_ACUITY_SAFETY_TERMS = [
+    "自殺",
+    "自殘",
+    "傷害自己",
+    "傷害別人",
+    "打人",
+    "暴力",
+    "流血",
+    "急救",
+    "救命",
+    "suicide",
+    "self-harm",
+    "self harm",
+    "hurt myself",
+    "hurt herself",
+    "hurt himself",
+    "bleeding",
+    "abuse",
+    "violence",
+]
+
 MEDICATION_DIAGNOSIS_TERMS = [
     "停藥",
     "加藥",
@@ -235,8 +305,16 @@ def classify_intent(message: str) -> IntentResult:
             reason="Message is empty after normalization.",
         )
 
+    safety_matches = _matched_terms(normalized, SAFETY_TERMS)
+    if _is_urgent_safety_match(normalized, safety_matches):
+        return IntentResult(
+            intent="safety_sensitive",
+            confidence=_confidence(0.95, len(safety_matches)),
+            matched_terms=safety_matches,
+            reason="Matched urgent or current safety-risk terms.",
+        )
+
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
-        ("safety_sensitive", SAFETY_TERMS, 0.95, "Matched urgent safety-risk terms."),
         (
             "medication_or_diagnosis",
             MEDICATION_DIAGNOSIS_TERMS,
@@ -281,6 +359,16 @@ def _matched_terms(normalized_message: str, terms: list[str]) -> list[str]:
             matches.append(term)
             seen.add(normalized_term)
     return matches
+
+
+def _is_urgent_safety_match(normalized_message: str, matched_terms: list[str]) -> bool:
+    if not matched_terms:
+        return False
+    if _matched_terms(normalized_message, HIGH_ACUITY_SAFETY_TERMS):
+        return True
+    if _matched_terms(normalized_message, NONURGENT_SAFETY_CONTEXT_TERMS):
+        return False
+    return bool(_matched_terms(normalized_message, URGENT_SAFETY_CONTEXT_TERMS))
 
 
 def _confidence(base_confidence: float, matched_count: int) -> float:

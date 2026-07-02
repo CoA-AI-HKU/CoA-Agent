@@ -22,6 +22,12 @@ RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 3
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MEDICATION_OR_DIAGNOSIS_RESPONSE = (
+    "我不能提供診斷、停藥、加藥或劑量建議。這類問題需要由醫生、藥劑師或合資格醫護人員判斷。"
+)
+SAFETY_SENSITIVE_RESPONSE = (
+    "這個情況可能需要即時協助。請先確保安全，並盡快聯絡照顧者、醫護人員或緊急服務。"
+)
 
 STOPWORDS = {
     "about",
@@ -798,6 +804,44 @@ def _attach_intent_debug(result: dict[str, Any], intent_result: IntentResult) ->
     return result
 
 
+def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, Any]) -> dict[str, Any] | None:
+    if intent_result.intent == "medication_or_diagnosis":
+        answer = MEDICATION_OR_DIAGNOSIS_RESPONSE
+    elif intent_result.intent == "safety_sensitive":
+        answer = SAFETY_SENSITIVE_RESPONSE
+    else:
+        return None
+
+    result = {
+        "found": False,
+        "answer": answer,
+        "answer_with_sources": answer,
+        "sources": [],
+        "context_used": "",
+        "debug": {
+            "cwd": runtime_config["cwd"],
+            "docs_dir": str(runtime_config["docs_dir"]),
+            "chroma_dir": str(runtime_config["chroma_dir"]),
+            "embedding_model": runtime_config["embedding_model"],
+            "embedder_provider": runtime_config["embedder_provider"],
+            "llm_model": runtime_config["llm_model"],
+            "llm_provider": "boundary-handler",
+            "mode": runtime_config["mode"],
+            "collection_name": runtime_config["collection_name"],
+            "chunk_count": 0,
+            "retrieve_top_k": 0,
+            "answer_top_k": 0,
+            "min_relevance_score": runtime_config["min_relevance_score"],
+            "fallback_active": False,
+            "retrieved_count": 0,
+            "best_score": 0.0,
+            "scores": [],
+            "boundary_handler": intent_result.intent,
+        },
+    }
+    return _attach_intent_debug(result, intent_result)
+
+
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
@@ -833,6 +877,11 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
         _attach_intent_debug(result, intent_result)
         _emit_runtime_debug(result)
         return result
+
+    boundary_result = _boundary_response(intent_result, runtime_config)
+    if boundary_result is not None:
+        _emit_runtime_debug(boundary_result)
+        return boundary_result
 
     agent, runtime_debug = _build_runtime_agent(runtime_config)
     answer_callable = _build_answer_callable(runtime_config)

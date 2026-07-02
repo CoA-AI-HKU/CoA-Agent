@@ -331,11 +331,15 @@ def search_dementia_knowledge(question: str) -> dict[str, Any]:
 
     answer_result = shared_answer_question(question, build_default_rag_config("mcp"))
     intent_debug = answer_result.get("intent_debug", {})
+    boundary_handler = answer_result.get("debug", {}).get("boundary_handler")
+    risk_level = "high" if boundary_handler == "safety_sensitive" else _risk_level(question, [])
     result = {
-        "context": answer_result.get("context_used") or SAFE_FALLBACK_CONTEXT,
+        "context": answer_result.get("answer")
+        if boundary_handler
+        else answer_result.get("context_used") or SAFE_FALLBACK_CONTEXT,
         "sources": answer_result.get("sources", []),
         "found": bool(answer_result.get("found")),
-        "risk_level": _risk_level(question, []),
+        "risk_level": risk_level,
         "intent": answer_result.get("intent", intent_result.intent),
         "intent_debug": intent_debug,
         "debug": answer_result.get("debug", {}),
