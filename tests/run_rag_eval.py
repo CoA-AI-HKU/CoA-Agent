@@ -4,11 +4,11 @@ import json
 import re
 from pathlib import Path
 
-from src.document import Document
-from src.embedder import Embedder
-from src.prompts import FALLBACK_ANSWER
-from src.rag_agent import RagAgent
-from src.vector_store import InMemoryVectorStore
+from src.pipeline.document import Document
+from src.pipeline.embedder import Embedder
+from src.pipeline.prompts import FALLBACK_ANSWER
+from src.pipeline.rag_agent import RagAgent
+from src.pipeline.vector_store import InMemoryVectorStore
 
 
 EVAL_PATH = Path(__file__).with_name("rag_eval_questions.json")

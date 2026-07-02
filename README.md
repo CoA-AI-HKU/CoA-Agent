@@ -1,13 +1,13 @@
-# ling-rag
+﻿# ling-rag
 A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistant.
 
 ## Project structure
 
 - `src/`
-  - `document.py` — canonical `Document` data model
+  - `pipeline/document.py` — canonical `Document` data model
   - `pdf_to_markdown.py` — PDF extraction and markdown conversion helpers
-  - `chunker.py` — paragraph-aware chunking with overlap
-  - `embedder.py` — pluggable embedding interface for local or OpenAI-compatible backends
+  - `pipeline/chunker.py` — paragraph-aware chunking with overlap
+  - `pipeline/embedder.py` — pluggable embedding interface for local or OpenAI-compatible backends
 
 ## Current status
 
@@ -18,8 +18,8 @@ A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistan
 
 1. Add PDFs under `data/pdfs/`.
 2. Convert them to markdown with `src/pdf_ingest.py`.
-3. Chunk the resulting document(s) with `src.chunker.chunk_document` or `src.chunker.chunk_documents`.
-4. Generate embeddings using `src.embedder.Embedder`.
+3. Chunk the resulting document(s) with `src.pipeline.chunker.chunk_document` or `src.pipeline.chunker.chunk_documents`.
+4. Generate embeddings using `src.pipeline.embedder.Embedder`.
 
 ### Convert PDFs into markdown
 
@@ -104,8 +104,8 @@ Example quick test (Python):
 
 ```python
 from pathlib import Path
-from src.markdown_loader import load_markdown_documents
-from src.rag_agent import RagAgent
+from src.pipeline.markdown_loader import load_markdown_documents
+from src.pipeline.rag_agent import RagAgent
 
 # load and index
 docs = load_markdown_documents(Path('data/mds'))
@@ -132,3 +132,4 @@ See `docs/rag_debugging.md` for retrieval/answer debugging commands and the ligh
 ```bash
 python -m tests.run_rag_eval
 ```
+

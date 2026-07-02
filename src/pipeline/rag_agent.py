@@ -12,16 +12,18 @@ from typing import Any, Callable, List, Optional
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
 from .embedder import Embedder
-from .intent_router import IntentResult, classify_intent
 from .prompts import ANSWER_PROMPT, FALLBACK_ANSWER
 from .vector_store import get_default_vector_store
+from ..intent_router import IntentResult, classify_intent
+from ..meds.medicine_normalizer import normalize_medicine_mentions
+from ..safety.medication_guard import build_medication_safety_response, is_medication_decision_question
 
 
 UNKNOWN_ANSWER = FALLBACK_ANSWER
 RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 3
 MIN_RELEVANCE_SCORE = 0.35
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
     "我不能提供診斷、停藥、加藥或劑量建議。這類問題需要由醫生、藥劑師或合資格醫護人員判斷。"
 )
@@ -842,9 +844,97 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
     return _attach_intent_debug(result, intent_result)
 
 
+def _medication_guardrail_response(
+    question: str,
+    runtime_config: dict[str, Any],
+    intent_result: IntentResult,
+) -> dict[str, Any] | None:
+    if not is_medication_decision_question(question):
+        return None
+
+    detected_medicines = normalize_medicine_mentions(question)
+    patient_profile = _profile_with_current_medications(
+        runtime_config.get("patient_profile"),
+        runtime_config.get("current_medications"),
+    )
+    caregiver_available = bool(
+        runtime_config.get("caregiver_available")
+        if "caregiver_available" in runtime_config
+        else _has_caregiver(patient_profile)
+    )
+    symptoms = runtime_config.get("symptoms") or question
+    answer = build_medication_safety_response(
+        patient_profile=patient_profile,
+        detected_medicines=detected_medicines,
+        symptoms=symptoms,
+        caregiver_available=caregiver_available,
+    )
+
+    result = {
+        "found": False,
+        "answer": answer,
+        "answer_with_sources": answer,
+        "sources": [],
+        "context_used": "",
+        "detected_medicines": [
+            {
+                "canonical_name": mention.canonical_name,
+                "matched_alias": mention.matched_alias,
+                "confidence": mention.confidence,
+                "source": mention.source,
+            }
+            for mention in detected_medicines
+        ],
+        "debug": {
+            "cwd": runtime_config["cwd"],
+            "docs_dir": str(runtime_config["docs_dir"]),
+            "chroma_dir": str(runtime_config["chroma_dir"]),
+            "embedding_model": runtime_config["embedding_model"],
+            "embedder_provider": runtime_config["embedder_provider"],
+            "llm_model": runtime_config["llm_model"],
+            "llm_provider": "medication-safety-guardrail",
+            "mode": runtime_config["mode"],
+            "collection_name": runtime_config["collection_name"],
+            "chunk_count": 0,
+            "retrieve_top_k": 0,
+            "answer_top_k": 0,
+            "min_relevance_score": runtime_config["min_relevance_score"],
+            "fallback_active": False,
+            "retrieved_count": 0,
+            "best_score": 0.0,
+            "scores": [],
+            "boundary_handler": "medication_safety",
+            "normal_rag_skipped": True,
+        },
+    }
+    return _attach_intent_debug(result, intent_result)
+
+
+def _profile_with_current_medications(patient_profile: Any, current_medications: Any) -> Any:
+    if not current_medications:
+        return patient_profile
+    if isinstance(patient_profile, dict):
+        profile = dict(patient_profile)
+    else:
+        profile = {}
+    profile["current_medications"] = current_medications
+    return profile
+
+
+def _has_caregiver(patient_profile: Any) -> bool:
+    if not isinstance(patient_profile, dict):
+        return False
+    caregivers = patient_profile.get("caregivers") or patient_profile.get("caregiver_names")
+    return bool(caregivers)
+
+
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
+    if config:
+        for key in ("patient_profile", "current_medications", "symptoms", "caregiver_available"):
+            if key in config:
+                runtime_config[key] = config[key]
     intent_result = classify_intent(question)
     if not question or not question.strip():
         result = {
@@ -877,6 +967,11 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
         _attach_intent_debug(result, intent_result)
         _emit_runtime_debug(result)
         return result
+
+    medication_guardrail_result = _medication_guardrail_response(question, runtime_config, intent_result)
+    if medication_guardrail_result is not None:
+        _emit_runtime_debug(medication_guardrail_result)
+        return medication_guardrail_result
 
     boundary_result = _boundary_response(intent_result, runtime_config)
     if boundary_result is not None:

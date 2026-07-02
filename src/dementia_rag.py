@@ -7,13 +7,13 @@ import sys
 from pathlib import Path
 from typing import Any, Iterable, List
 
-from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
-from .document import Document
 from .intent_router import classify_intent
-from .markdown_loader import load_markdown_documents
-from .prompts import FALLBACK_ANSWER
-from .rag_agent import RagAgent, answer_question as shared_answer_question, build_default_rag_config
-from .vector_store import get_default_vector_store
+from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+from .pipeline.document import Document
+from .pipeline.markdown_loader import load_markdown_documents
+from .pipeline.prompts import FALLBACK_ANSWER
+from .pipeline.rag_agent import RagAgent, answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.vector_store import get_default_vector_store
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]

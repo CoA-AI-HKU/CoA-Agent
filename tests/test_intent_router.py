@@ -1,6 +1,6 @@
 from src.intent_router import IntentResult, classify_intent
 from src.dementia_rag import search_dementia_knowledge
-from src.rag_agent import MEDICATION_OR_DIAGNOSIS_RESPONSE, SAFETY_SENSITIVE_RESPONSE, answer_question
+from src.pipeline.rag_agent import MEDICATION_OR_DIAGNOSIS_RESPONSE, SAFETY_SENSITIVE_RESPONSE, answer_question
 
 
 def test_classify_intent_returns_intent_result() -> None:
@@ -79,7 +79,7 @@ def test_rag_answer_question_handles_medication_without_retrieval(tmp_path, monk
     def fail_build_runtime_agent(config):
         raise AssertionError("Boundary handlers must run before RAG retrieval")
 
-    monkeypatch.setattr("src.rag_agent._build_runtime_agent", fail_build_runtime_agent)
+    monkeypatch.setattr("src.pipeline.rag_agent._build_runtime_agent", fail_build_runtime_agent)
 
     result = answer_question("我可不可以幫她停藥？", {"chroma_dir": tmp_path / "chroma", "auto_index": False})
 
@@ -93,7 +93,7 @@ def test_rag_answer_question_handles_urgent_safety_without_retrieval(tmp_path, m
     def fail_build_runtime_agent(config):
         raise AssertionError("Boundary handlers must run before RAG retrieval")
 
-    monkeypatch.setattr("src.rag_agent._build_runtime_agent", fail_build_runtime_agent)
+    monkeypatch.setattr("src.pipeline.rag_agent._build_runtime_agent", fail_build_runtime_agent)
 
     result = answer_question("媽媽走失了，我找不到她", {"chroma_dir": tmp_path / "chroma", "auto_index": False})
 

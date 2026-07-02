@@ -7,11 +7,11 @@ import shutil
 from pathlib import Path
 from typing import Any, Callable, List
 
-from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
-from .document import Document
-from .markdown_loader import load_markdown_documents
-from .rag_agent import answer_question as shared_answer_question, build_default_rag_config
-from .vector_store import get_default_vector_store
+from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
+from .pipeline.document import Document
+from .pipeline.markdown_loader import load_markdown_documents
+from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.vector_store import get_default_vector_store
 
 
 def _index_manifest_path(persist_dir: Path) -> Path:
@@ -108,7 +108,7 @@ def build_agent(
     chunk_overlap: int | None = None,
 ) -> "RagAgent":
     # import RagAgent lazily to avoid heavy dependencies at import time
-    from .rag_agent import RagAgent
+    from .pipeline.rag_agent import RagAgent
 
     docs: List[Document] = load_markdown_documents(Path(data_dir))
     persist_path = Path(persist_dir)

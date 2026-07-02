@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from src.dementia_rag import SAFE_FALLBACK_CONTEXT, _format_search_response
 from src.dementia_rag_mcp_server import answer_from_dementia_knowledge_tool, search_dementia_knowledge_tool
-from src.document import Document
-from src.embedder import Embedder
-from src.rag_agent import RagAgent
-from src.vector_store import InMemoryVectorStore
+from src.pipeline.document import Document
+from src.pipeline.embedder import Embedder
+from src.pipeline.rag_agent import RagAgent
+from src.pipeline.vector_store import InMemoryVectorStore
 
 
 def test_retrieval_response_returns_expected_chunk() -> None:

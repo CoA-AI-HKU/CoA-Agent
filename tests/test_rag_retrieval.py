@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.document import Document
-from src.embedder import Embedder
-from src.rag_agent import RagAgent
-from src.vector_store import InMemoryVectorStore
+from src.pipeline.document import Document
+from src.pipeline.embedder import Embedder
+from src.pipeline.rag_agent import RagAgent
+from src.pipeline.vector_store import InMemoryVectorStore
 
 
 def test_expected_source_is_retrieved() -> None:

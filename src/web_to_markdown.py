@@ -9,7 +9,7 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urldefrag, urljoin, urlparse
 from urllib.request import Request, urlopen
 
-from .document import Document
+from .pipeline.document import Document
 
 
 DEFAULT_USER_AGENT = "Mozilla/5.0 (compatible; CoA-Agent-RAG/1.0; +https://example.local)"

@@ -4,13 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from src.chunker import chunk_document, chunk_text
-from src.document import Document
-from src.embedder import Embedder
+from src.pipeline.chunker import chunk_document, chunk_text
+from src.pipeline.document import Document
+from src.pipeline.embedder import Embedder
 from src.pdf_ingest import convert_pdf_file
 from src.pdf_to_markdown import load_pdf_as_markdown
-from src.rag_agent import RagAgent
-from src.vector_store import get_default_vector_store
+from src.pipeline.rag_agent import RagAgent
+from src.pipeline.vector_store import get_default_vector_store
 
 
 def test_pdf_ingest_creates_markdown(tmp_path: Path) -> None:

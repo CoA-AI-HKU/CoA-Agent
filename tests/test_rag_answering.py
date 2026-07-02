@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import re
 
-from src.document import Document
-from src.embedder import Embedder
-from src.prompts import FALLBACK_ANSWER
-from src.rag_agent import RagAgent
-from src.vector_store import InMemoryVectorStore
+from src.pipeline.document import Document
+from src.pipeline.embedder import Embedder
+from src.pipeline.prompts import FALLBACK_ANSWER
+from src.pipeline.rag_agent import RagAgent
+from src.pipeline.vector_store import InMemoryVectorStore
 
 
 def _sentence_count(text: str) -> int:

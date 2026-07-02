@@ -6,13 +6,13 @@ from typing import Any
 
 try:
     from .dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from .rag_agent import answer_question as shared_answer_question, build_default_rag_config
+    from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from src.dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from src.rag_agent import answer_question as shared_answer_question, build_default_rag_config
+    from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 
 
 def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:

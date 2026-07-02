@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.document import Document
-from src.vector_store import get_default_vector_store
+from src.pipeline.document import Document
+from src.pipeline.vector_store import get_default_vector_store
 
 
 def test_chroma_vector_store_add_and_query(tmp_path: Path) -> None:

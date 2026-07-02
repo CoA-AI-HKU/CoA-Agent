@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import List
 
-from .document import Document
+from .pipeline.document import Document
 
 
 def _normalize_whitespace(text: str) -> str:
