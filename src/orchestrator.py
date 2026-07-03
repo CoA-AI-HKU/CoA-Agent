@@ -7,10 +7,11 @@ from typing import Any
 from .intent_router import IntentResult, classify_intent
 from .pipeline.language import AnswerLanguage, detect_answer_language
 from .pipeline.rag_agent import answer_question, build_default_rag_config
+from .safety.medication_guard import is_medication_decision_question
 
 
 SAFETY_RESPONSE = "這個情況可能需要即時協助。請先確保安全，並盡快聯絡照顧者、醫護人員或緊急服務。"
-MEDICAL_BOUNDARY_RESPONSE = "我不能提供診斷、停藥、加藥、減藥或劑量建議。這類問題需要由醫生、藥劑師或合資格醫護人員判斷。"
+MEDICAL_BOUNDARY_RESPONSE = "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 EMOTIONAL_SUPPORT_RESPONSE = (
     "我明白你可能有點不安。你可以慢慢說，我會用簡單的方式陪你整理。"
     "如果這件事和健康或安全有關，請同時告訴照顧者或醫護人員。"
@@ -27,8 +28,8 @@ LOCALIZED_STATIC_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
     },
     "medical_boundary": {
         "zh-Hant": MEDICAL_BOUNDARY_RESPONSE,
-        "zh-Hans": "我不能提供诊断、停药、加药、减药或剂量建议。这类问题需要由医生、药剂师或合资格医护人员判断。",
-        "en": "I can't provide diagnosis, medication changes, or dosage advice. Please ask a doctor, pharmacist, or qualified clinician.",
+        "zh-Hans": "我不能提供诊断或任何用药建议。请询问医生、药剂师或合资格医护人员。",
+        "en": "I can't provide diagnosis or any medication advice. Please ask a doctor, pharmacist, or qualified clinician.",
     },
     "emotional_support": {
         "zh-Hant": EMOTIONAL_SUPPORT_RESPONSE,
@@ -81,6 +82,16 @@ def handle_dementia_user_message(message: str, user_id: str | None = None) -> di
     intent_result = classify_intent(message)
     route = intent_result.intent
     answer_language = detect_answer_language(message)
+
+    if is_medication_decision_question(message):
+        return _static_response(
+            answer=_localized_static_response("medical_boundary", answer_language),
+            intent_result=intent_result,
+            route="medication_safety",
+            safety_level="medical_boundary",
+            user_id=user_id,
+            answer_language=answer_language,
+        )
 
     if intent_result.intent == "safety_sensitive":
         return _static_response(

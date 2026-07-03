@@ -1,4 +1,4 @@
-﻿# ling-rag
+# Dementia Rag
 A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistant.
 
 ## Project structure

@@ -59,8 +59,7 @@ def test_medication_decision_questions_skip_normal_rag(tmp_path, monkeypatch) ->
     assert result["debug"]["normal_rag_skipped"] is True
     assert "根據資料庫" not in result["answer"]
     assert "來源：" not in result["answer"]
-    assert "我唔可以話你食唔食得阿司匹林" in result["answer"]
-    assert "唔好自己食藥" in result["answer"]
+    assert "不能提供關於阿司匹林的用藥建議" in result["answer"]
     assert "醫生" in result["answer"]
     assert "藥劑師" in result["answer"]
     assert "Maria" in result["answer"]
@@ -84,7 +83,7 @@ def test_medication_response_mentions_red_flags() -> None:
     assert "Maria" in response
     assert "嘉欣" in response
     assert "999" in response
-    assert "即刻" in response
+    assert "不能提供關於阿司匹林的用藥建議" in response
 
 
 def test_medication_response_does_not_recommend_yes_or_no() -> None:
@@ -109,6 +108,8 @@ def test_medication_response_does_not_recommend_yes_or_no() -> None:
         "you can take",
         "you should take",
         "you should not take",
+        "不要自己吃",
+        "唔好自己食",
     ]
 
     for phrase in unsafe_phrases:

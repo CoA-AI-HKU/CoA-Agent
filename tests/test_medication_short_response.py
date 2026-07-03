@@ -48,8 +48,7 @@ def test_short_medication_response_no_rag_summary() -> None:
         assert phrase not in response
 
     required = [
-        "我唔可以話你食唔食得",
-        "唔好自己食藥",
+        "不能提供關於阿司匹林的用藥建議",
         "醫生",
         "藥劑師",
     ]
@@ -76,4 +75,4 @@ def test_red_flag_response_mentions_emergency() -> None:
     )
 
     assert "999" in response
-    assert "即刻" in response or "立即" in response
+    assert "突然或嚴重症狀" in response

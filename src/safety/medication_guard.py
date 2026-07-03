@@ -123,46 +123,37 @@ def build_short_medication_safety_response(
     if answer_language == "en":
         if red_flags:
             return (
-                f"{name}, I can't tell you whether to take {medicine}.\n\n"
-                f"Please do not take, add, or repeat any medicine by yourself right now. "
-                f"Ask {caregivers} to help you. If the headache is sudden or severe, or there is vomiting, "
-                f"severe dizziness, blurred vision, slurred speech, weakness, chest pain, or trouble breathing, "
-                f"call {emergency_number}."
+                f"{name}, I can't give medication advice about {medicine}.\n\n"
+                f"Please contact {caregivers}, a doctor, or a pharmacist now. "
+                f"If there are severe or sudden symptoms, call {emergency_number}."
             )
         return (
-            f"{name}, I can't tell you whether to take {medicine}.\n\n"
-            f"Please do not take, add, or repeat any medicine by yourself right now. "
-            f"Ask {caregivers} to check the medicine package and confirm with a doctor or pharmacist."
+            f"{name}, I can't give medication advice about {medicine}.\n\n"
+            f"Please ask {caregivers}, a doctor, or a pharmacist."
         )
 
     if answer_language == "zh-Hans":
         if red_flags:
             return (
-                f"{name}，我不能判断你能不能吃{medicine}。\n\n"
-                f"你现在先不要自己吃药、加药，或者再吃一次。"
-                f"请马上叫 {caregivers} 帮你。"
-                f"如果头痛突然很严重，或者有呕吐、很晕、视力模糊、说话不清、"
-                f"手脚无力、胸口痛、呼吸困难，就打 {emergency_number}。"
+                f"{name}，我不能提供关于{medicine}的用药建议。\n\n"
+                f"请现在联系 {caregivers}、医生或药剂师。"
+                f"如果有突然或严重症状，请打 {emergency_number}。"
             )
         return (
-            f"{name}，我不能判断你能不能吃{medicine}。\n\n"
-            f"你现在先不要自己吃药、加药，或者再吃一次。"
-            f"请叫 {caregivers} 帮你看药盒，再问医生或药剂师确认。"
+            f"{name}，我不能提供关于{medicine}的用药建议。\n\n"
+            f"请询问 {caregivers}、医生或药剂师。"
         )
 
     if red_flags:
         return (
-            f"{name}，我唔可以話你食唔食得{medicine}。\n\n"
-            f"你而家先唔好自己食藥、加藥，或者食多次。"
-            f"請即刻叫 {caregivers} 幫你。"
-            f"如果頭痛突然好犀利，或者有嘔、好暈、睇嘢模糊、講嘢唔清楚、"
-            f"手腳無力、胸口痛、呼吸困難，就打 {emergency_number}。"
+            f"{name}，我不能提供關於{medicine}的用藥建議。\n\n"
+            f"請現在聯絡 {caregivers}、醫生或藥劑師。"
+            f"如果有突然或嚴重症狀，請打 {emergency_number}。"
         )
 
     return (
-        f"{name}，我唔可以話你食唔食得{medicine}。\n\n"
-        f"你而家先唔好自己食藥、加藥，或者食多次。"
-        f"請叫 {caregivers} 幫你睇藥盒，再問醫生或藥劑師確認。"
+        f"{name}，我不能提供關於{medicine}的用藥建議。\n\n"
+        f"請詢問 {caregivers}、醫生或藥劑師。"
     )
 
 

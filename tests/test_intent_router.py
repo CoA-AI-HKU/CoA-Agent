@@ -90,7 +90,7 @@ def test_rag_answer_question_handles_medication_without_retrieval(tmp_path, monk
         },
     )
 
-    assert "我唔可以話你食唔食得" in result["answer"]
+    assert "不能提供關於" in result["answer"]
     assert "Maria" in result["answer"]
     assert result["found"] is False
     assert result["sources"] == []

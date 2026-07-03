@@ -26,11 +26,11 @@ from ..safety.medication_guard import (
 
 UNKNOWN_ANSWER = FALLBACK_ANSWER
 RETRIEVE_TOP_K = 8
-ANSWER_TOP_K = 3
+ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
-    "我不能提供診斷、停藥、加藥或劑量建議。這類問題需要由醫生、藥劑師或合資格醫護人員判斷。"
+    "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 )
 SAFETY_SENSITIVE_RESPONSE = (
     "這個情況可能需要即時協助。請先確保安全，並盡快聯絡照顧者、醫護人員或緊急服務。"
@@ -38,8 +38,8 @@ SAFETY_SENSITIVE_RESPONSE = (
 LOCALIZED_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
     "medication_or_diagnosis": {
         "zh-Hant": MEDICATION_OR_DIAGNOSIS_RESPONSE,
-        "zh-Hans": "我不能提供诊断、停药、加药或剂量建议。这类问题需要由医生、药剂师或合资格医护人员判断。",
-        "en": "I can't provide diagnosis, medication changes, or dosage advice. Please ask a doctor, pharmacist, or qualified clinician.",
+        "zh-Hans": "我不能提供诊断或任何用药建议。请询问医生、药剂师或合资格医护人员。",
+        "en": "I can't provide diagnosis or any medication advice. Please ask a doctor, pharmacist, or qualified clinician.",
     },
     "safety_sensitive": {
         "zh-Hant": SAFETY_SENSITIVE_RESPONSE,

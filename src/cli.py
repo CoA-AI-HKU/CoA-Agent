@@ -102,7 +102,7 @@ def build_agent(
     force_reindex: bool = False,
     min_shared_query_terms: int = 1,
     retrieve_top_k: int = 8,
-    answer_top_k: int = 3,
+    answer_top_k: int = 2,
     min_relevance_score: float = 0.35,
     chunk_size: int | None = None,
     chunk_overlap: int | None = None,
@@ -205,8 +205,7 @@ def interactive_loop(
     show_sources: bool = False,
     debug_rag: bool = False,
 ) -> None:
-    # Import the working function
-    from .dementia_rag import answer_from_dementia_knowledge
+    from .orchestrator import handle_dementia_user_message
     
     print("Enter questions (empty line to quit). Type 'reload' to re-index documents.")
     while True:
@@ -231,9 +230,12 @@ def interactive_loop(
                 print("Fallback mode active: True")
             print("Answer:\n", answer)
         else:
-            # Use the same function as Telegram (proven working)
-            answer = answer_from_dementia_knowledge(query)
-            print("Answer:\n", answer)
+            result = handle_dementia_user_message(query)
+            print("Answer:\n", result.get("answer", result))
+            if show_sources and result.get("sources"):
+                print("Sources:", result.get("sources"))
+            if debug_rag:
+                print("Debug:", result.get("debug", {}))
 
 
 def _print_cli_debug(query: str, result: dict[str, Any]) -> None:
@@ -292,7 +294,7 @@ def main() -> None:
     parser.add_argument("--fallback-to-top-chunk", action="store_true", default=False, help="Return the top retrieved chunk instead of calling DeepSeek")
     parser.add_argument("--min-shared-query-terms", type=int, default=int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")), help="Minimum meaningful query terms that must appear in a retrieved chunk")
     parser.add_argument("--retrieve-top-k", type=int, default=int(os.getenv("RAG_RETRIEVE_TOP_K", "8")), help="Number of candidate chunks to retrieve before answer filtering")
-    parser.add_argument("--answer-top-k", type=int, default=int(os.getenv("RAG_ANSWER_TOP_K", "3")), help="Number of best chunks to use for answer synthesis")
+    parser.add_argument("--answer-top-k", type=int, default=int(os.getenv("RAG_ANSWER_TOP_K", "2")), help="Number of best chunks to use for answer synthesis")
     parser.add_argument("--min-relevance-score", type=float, default=float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.35")), help="Minimum normalized relevance score required before answering")
     parser.add_argument("--answer-language", choices=["auto", "zh-Hant", "zh-Hans", "en"], default=os.getenv("RAG_ANSWER_LANGUAGE", "auto"), help="Answer language: auto|zh-Hant|zh-Hans|en")
     parser.add_argument("--chunk-size", type=int, default=int(os.getenv("RAG_CHUNK_SIZE", str(DEFAULT_CHUNK_SIZE))), help="Target chunk size in characters")

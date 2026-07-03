@@ -40,6 +40,20 @@ def test_medication_question_does_not_call_normal_rag(monkeypatch) -> None:
     assert result["sources"] == []
 
 
+def test_english_medication_question_does_not_call_normal_rag(monkeypatch) -> None:
+    def fail_answer_question(message, config):
+        raise AssertionError("Medication boundary route must not call normal RAG")
+
+    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+
+    result = handle_dementia_user_message("Can I take aspirin?")
+
+    assert result["rag_called"] is False
+    assert result["safety_level"] == "medical_boundary"
+    assert result["answer_language"] == "en"
+    assert "any medication advice" in result["answer"]
+
+
 def test_safety_question_does_not_call_normal_rag(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Safety boundary route must not call normal RAG")
