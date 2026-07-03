@@ -65,6 +65,34 @@ def test_cognitive_activity_returns_activity_response(monkeypatch) -> None:
     assert result["intent"] == "cognitive_activity"
     assert result["rag_called"] is False
     assert "三種水果" in result["answer"]
+    assert result["answer_language"] == "zh-Hant"
+
+
+def test_static_responses_follow_simplified_input(monkeypatch) -> None:
+    def fail_answer_question(message, config):
+        raise AssertionError("Static activity route must not call normal RAG")
+
+    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+
+    result = handle_dementia_user_message("我好无聊，有什么可以做？")
+
+    assert result["intent"] == "cognitive_activity"
+    assert result["answer_language"] == "zh-Hans"
+    assert "三种水果" in result["answer"]
+    assert result["debug"]["answer_language"] == "zh-Hans"
+
+
+def test_static_responses_follow_english_input(monkeypatch) -> None:
+    def fail_answer_question(message, config):
+        raise AssertionError("Static activity route must not call normal RAG")
+
+    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+
+    result = handle_dementia_user_message("I am bored, what can I do?")
+
+    assert result["intent"] == "cognitive_activity"
+    assert result["answer_language"] == "en"
+    assert "three fruits" in result["answer"]
 
 
 def test_unknown_does_not_invent_dementia_knowledge(monkeypatch) -> None:

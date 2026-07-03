@@ -294,6 +294,7 @@ def main() -> None:
     parser.add_argument("--retrieve-top-k", type=int, default=int(os.getenv("RAG_RETRIEVE_TOP_K", "8")), help="Number of candidate chunks to retrieve before answer filtering")
     parser.add_argument("--answer-top-k", type=int, default=int(os.getenv("RAG_ANSWER_TOP_K", "3")), help="Number of best chunks to use for answer synthesis")
     parser.add_argument("--min-relevance-score", type=float, default=float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.35")), help="Minimum normalized relevance score required before answering")
+    parser.add_argument("--answer-language", choices=["auto", "zh-Hant", "zh-Hans", "en"], default=os.getenv("RAG_ANSWER_LANGUAGE", "auto"), help="Answer language: auto|zh-Hant|zh-Hans|en")
     parser.add_argument("--chunk-size", type=int, default=int(os.getenv("RAG_CHUNK_SIZE", str(DEFAULT_CHUNK_SIZE))), help="Target chunk size in characters")
     parser.add_argument("--chunk-overlap", type=int, default=int(os.getenv("RAG_CHUNK_OVERLAP", str(DEFAULT_CHUNK_OVERLAP))), help="Maximum paragraph/sentence overlap between chunks")
     parser.add_argument("--show-sources", action="store_true", help="Print retrieved source files with the answer")
@@ -326,6 +327,7 @@ def main() -> None:
         "retrieve_top_k": args.retrieve_top_k,
         "answer_top_k": args.answer_top_k,
         "min_relevance_score": args.min_relevance_score,
+        "answer_language": args.answer_language,
         "min_shared_query_terms": args.min_shared_query_terms,
         "chunk_size": args.chunk_size,
         "chunk_overlap": args.chunk_overlap,

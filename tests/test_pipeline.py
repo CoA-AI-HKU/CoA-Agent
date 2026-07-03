@@ -60,8 +60,12 @@ def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
 
     prompt = agent.build_prompt("What is this?", retrieved)
     assert "Answer the user's question using ONLY the provided context" in prompt
+    assert "Answer only in English." in prompt
     assert "Answer in 1-3 short sentences" in prompt
     assert "What is this?" in prompt
+
+    simplified_prompt = agent.build_prompt("这是什么？", retrieved)
+    assert "Answer only in Simplified Chinese." in simplified_prompt
 
 
 def test_rag_agent_answer_uses_deepseek_callable(tmp_path: Path) -> None:

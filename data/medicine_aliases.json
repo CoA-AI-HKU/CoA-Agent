@@ -4,42 +4,334 @@
       "aspirin",
       "ASA",
       "acetylsalicylic acid",
-      "阿司匹林",
-      "亞士匹靈",
       "阿士匹靈",
+      "亞士匹靈",
+      "阿司匹林",
       "阿斯匹靈"
     ],
-    "category": "medicine"
-  },
-  "donepezil": {
-    "aliases": [
-      "donepezil",
-      "Aricept",
-      "多奈哌齊",
-      "多奈哌齐"
-    ],
-    "category": "medicine"
+    "category": "medicine",
+    "type": "止痛退燒藥 / NSAID"
   },
   "paracetamol": {
     "aliases": [
       "paracetamol",
       "acetaminophen",
       "Panadol",
-      "必理痛",
       "撲熱息痛",
       "扑热息痛",
+      "對乙醯氨基酚",
       "對乙酰氨基酚",
       "对乙酰氨基酚"
     ],
-    "category": "medicine"
+    "category": "medicine",
+    "type": "止痛退燒藥"
   },
-  "metformin": {
+  "ibuprofen": {
     "aliases": [
-      "metformin",
-      "二甲雙胍",
-      "二甲双胍"
+      "ibuprofen",
+      "布洛芬"
     ],
-    "category": "medicine"
+    "category": "medicine",
+    "type": "NSAID / 止痛退燒消炎藥"
+  },
+  "indomethacin": {
+    "aliases": [
+      "indomethacin",
+      "吲哚美辛"
+    ],
+    "category": "medicine",
+    "type": "NSAID / 止痛消炎藥"
+  },
+  "naproxen": {
+    "aliases": [
+      "naproxen",
+      "萘普生"
+    ],
+    "category": "medicine",
+    "type": "NSAID / 止痛消炎藥"
+  },
+  "diclofenac": {
+    "aliases": [
+      "diclofenac",
+      "雙氯芬酸",
+      "双氯芬酸",
+      "雙氯芬酸凝膠",
+      "双氯芬酸凝胶"
+    ],
+    "category": "medicine",
+    "type": "NSAID / 外用鎮痛藥"
+  },
+  "piroxicam": {
+    "aliases": [
+      "piroxicam",
+      "吡羅昔康",
+      "吡罗昔康"
+    ],
+    "category": "medicine",
+    "type": "NSAID / 外用鎮痛藥"
+  },
+  "ketoprofen": {
+    "aliases": [
+      "ketoprofen",
+      "酮洛芬",
+      "苯酮苯丙酸"
+    ],
+    "category": "medicine",
+    "type": "NSAID / 外用鎮痛藥"
+  },
+  "ammonium_chloride": {
+    "aliases": [
+      "ammonium chloride",
+      "氯化胺",
+      "氯化銨",
+      "氯化铵"
+    ],
+    "category": "medicine",
+    "type": "袪痰劑"
+  },
+  "ipecacuanha_tincture": {
+    "aliases": [
+      "tincture of ipecacuanha",
+      "ipecacuanha tincture",
+      "依必格酊"
+    ],
+    "category": "medicine",
+    "type": "袪痰劑"
+  },
+  "senega_tincture": {
+    "aliases": [
+      "tincture of senega",
+      "senega tincture",
+      "遠志酊",
+      "远志酊"
+    ],
+    "category": "medicine",
+    "type": "袪痰劑"
+  },
+  "codeine": {
+    "aliases": [
+      "codeine",
+      "可待因"
+    ],
+    "category": "medicine",
+    "type": "鎮咳劑 / opioid"
+  },
+  "amoxicillin": {
+    "aliases": [
+      "amoxicillin",
+      "阿莫西林"
+    ],
+    "category": "medicine",
+    "type": "青霉素類抗生素"
+  },
+  "ampicillin": {
+    "aliases": [
+      "ampicillin",
+      "氨苄西林"
+    ],
+    "category": "medicine",
+    "type": "青霉素類抗生素"
+  },
+  "tetracycline": {
+    "aliases": [
+      "tetracycline",
+      "四環素",
+      "四环素"
+    ],
+    "category": "medicine",
+    "type": "四環素類抗生素"
+  },
+  "doxycycline": {
+    "aliases": [
+      "doxycycline",
+      "多西環素",
+      "多西环素"
+    ],
+    "category": "medicine",
+    "type": "四環素類抗生素"
+  },
+  "cephalexin": {
+    "aliases": [
+      "cephalexin",
+      "頭孢氨芐",
+      "头孢氨苄",
+      "頭孢氨苄"
+    ],
+    "category": "medicine",
+    "type": "頭孢菌素類抗生素"
+  },
+  "cefuroxime": {
+    "aliases": [
+      "cefuroxime",
+      "頭孢呋辛",
+      "头孢呋辛"
+    ],
+    "category": "medicine",
+    "type": "頭孢菌素類抗生素"
+  },
+  "erythromycin": {
+    "aliases": [
+      "erythromycin",
+      "紅霉素",
+      "红霉素",
+      "紅黴素"
+    ],
+    "category": "medicine",
+    "type": "大環內酯類抗生素"
+  },
+  "azithromycin": {
+    "aliases": [
+      "azithromycin",
+      "阿奇霉素"
+    ],
+    "category": "medicine",
+    "type": "大環內酯類抗生素"
+  },
+  "ciprofloxacin": {
+    "aliases": [
+      "ciprofloxacin",
+      "環丙氟哌酸",
+      "环丙氟哌酸",
+      "環丙沙星",
+      "环丙沙星"
+    ],
+    "category": "medicine",
+    "type": "氟喹諾酮類抗生素"
+  },
+  "levofloxacin": {
+    "aliases": [
+      "levofloxacin",
+      "左氧氟沙星"
+    ],
+    "category": "medicine",
+    "type": "氟喹諾酮類抗生素"
+  },
+  "metronidazole": {
+    "aliases": [
+      "metronidazole",
+      "甲硝唑"
+    ],
+    "category": "medicine",
+    "type": "抗生素 / 抗原蟲藥"
+  },
+  "chloramphenicol": {
+    "aliases": [
+      "chloramphenicol",
+      "氯霉素"
+    ],
+    "category": "medicine",
+    "type": "抗生素"
+  },
+  "magnesium_trisilicate": {
+    "aliases": [
+      "magnesium trisilicate",
+      "三矽酸鎂",
+      "三硅酸镁"
+    ],
+    "category": "medicine",
+    "type": "中和胃酸藥"
+  },
+  "aluminium_hydroxide": {
+    "aliases": [
+      "aluminium hydroxide",
+      "aluminum hydroxide",
+      "氫氧化鋁",
+      "氢氧化铝"
+    ],
+    "category": "medicine",
+    "type": "中和胃酸藥"
+  },
+  "magnesium_hydroxide": {
+    "aliases": [
+      "magnesium hydroxide",
+      "氫氧化鎂",
+      "氢氧化镁"
+    ],
+    "category": "medicine",
+    "type": "中和胃酸藥"
+  },
+  "famotidine": {
+    "aliases": [
+      "famotidine",
+      "法莫替丁"
+    ],
+    "category": "medicine",
+    "type": "H2受體對抗劑"
+  },
+  "omeprazole": {
+    "aliases": [
+      "omeprazole",
+      "奧美拉唑",
+      "奥美拉唑"
+    ],
+    "category": "medicine",
+    "type": "質子泵抑制劑"
+  },
+  "esomeprazole": {
+    "aliases": [
+      "esomeprazole",
+      "埃索美拉唑"
+    ],
+    "category": "medicine",
+    "type": "質子泵抑制劑"
+  },
+  "pantoprazole": {
+    "aliases": [
+      "pantoprazole",
+      "泮托拉唑"
+    ],
+    "category": "medicine",
+    "type": "質子泵抑制劑"
+  },
+  "psyllium": {
+    "aliases": [
+      "psyllium",
+      "歐車前子",
+      "欧车前子"
+    ],
+    "category": "medicine",
+    "type": "膨脹性通便藥"
+  },
+  "bisacodyl": {
+    "aliases": [
+      "bisacodyl",
+      "比沙可啶"
+    ],
+    "category": "medicine",
+    "type": "刺激性瀉藥"
+  },
+  "senna": {
+    "aliases": [
+      "senna",
+      "番瀉葉",
+      "番泻叶"
+    ],
+    "category": "medicine",
+    "type": "刺激性瀉藥"
+  },
+  "lactulose": {
+    "aliases": [
+      "lactulose",
+      "乳果糖"
+    ],
+    "category": "medicine",
+    "type": "滲透性瀉藥"
+  },
+  "loperamide": {
+    "aliases": [
+      "loperamide",
+      "洛哌丁胺"
+    ],
+    "category": "medicine",
+    "type": "止瀉藥 / 腸蠕動抑制劑"
+  },
+  "nifedipine": {
+    "aliases": [
+      "nifedipine",
+      "硝苯地平"
+    ],
+    "category": "medicine",
+    "type": "鈣拮抗劑 / 抗高血壓藥"
   },
   "amlodipine": {
     "aliases": [
@@ -47,6 +339,996 @@
       "Norvasc",
       "氨氯地平"
     ],
-    "category": "medicine"
+    "category": "medicine",
+    "type": "鈣拮抗劑 / 抗高血壓藥"
+  },
+  "felodipine": {
+    "aliases": [
+      "felodipine",
+      "非洛地平"
+    ],
+    "category": "medicine",
+    "type": "鈣拮抗劑 / 抗高血壓藥"
+  },
+  "diltiazem": {
+    "aliases": [
+      "diltiazem",
+      "地爾硫䓬",
+      "地尔硫䓬",
+      "地爾硫卓",
+      "地尔硫卓"
+    ],
+    "category": "medicine",
+    "type": "鈣拮抗劑 / 抗高血壓藥"
+  },
+  "captopril": {
+    "aliases": [
+      "captopril",
+      "卡托普利"
+    ],
+    "category": "medicine",
+    "type": "ACEI / 抗高血壓藥"
+  },
+  "lisinopril": {
+    "aliases": [
+      "lisinopril",
+      "賴諾普利",
+      "赖诺普利"
+    ],
+    "category": "medicine",
+    "type": "ACEI / 抗高血壓藥"
+  },
+  "perindopril": {
+    "aliases": [
+      "perindopril",
+      "培哚普利"
+    ],
+    "category": "medicine",
+    "type": "ACEI / 抗高血壓藥"
+  },
+  "losartan": {
+    "aliases": [
+      "losartan",
+      "氯沙坦"
+    ],
+    "category": "medicine",
+    "type": "ARB / 抗高血壓藥"
+  },
+  "irbesartan": {
+    "aliases": [
+      "irbesartan",
+      "厄貝沙坦",
+      "厄贝沙坦"
+    ],
+    "category": "medicine",
+    "type": "ARB / 抗高血壓藥"
+  },
+  "hydrochlorothiazide": {
+    "aliases": [
+      "hydrochlorothiazide",
+      "氫氯噻嗪",
+      "氢氯噻嗪"
+    ],
+    "category": "medicine",
+    "type": "利尿劑 / 抗高血壓藥"
+  },
+  "indapamide": {
+    "aliases": [
+      "indapamide",
+      "吲達帕胺",
+      "吲达帕胺"
+    ],
+    "category": "medicine",
+    "type": "利尿劑 / 抗高血壓藥"
+  },
+  "frusemide": {
+    "aliases": [
+      "frusemide",
+      "furosemide",
+      "呋塞米"
+    ],
+    "category": "medicine",
+    "type": "利尿劑 / 抗高血壓藥"
+  },
+  "spironolactone": {
+    "aliases": [
+      "spironolactone",
+      "螺内酯",
+      "螺內酯"
+    ],
+    "category": "medicine",
+    "type": "利尿劑 / 抗高血壓藥"
+  },
+  "atenolol": {
+    "aliases": [
+      "atenolol",
+      "阿替洛爾",
+      "阿替洛尔"
+    ],
+    "category": "medicine",
+    "type": "乙型阻斷劑 / 抗高血壓藥"
+  },
+  "metoprolol": {
+    "aliases": [
+      "metoprolol",
+      "美托洛爾",
+      "美托洛尔"
+    ],
+    "category": "medicine",
+    "type": "乙型阻斷劑 / 抗高血壓藥"
+  },
+  "propranolol": {
+    "aliases": [
+      "propranolol",
+      "propanolol",
+      "普萘洛爾",
+      "普萘洛尔"
+    ],
+    "category": "medicine",
+    "type": "乙型阻斷劑 / 抗高血壓藥"
+  },
+  "prazosin": {
+    "aliases": [
+      "prazosin",
+      "哌唑嗪"
+    ],
+    "category": "medicine",
+    "type": "甲型阻斷劑 / 抗高血壓藥"
+  },
+  "glyceryl_trinitrate": {
+    "aliases": [
+      "glyceryl trinitrate",
+      "nitroglycerin",
+      "nitroglycerine",
+      "硝酸甘油",
+      "脷底丸"
+    ],
+    "category": "medicine",
+    "type": "硝酸鹽類 / 抗心絞痛藥"
+  },
+  "salbutamol": {
+    "aliases": [
+      "salbutamol",
+      "albuterol",
+      "沙丁胺醇"
+    ],
+    "category": "medicine",
+    "type": "短效β2受體激動劑 / 哮喘藥"
+  },
+  "terbutaline": {
+    "aliases": [
+      "terbutaline",
+      "特布他林"
+    ],
+    "category": "medicine",
+    "type": "短效β2受體激動劑 / 哮喘藥"
+  },
+  "formoterol": {
+    "aliases": [
+      "formoterol",
+      "福莫特羅",
+      "福莫特罗"
+    ],
+    "category": "medicine",
+    "type": "長效β2受體激動劑 / 哮喘藥"
+  },
+  "salmeterol": {
+    "aliases": [
+      "salmeterol",
+      "沙美特羅",
+      "沙美特罗"
+    ],
+    "category": "medicine",
+    "type": "長效β2受體激動劑 / 哮喘藥"
+  },
+  "beclomethasone": {
+    "aliases": [
+      "beclomethasone",
+      "倍氯米松"
+    ],
+    "category": "medicine",
+    "type": "吸入皮質類固醇 / 哮喘藥"
+  },
+  "fluticasone": {
+    "aliases": [
+      "fluticasone",
+      "氟替卡松"
+    ],
+    "category": "medicine",
+    "type": "吸入皮質類固醇 / 哮喘藥"
+  },
+  "tiotropium": {
+    "aliases": [
+      "tiotropium",
+      "噻托銨",
+      "噻托铵"
+    ],
+    "category": "medicine",
+    "type": "抗膽鹼支氣管擴張劑 / 哮喘藥"
+  },
+  "montelukast": {
+    "aliases": [
+      "montelukast",
+      "孟魯司特",
+      "孟鲁司特"
+    ],
+    "category": "medicine",
+    "type": "白三烯受體拮抗劑 / 哮喘藥"
+  },
+  "theophylline": {
+    "aliases": [
+      "theophylline",
+      "茶鹼",
+      "茶碱"
+    ],
+    "category": "medicine",
+    "type": "黃嘌呤類 / 哮喘藥"
+  },
+  "metformin": {
+    "aliases": [
+      "metformin",
+      "二甲雙胍",
+      "二甲双胍"
+    ],
+    "category": "medicine",
+    "type": "雙胍類 / 口服抗糖尿病藥"
+  },
+  "gliclazide": {
+    "aliases": [
+      "gliclazide",
+      "格列齊特",
+      "格列齐特"
+    ],
+    "category": "medicine",
+    "type": "磺脲類 / 口服抗糖尿病藥"
+  },
+  "glipizide": {
+    "aliases": [
+      "glipizide",
+      "格列吡嗪"
+    ],
+    "category": "medicine",
+    "type": "磺脲類 / 口服抗糖尿病藥"
+  },
+  "acarbose": {
+    "aliases": [
+      "acarbose",
+      "阿卡波糖"
+    ],
+    "category": "medicine",
+    "type": "α-葡萄糖苷酶抑制劑 / 口服抗糖尿病藥"
+  },
+  "alogliptin": {
+    "aliases": [
+      "alogliptin",
+      "阿格列汀"
+    ],
+    "category": "medicine",
+    "type": "DPP-4抑制劑 / 口服抗糖尿病藥"
+  },
+  "sitagliptin": {
+    "aliases": [
+      "sitagliptin",
+      "西他列汀"
+    ],
+    "category": "medicine",
+    "type": "DPP-4抑制劑 / 口服抗糖尿病藥"
+  },
+  "dapagliflozin": {
+    "aliases": [
+      "dapagliflozin",
+      "達格列淨",
+      "达格列净"
+    ],
+    "category": "medicine",
+    "type": "SGLT2抑制劑 / 口服抗糖尿病藥"
+  },
+  "prednisolone": {
+    "aliases": [
+      "prednisolone",
+      "潑尼松龍",
+      "泼尼松龙"
+    ],
+    "category": "medicine",
+    "type": "口服皮質類固醇 / 痛風藥"
+  },
+  "colchicine": {
+    "aliases": [
+      "colchicine",
+      "秋水仙鹼",
+      "秋水仙碱"
+    ],
+    "category": "medicine",
+    "type": "痛風藥"
+  },
+  "allopurinol": {
+    "aliases": [
+      "allopurinol",
+      "別嘌醇",
+      "别嘌醇"
+    ],
+    "category": "medicine",
+    "type": "降尿酸藥 / 痛風藥"
+  },
+  "probenecid": {
+    "aliases": [
+      "probenecid",
+      "丙磺舒"
+    ],
+    "category": "medicine",
+    "type": "降尿酸藥 / 痛風藥"
+  },
+  "fluocinolone": {
+    "aliases": [
+      "fluocinolone",
+      "氟輕松",
+      "氟轻松"
+    ],
+    "category": "medicine",
+    "type": "外用類固醇"
+  },
+  "hydrocortisone": {
+    "aliases": [
+      "hydrocortisone",
+      "氫化可的松",
+      "氢化可的松"
+    ],
+    "category": "medicine",
+    "type": "外用類固醇 / 皮質類固醇"
+  },
+  "betamethasone": {
+    "aliases": [
+      "betamethasone",
+      "倍他米松"
+    ],
+    "category": "medicine",
+    "type": "外用類固醇 / 皮質類固醇"
+  },
+  "hyoscine": {
+    "aliases": [
+      "hyoscine",
+      "scopolamine",
+      "hyoscine hydrobromide",
+      "氫溴酸莨菪",
+      "氢溴酸莨菪",
+      "東莨菪鹼",
+      "东莨菪碱"
+    ],
+    "category": "medicine",
+    "type": "抗膽鹼藥 / 止暈止嘔藥"
+  },
+  "cinnarizine": {
+    "aliases": [
+      "cinnarizine",
+      "桂利嗪"
+    ],
+    "category": "medicine",
+    "type": "抗組織胺藥 / 止暈止嘔藥"
+  },
+  "dimenhydrinate": {
+    "aliases": [
+      "dimenhydrinate",
+      "茶苯海明",
+      "茶苯海明"
+    ],
+    "category": "medicine",
+    "type": "抗組織胺藥 / 止暈止嘔藥"
+  },
+  "promethazine": {
+    "aliases": [
+      "promethazine",
+      "異丙嗪",
+      "异丙嗪"
+    ],
+    "category": "medicine",
+    "type": "抗組織胺藥 / 止嘔藥"
+  },
+  "metoclopramide": {
+    "aliases": [
+      "metoclopramide",
+      "甲氧氯普胺"
+    ],
+    "category": "medicine",
+    "type": "多巴胺拮抗藥 / 止嘔藥"
+  },
+  "domperidone": {
+    "aliases": [
+      "domperidone",
+      "多潘立酮"
+    ],
+    "category": "medicine",
+    "type": "多巴胺拮抗藥 / 止嘔藥"
+  },
+  "prochlorperazine": {
+    "aliases": [
+      "prochlorperazine",
+      "丙氯拉嗪"
+    ],
+    "category": "medicine",
+    "type": "吩噻嗪類 / 止嘔藥"
+  },
+  "chlorpromazine": {
+    "aliases": [
+      "chlorpromazine",
+      "氯丙嗪"
+    ],
+    "category": "medicine",
+    "type": "吩噻嗪類 / 止嘔藥"
+  },
+  "ondansetron": {
+    "aliases": [
+      "ondansetron",
+      "奧丹亞龍",
+      "奥丹亚龙",
+      "昂丹司瓊",
+      "昂丹司琼"
+    ],
+    "category": "medicine",
+    "type": "5-HT3受體拮抗藥 / 止嘔藥"
+  },
+  "granisetron": {
+    "aliases": [
+      "granisetron",
+      "格拉司瓊",
+      "格拉司琼"
+    ],
+    "category": "medicine",
+    "type": "5-HT3受體拮抗藥 / 止嘔藥"
+  },
+  "palonosetron": {
+    "aliases": [
+      "palonosetron",
+      "帕洛諾司瓊",
+      "帕洛诺司琼"
+    ],
+    "category": "medicine",
+    "type": "5-HT3受體拮抗藥 / 止嘔藥"
+  },
+  "aprepitant": {
+    "aliases": [
+      "aprepitant",
+      "阿瑞匹坦"
+    ],
+    "category": "medicine",
+    "type": "NK-1受體拮抗劑 / 止嘔藥"
+  },
+  "fosaprepitant": {
+    "aliases": [
+      "fosaprepitant",
+      "福沙匹坦"
+    ],
+    "category": "medicine",
+    "type": "NK-1受體拮抗劑 / 止嘔藥"
+  },
+  "netupitant": {
+    "aliases": [
+      "netupitant",
+      "奈妥匹坦"
+    ],
+    "category": "medicine",
+    "type": "NK-1受體拮抗劑 / 止嘔藥"
+  },
+  "alverine": {
+    "aliases": [
+      "alverine",
+      "阿爾維林",
+      "阿尔维林"
+    ],
+    "category": "medicine",
+    "type": "鬆弛平滑肌藥 / 抗腸抽筋藥"
+  },
+  "mebeverine": {
+    "aliases": [
+      "mebeverine",
+      "美貝維林",
+      "美贝维林"
+    ],
+    "category": "medicine",
+    "type": "鬆弛平滑肌藥 / 抗腸抽筋藥"
+  },
+  "clotrimazole": {
+    "aliases": [
+      "clotrimazole",
+      "克霉唑"
+    ],
+    "category": "medicine",
+    "type": "咪唑類抗癬藥"
+  },
+  "miconazole": {
+    "aliases": [
+      "miconazole",
+      "咪康唑"
+    ],
+    "category": "medicine",
+    "type": "咪唑類抗癬藥"
+  },
+  "econazole": {
+    "aliases": [
+      "econazole",
+      "益康唑"
+    ],
+    "category": "medicine",
+    "type": "咪唑類抗癬藥"
+  },
+  "ketoconazole": {
+    "aliases": [
+      "ketoconazole",
+      "酮康唑"
+    ],
+    "category": "medicine",
+    "type": "咪唑類抗癬藥"
+  },
+  "terbinafine": {
+    "aliases": [
+      "terbinafine",
+      "特比萘芬"
+    ],
+    "category": "medicine",
+    "type": "抗癬藥"
+  },
+  "salicylic_acid": {
+    "aliases": [
+      "salicylic acid",
+      "水楊酸",
+      "水杨酸"
+    ],
+    "category": "medicine",
+    "type": "外用抗癬藥 / 外用暗瘡產品"
+  },
+  "amorolfine": {
+    "aliases": [
+      "amorolfine",
+      "阿莫羅芬",
+      "阿莫罗芬"
+    ],
+    "category": "medicine",
+    "type": "指甲液抗癬藥"
+  },
+  "tioconazole": {
+    "aliases": [
+      "tioconazole",
+      "噻康唑"
+    ],
+    "category": "medicine",
+    "type": "指甲液抗癬藥"
+  },
+  "selenium_sulfide": {
+    "aliases": [
+      "selenium sulfide",
+      "硫化硒"
+    ],
+    "category": "medicine",
+    "type": "洗髮液抗癬藥"
+  },
+  "griseofulvin": {
+    "aliases": [
+      "griseofulvin",
+      "灰黃霉素",
+      "灰黄霉素"
+    ],
+    "category": "medicine",
+    "type": "口服抗癬藥"
+  },
+  "phenobarbital": {
+    "aliases": [
+      "phenobarbital",
+      "苯巴比妥"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "phenytoin": {
+    "aliases": [
+      "phenytoin",
+      "苯妥英"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "valproic_acid": {
+    "aliases": [
+      "valproic acid",
+      "valproate",
+      "丙戊酸"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "gabapentin": {
+    "aliases": [
+      "gabapentin",
+      "加巴噴丁",
+      "加巴喷丁"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "levetiracetam": {
+    "aliases": [
+      "levetiracetam",
+      "左乙拉西坦"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "topiramate": {
+    "aliases": [
+      "topiramate",
+      "托吡酯"
+    ],
+    "category": "medicine",
+    "type": "抗腦癇藥"
+  },
+  "ethanol": {
+    "aliases": [
+      "ethanol",
+      "ethyl alcohol",
+      "alcohol",
+      "乙醇",
+      "酒精"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "isopropyl_alcohol": {
+    "aliases": [
+      "isopropyl alcohol",
+      "isopropanol",
+      "異丙醇",
+      "异丙醇"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "chlorhexidine": {
+    "aliases": [
+      "chlorhexidine",
+      "氯己定"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "iodine": {
+    "aliases": [
+      "iodine",
+      "碘",
+      "碘酒"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "povidone_iodine": {
+    "aliases": [
+      "povidone iodine",
+      "povidone-iodine",
+      "聚維酮碘",
+      "聚维酮碘"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "hydrogen_peroxide": {
+    "aliases": [
+      "hydrogen peroxide",
+      "雙氧水",
+      "双氧水"
+    ],
+    "category": "medicine",
+    "type": "消毒劑"
+  },
+  "methyl_salicylate": {
+    "aliases": [
+      "methyl salicylate",
+      "水楊酸甲酯",
+      "水杨酸甲酯"
+    ],
+    "category": "medicine",
+    "type": "外用鎮痛劑 / 反刺激劑"
+  },
+  "menthol": {
+    "aliases": [
+      "menthol",
+      "薄荷腦",
+      "薄荷脑"
+    ],
+    "category": "medicine",
+    "type": "外用鎮痛劑 / 反刺激劑"
+  },
+  "camphor": {
+    "aliases": [
+      "camphor",
+      "樟腦",
+      "樟脑"
+    ],
+    "category": "medicine",
+    "type": "外用鎮痛劑 / 反刺激劑"
+  },
+  "capsicum_extract": {
+    "aliases": [
+      "capsicum extract",
+      "capsaicin",
+      "辣椒提取物",
+      "辣椒素"
+    ],
+    "category": "medicine",
+    "type": "外用鎮痛劑 / 反刺激劑"
+  },
+  "fentanyl": {
+    "aliases": [
+      "fentanyl",
+      "芬太尼"
+    ],
+    "category": "medicine",
+    "type": "鴉片類止痛藥 / 外用貼片"
+  },
+  "buprenorphine": {
+    "aliases": [
+      "buprenorphine",
+      "丁丙諾啡",
+      "丁丙诺啡"
+    ],
+    "category": "medicine",
+    "type": "鴉片類止痛藥 / 外用貼片"
+  },
+  "benzoyl_peroxide": {
+    "aliases": [
+      "benzoyl peroxide",
+      "過氧苯甲酰",
+      "过氧苯甲酰"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡產品"
+  },
+  "sulfur": {
+    "aliases": [
+      "sulfur",
+      "sulphur",
+      "硫磺"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡產品"
+  },
+  "azelaic_acid": {
+    "aliases": [
+      "azelaic acid",
+      "壬二酸"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡產品"
+  },
+  "tretinoin": {
+    "aliases": [
+      "tretinoin",
+      "retinoic acid",
+      "維A酸",
+      "维A酸",
+      "維甲酸",
+      "维甲酸"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡產品"
+  },
+  "adapalene": {
+    "aliases": [
+      "adapalene",
+      "阿達帕林",
+      "阿达帕林"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡產品"
+  },
+  "clindamycin": {
+    "aliases": [
+      "clindamycin",
+      "克林霉素"
+    ],
+    "category": "medicine",
+    "type": "外用暗瘡抗生素"
+  },
+  "liraglutide": {
+    "aliases": [
+      "liraglutide",
+      "利拉糖肽"
+    ],
+    "category": "medicine",
+    "type": "抗肥胖症藥物 / GLP-1受體促效劑"
+  },
+  "semaglutide": {
+    "aliases": [
+      "semaglutide",
+      "司美魯肽",
+      "司美鲁肽"
+    ],
+    "category": "medicine",
+    "type": "抗肥胖症藥物 / GLP-1受體促效劑"
+  },
+  "tirzepatide": {
+    "aliases": [
+      "tirzepatide",
+      "替爾泊肽",
+      "替尔泊肽"
+    ],
+    "category": "medicine",
+    "type": "抗肥胖症藥物 / GIP/GLP-1受體促效劑"
+  },
+  "naltrexone_bupropion": {
+    "aliases": [
+      "naltrexone/bupropion",
+      "naltrexone and bupropion",
+      "納曲酮/安非他酮",
+      "纳曲酮/安非他酮"
+    ],
+    "category": "medicine",
+    "type": "抗肥胖症藥物"
+  },
+  "orlistat": {
+    "aliases": [
+      "orlistat",
+      "奧利司他",
+      "奥利司他"
+    ],
+    "category": "medicine",
+    "type": "抗肥胖症藥物"
+  },
+  "benzocaine": {
+    "aliases": [
+      "benzocaine",
+      "苯佐卡因"
+    ],
+    "category": "medicine",
+    "type": "局部麻醉劑 / 外用痔瘡產品"
+  },
+  "cinchocaine": {
+    "aliases": [
+      "cinchocaine",
+      "dibucaine",
+      "辛可卡因"
+    ],
+    "category": "medicine",
+    "type": "局部麻醉劑 / 外用痔瘡產品"
+  },
+  "lidocaine": {
+    "aliases": [
+      "lidocaine",
+      "lignocaine",
+      "利多卡因"
+    ],
+    "category": "medicine",
+    "type": "局部麻醉劑"
+  },
+  "pramocaine": {
+    "aliases": [
+      "pramocaine",
+      "pramoxine",
+      "普莫卡因"
+    ],
+    "category": "medicine",
+    "type": "局部麻醉劑 / 外用痔瘡產品"
+  },
+  "calamine": {
+    "aliases": [
+      "calamine",
+      "爐甘石",
+      "炉甘石"
+    ],
+    "category": "medicine",
+    "type": "收斂劑 / 保護劑"
+  },
+  "zinc_oxide": {
+    "aliases": [
+      "zinc oxide",
+      "氧化鋅",
+      "氧化锌"
+    ],
+    "category": "medicine",
+    "type": "收斂劑 / 保護劑"
+  },
+  "phenylephrine_hydrochloride": {
+    "aliases": [
+      "phenylephrine hydrochloride",
+      "phenylephrine",
+      "鹽酸去氧腎上腺素",
+      "盐酸去氧肾上腺素"
+    ],
+    "category": "medicine",
+    "type": "血管收縮劑 / 外用痔瘡產品"
+  },
+  "benzydamine": {
+    "aliases": [
+      "benzydamine",
+      "苄達明",
+      "苄达明"
+    ],
+    "category": "medicine",
+    "type": "抗炎藥物 / 口瘡外用藥"
+  },
+  "choline_salicylate": {
+    "aliases": [
+      "choline salicylate",
+      "水楊酸膽鹼",
+      "水杨酸胆碱"
+    ],
+    "category": "medicine",
+    "type": "抗炎藥物 / 口瘡外用藥"
+  },
+  "cetylpyridinium_chloride": {
+    "aliases": [
+      "cetylpyridinium chloride",
+      "CPC",
+      "西吡氯銨",
+      "西吡氯铵"
+    ],
+    "category": "medicine",
+    "type": "消毒劑 / 口瘡外用藥"
+  },
+  "triamcinolone": {
+    "aliases": [
+      "triamcinolone",
+      "曲安奈德"
+    ],
+    "category": "medicine",
+    "type": "皮質類固醇 / 口瘡外用藥"
+  },
+  "dexamethasone": {
+    "aliases": [
+      "dexamethasone",
+      "地塞米松"
+    ],
+    "category": "medicine",
+    "type": "皮質類固醇 / 口瘡外用藥"
+  },
+  "oxygen": {
+    "aliases": [
+      "oxygen",
+      "O2",
+      "氧氣",
+      "氧气"
+    ],
+    "category": "medicine",
+    "type": "醫療氣體"
+  },
+  "nitrous_oxide": {
+    "aliases": [
+      "nitrous oxide",
+      "N2O",
+      "一氧化二氮",
+      "氧化亞氮",
+      "氧化亚氮",
+      "笑氣",
+      "笑气"
+    ],
+    "category": "medicine",
+    "type": "醫療氣體"
+  },
+  "medical_air": {
+    "aliases": [
+      "medical air",
+      "醫療空氣",
+      "医疗空气"
+    ],
+    "category": "medicine",
+    "type": "醫療氣體"
+  },
+  "estrogen": {
+    "aliases": [
+      "estrogen",
+      "oestrogen",
+      "雌激素"
+    ],
+    "category": "medicine",
+    "type": "口服避孕藥成分 / 荷爾蒙"
+  },
+  "progestogen": {
+    "aliases": [
+      "progestogen",
+      "progestin",
+      "progesterone",
+      "黃體酮",
+      "黄体酮",
+      "合成黃體酮",
+      "合成黄体酮"
+    ],
+    "category": "medicine",
+    "type": "口服避孕藥成分 / 荷爾蒙"
   }
 }

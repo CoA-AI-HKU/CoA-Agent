@@ -12,7 +12,8 @@ from typing import Any, Callable, List, Optional
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
 from .embedder import Embedder
-from .prompts import ANSWER_PROMPT, FALLBACK_ANSWER
+from .language import AnswerLanguage, detect_answer_language
+from .prompts import FALLBACK_ANSWER, build_answer_prompt, get_fallback_answer, get_source_label
 from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
 from ..meds.medicine_normalizer import normalize_medicine_mentions
@@ -34,6 +35,18 @@ MEDICATION_OR_DIAGNOSIS_RESPONSE = (
 SAFETY_SENSITIVE_RESPONSE = (
     "這個情況可能需要即時協助。請先確保安全，並盡快聯絡照顧者、醫護人員或緊急服務。"
 )
+LOCALIZED_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
+    "medication_or_diagnosis": {
+        "zh-Hant": MEDICATION_OR_DIAGNOSIS_RESPONSE,
+        "zh-Hans": "我不能提供诊断、停药、加药或剂量建议。这类问题需要由医生、药剂师或合资格医护人员判断。",
+        "en": "I can't provide diagnosis, medication changes, or dosage advice. Please ask a doctor, pharmacist, or qualified clinician.",
+    },
+    "safety_sensitive": {
+        "zh-Hant": SAFETY_SENSITIVE_RESPONSE,
+        "zh-Hans": "这个情况可能需要即时协助。请先确保安全，并尽快联系照顾者、医护人员或紧急服务。",
+        "en": "This situation may need immediate help. Please make sure everyone is safe and contact a caregiver, clinician, or emergency services as soon as possible.",
+    },
+}
 
 STOPWORDS = {
     "about",
@@ -268,9 +281,15 @@ class RagAgent:
                 supported.append(Document(text=document.text, metadata=metadata))
         return supported
 
-    def build_prompt(self, query: str, retrieved_docs: List[Document]) -> str:
+    def build_prompt(
+        self,
+        query: str,
+        retrieved_docs: List[Document],
+        answer_language: AnswerLanguage | None = None,
+    ) -> str:
+        answer_language = answer_language or detect_answer_language(query)
         context = self.format_context(retrieved_docs)
-        return ANSWER_PROMPT.format(context=context, question=query)
+        return build_answer_prompt(context=context, question=query, answer_language=answer_language)
 
     def format_context(self, retrieved_docs: List[Document]) -> str:
         parts: List[str] = []
@@ -293,8 +312,8 @@ class RagAgent:
     def answer(self, query: str, deepseek_callable, k: Optional[int] = None) -> str:
         retrieved = self.retrieve(query, k=k)
         if not retrieved:
-            return UNKNOWN_ANSWER
-        prompt = self.build_prompt(query, retrieved)
+            return get_fallback_answer(detect_answer_language(query))
+        prompt = self.build_prompt(query, retrieved, answer_language=detect_answer_language(query))
         return deepseek_callable(prompt)
 
     def answer_with_top_chunk(self, query: str, k: Optional[int] = None) -> str:
@@ -310,7 +329,10 @@ class RagAgent:
         retrieve_top_k: Optional[int] = None,
         answer_top_k: Optional[int] = None,
         min_relevance_score: Optional[float] = None,
+        answer_language: AnswerLanguage | None = None,
     ) -> dict[str, Any]:
+        answer_language = answer_language or detect_answer_language(question)
+        fallback_answer = get_fallback_answer(answer_language)
         search_query = rewrite_query(question)
         retrieve_k = retrieve_top_k or self.retrieve_top_k
         use_k = answer_top_k or self.answer_top_k
@@ -327,10 +349,11 @@ class RagAgent:
         if not scored or best_score < threshold:
             return {
                 "found": False,
-                "answer": FALLBACK_ANSWER,
+                "answer": fallback_answer,
                 "sources": [],
                 "context_used": "",
                 "debug": {
+                    "answer_language": answer_language,
                     "search_query": search_query,
                     "top_k_retrieved": retrieve_k,
                     "top_k_used": 0,
@@ -342,10 +365,14 @@ class RagAgent:
 
         best_chunks = scored[:use_k]
         context = self.format_context(best_chunks)
-        prompt = ANSWER_PROMPT.format(context=context, question=question)
-        answer = answer_callable(prompt).strip() if answer_callable else self._extractive_answer(search_query, best_chunks)
+        prompt = build_answer_prompt(context=context, question=question, answer_language=answer_language)
+        answer = (
+            answer_callable(prompt).strip()
+            if answer_callable
+            else self._extractive_answer(search_query, best_chunks, fallback_answer=fallback_answer)
+        )
         if not answer:
-            answer = FALLBACK_ANSWER
+            answer = fallback_answer
 
         sources = []
         for doc in best_chunks:
@@ -353,14 +380,15 @@ class RagAgent:
             if source not in sources:
                 sources.append(source)
 
-        answer_with_sources = _format_answer_with_sources(answer, sources)
+        answer_with_sources = _format_answer_with_sources(answer, sources, answer_language)
         return {
-            "found": answer != FALLBACK_ANSWER,
+            "found": answer != fallback_answer,
             "answer": answer,
             "answer_with_sources": answer_with_sources,
             "sources": sources,
             "context_used": context,
             "debug": {
+                "answer_language": answer_language,
                 "search_query": search_query,
                 "top_k_retrieved": retrieve_k,
                 "top_k_used": len(best_chunks),
@@ -371,7 +399,12 @@ class RagAgent:
             },
         }
 
-    def _extractive_answer(self, question: str, retrieved_docs: List[Document]) -> str:
+    def _extractive_answer(
+        self,
+        question: str,
+        retrieved_docs: List[Document],
+        fallback_answer: str = FALLBACK_ANSWER,
+    ) -> str:
         direct_answer = _extract_direct_paragraph_answer(question, retrieved_docs)
         if direct_answer:
             return direct_answer
@@ -394,7 +427,7 @@ class RagAgent:
                 candidate_sentences.append((score, sentence.strip()))
 
         if not candidate_sentences:
-            return FALLBACK_ANSWER
+            return fallback_answer
 
         candidate_sentences.sort(key=lambda item: item[0], reverse=True)
         answer = candidate_sentences[0][1]
@@ -501,8 +534,12 @@ def _extract_direct_paragraph_answer(question: str, retrieved_docs: List[Documen
     return answer
 
 
-def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
-    if answer == FALLBACK_ANSWER or not sources:
+def _format_answer_with_sources(
+    answer: str,
+    sources: list[str],
+    answer_language: AnswerLanguage = "zh-Hant",
+) -> str:
+    if answer == get_fallback_answer(answer_language) or not sources:
         return answer
 
     source_names = []
@@ -511,7 +548,8 @@ def _format_answer_with_sources(answer: str, sources: list[str]) -> str:
         if source_name not in source_names:
             source_names.append(source_name)
     suffix = "; ".join(source_names)
-    return f"{answer}\n\n\u8cc7\u6599\u4f86\u6e90\uff1a{suffix}"
+    separator = ": " if answer_language == "en" else "："
+    return f"{answer}\n\n{get_source_label(answer_language)}{separator}{suffix}"
 
 
 def _resolve_project_path(path_value: str | Path) -> Path:
@@ -549,6 +587,7 @@ def build_default_rag_config(mode: str = "shared", overrides: dict[str, Any] | N
         "max_context_chars": int(overrides.get("max_context_chars") or os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
         "per_chunk_chars": int(overrides.get("per_chunk_chars") or os.getenv("RAG_PER_CHUNK_CHARS", "500")),
         "mode": overrides.get("mode") or mode or os.getenv("RAG_MODE", "shared"),
+        "answer_language": overrides.get("answer_language") or os.getenv("RAG_ANSWER_LANGUAGE", "auto"),
         "force_reindex": bool(overrides.get("force_reindex", False)),
         "auto_index": bool(
             overrides.get("auto_index")
@@ -771,6 +810,7 @@ def _emit_runtime_debug(result: dict[str, Any]) -> None:
         return
     fields = [
         "cwd",
+        "answer_language",
         "docs_dir",
         "chroma_dir",
         "embedding_model",
@@ -811,10 +851,11 @@ def _attach_intent_debug(result: dict[str, Any], intent_result: IntentResult) ->
 
 
 def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, Any]) -> dict[str, Any] | None:
+    answer_language = runtime_config["resolved_answer_language"]
     if intent_result.intent == "medication_or_diagnosis":
-        answer = MEDICATION_OR_DIAGNOSIS_RESPONSE
+        answer = LOCALIZED_RESPONSES["medication_or_diagnosis"][answer_language]
     elif intent_result.intent == "safety_sensitive":
-        answer = SAFETY_SENSITIVE_RESPONSE
+        answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
     else:
         return None
 
@@ -826,6 +867,7 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
         "context_used": "",
         "debug": {
             "cwd": runtime_config["cwd"],
+            "answer_language": answer_language,
             "docs_dir": str(runtime_config["docs_dir"]),
             "chroma_dir": str(runtime_config["chroma_dir"]),
             "embedding_model": runtime_config["embedding_model"],
@@ -876,6 +918,7 @@ def _medication_guardrail_response(
         patient_profile=patient_profile,
         detected_medicines=detected_medicines,
         red_flags=red_flags,
+        answer_language=runtime_config["resolved_answer_language"],
     )
 
     result = {
@@ -895,6 +938,7 @@ def _medication_guardrail_response(
         ],
         "debug": {
             "cwd": runtime_config["cwd"],
+            "answer_language": runtime_config["resolved_answer_language"],
             "docs_dir": str(runtime_config["docs_dir"]),
             "chroma_dir": str(runtime_config["chroma_dir"]),
             "embedding_model": runtime_config["embedding_model"],
@@ -941,6 +985,8 @@ def _has_caregiver(patient_profile: Any) -> bool:
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
+    answer_language = detect_answer_language(question, str(runtime_config.get("answer_language", "auto")))
+    runtime_config["resolved_answer_language"] = answer_language
     if config:
         for key in ("patient_profile", "current_medications", "symptoms", "caregiver_available"):
             if key in config:
@@ -949,11 +995,12 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     if not question or not question.strip():
         result = {
             "found": False,
-            "answer": FALLBACK_ANSWER,
+            "answer": get_fallback_answer(answer_language),
             "sources": [],
             "context_used": "",
             "debug": {
                 "cwd": runtime_config["cwd"],
+                "answer_language": answer_language,
                 "docs_dir": str(runtime_config["docs_dir"]),
                 "chroma_dir": str(runtime_config["chroma_dir"]),
                 "embedding_model": runtime_config["embedding_model"],
@@ -992,14 +1039,15 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     answer_callable = _build_answer_callable(runtime_config)
     fallback_active = answer_callable is None
     try:
-        result = agent.answer_question(question, answer_callable=answer_callable)
+        result = agent.answer_question(question, answer_callable=answer_callable, answer_language=answer_language)
     except Exception as exc:
         runtime_debug["answer_model_error"] = str(exc)
         fallback_active = True
-        result = agent.answer_question(question, answer_callable=None)
+        result = agent.answer_question(question, answer_callable=None, answer_language=answer_language)
 
     result_debug = dict(result.get("debug", {}))
     result_debug.update(runtime_debug)
+    result_debug["answer_language"] = answer_language
     result_debug["fallback_active"] = fallback_active
     result_debug["scores"] = result_debug.get("scores", [])
     result["debug"] = result_debug

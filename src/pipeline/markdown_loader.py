@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Iterable, List
 
 from .document import Document
+from .language import detect_answer_language
 
 
 def discover_markdown_files(markdown_root: Path) -> List[Path]:
@@ -26,6 +27,7 @@ def load_markdown_documents(markdown_root: Path, source_type: str = "markdown") 
         metadata = {
             "source": str(path),
             "type": source_type,
+            "language": detect_answer_language(text),
         }
         if title:
             metadata["title"] = title

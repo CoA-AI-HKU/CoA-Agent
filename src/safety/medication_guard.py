@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from ..pipeline.language import AnswerLanguage
+
 
 ENGLISH_DECISION_PATTERNS = [
     r"\bcan i take\b",
@@ -107,6 +109,7 @@ def build_short_medication_safety_response(
     patient_profile: dict,
     detected_medicines: list[dict],
     red_flags: list[str],
+    answer_language: AnswerLanguage = "zh-Hant",
 ) -> str:
     """
     Build the final short medication-safety response.
@@ -116,6 +119,36 @@ def build_short_medication_safety_response(
     caregivers = _get_caregiver_text(patient_profile)
     emergency_number = _get_emergency_number(patient_profile)
     medicine = _get_medicine_display(detected_medicines)
+
+    if answer_language == "en":
+        if red_flags:
+            return (
+                f"{name}, I can't tell you whether to take {medicine}.\n\n"
+                f"Please do not take, add, or repeat any medicine by yourself right now. "
+                f"Ask {caregivers} to help you. If the headache is sudden or severe, or there is vomiting, "
+                f"severe dizziness, blurred vision, slurred speech, weakness, chest pain, or trouble breathing, "
+                f"call {emergency_number}."
+            )
+        return (
+            f"{name}, I can't tell you whether to take {medicine}.\n\n"
+            f"Please do not take, add, or repeat any medicine by yourself right now. "
+            f"Ask {caregivers} to check the medicine package and confirm with a doctor or pharmacist."
+        )
+
+    if answer_language == "zh-Hans":
+        if red_flags:
+            return (
+                f"{name}，我不能判断你能不能吃{medicine}。\n\n"
+                f"你现在先不要自己吃药、加药，或者再吃一次。"
+                f"请马上叫 {caregivers} 帮你。"
+                f"如果头痛突然很严重，或者有呕吐、很晕、视力模糊、说话不清、"
+                f"手脚无力、胸口痛、呼吸困难，就打 {emergency_number}。"
+            )
+        return (
+            f"{name}，我不能判断你能不能吃{medicine}。\n\n"
+            f"你现在先不要自己吃药、加药，或者再吃一次。"
+            f"请叫 {caregivers} 帮你看药盒，再问医生或药剂师确认。"
+        )
 
     if red_flags:
         return (
@@ -137,8 +170,9 @@ def build_medication_safety_response(
     patient_profile: dict,
     detected_medicines: list[dict],
     red_flags: list[str],
+    answer_language: AnswerLanguage = "zh-Hant",
 ) -> str:
-    return build_short_medication_safety_response(patient_profile, detected_medicines, red_flags)
+    return build_short_medication_safety_response(patient_profile, detected_medicines, red_flags, answer_language)
 
 
 def _get_patient_name(patient_profile: dict) -> str:

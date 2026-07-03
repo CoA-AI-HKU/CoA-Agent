@@ -91,7 +91,9 @@ python -m src.cli --embedder-provider dummy --retrieve-top-k 8 --answer-top-k 3 
 
 `--fallback-to-top-chunk` is only for retrieval debugging. It bypasses answer synthesis and should not be used for final Telegram/Nanobot replies.
 
-The current JCCPA corpus is Traditional Chinese. The answer prompt defaults to Traditional Chinese, while still allowing another language if the user clearly asks in that language and a generation model is configured.
+The assistant detects the user's input language and answers in one language: Traditional Chinese (`zh-Hant`), Simplified Chinese (`zh-Hans`), or English (`en`). Retrieved sources may be in any of those languages, but the final answer is constrained to the detected answer language. Set `RAG_ANSWER_LANGUAGE=zh-Hant|zh-Hans|en` to override auto-detection.
+
+For production cross-language retrieval, use a real multilingual embedding model through `EMBEDDER_MODEL`. The deterministic `dummy` embedder is useful for local tests, but it is lexical and weak when the query and source are in different languages.
 
 Environment variables (optional):
 

@@ -4,7 +4,22 @@
 # Example:
 # https://example.org/article
 
+# 繁體中文 Traditional Chinese
+
 https://www.jccpa.org.hk/
 https://www.smartpatient.ha.org.hk/smart-patient-web/disease-management/disease-information/disease/Dementia
 https://www3.ha.org.hk/cph/imh/tc/mental-health-info/4/1/2/anti-dementia-agents
 https://www.elderly.gov.hk/tc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html
+
+# 简体中文 Simplified Chinese
+https://www.jccpa.org.hk/zh-hans/
+https://www.smartpatient.ha.org.hk/zh-cn/smart-patient-web/disease-management/disease-information/disease/Dementia
+https://www3.ha.org.hk/cph/imh/sc/about-us
+https://www.elderly.gov.hk/sc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html
+
+
+# 英文 English
+https://www.jccpa.org.hk/en/
+https://www.smartpatient.ha.org.hk/en/smart-patient-web/disease-management/disease-information/disease/Dementia
+https://www3.ha.org.hk/cph/imh/en/about-us
+https://www.elderly.gov.hk/english/carers_corner/caring_skills/activityprogramforpersonswithdementia.html
