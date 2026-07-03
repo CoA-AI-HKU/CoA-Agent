@@ -15,7 +15,7 @@ def test_knowledge_question_calls_rag(monkeypatch) -> None:
             "debug": {"retrieved_count": 1},
         }
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fake_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fake_answer_question)
 
     result = handle_dementia_user_message("腦退化症有什麼症狀？")
 
@@ -30,7 +30,7 @@ def test_medication_question_does_not_call_normal_rag(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Medication boundary route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("我可不可以幫媽媽停藥？")
 
@@ -44,7 +44,7 @@ def test_english_medication_question_does_not_call_normal_rag(monkeypatch) -> No
     def fail_answer_question(message, config):
         raise AssertionError("Medication boundary route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("Can I take aspirin?")
 
@@ -58,7 +58,7 @@ def test_safety_question_does_not_call_normal_rag(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Safety boundary route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("媽媽走失了，我找不到她")
 
@@ -72,7 +72,7 @@ def test_cognitive_activity_returns_activity_response(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Activity placeholder route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("我好悶，有什麼可以做？")
 
@@ -86,7 +86,7 @@ def test_static_responses_follow_simplified_input(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Static activity route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("我好无聊，有什么可以做？")
 
@@ -100,7 +100,7 @@ def test_static_responses_follow_english_input(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Static activity route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("I am bored, what can I do?")
 
@@ -113,7 +113,7 @@ def test_unknown_does_not_invent_dementia_knowledge(monkeypatch) -> None:
     def fail_answer_question(message, config):
         raise AssertionError("Unknown route must not call normal RAG")
 
-    monkeypatch.setattr("src.orchestrator.answer_question", fail_answer_question)
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fail_answer_question)
 
     result = handle_dementia_user_message("幫我寫一首歌")
 

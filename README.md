@@ -8,11 +8,17 @@ A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistan
   - `pdf_to_markdown.py` — PDF extraction and markdown conversion helpers
   - `pipeline/chunker.py` — paragraph-aware chunking with overlap
   - `pipeline/embedder.py` — pluggable embedding interface for local or OpenAI-compatible backends
+  - `intent_router.py` — deterministic intent recognizer for routing user messages
+  - `meds/medicine_normalizer.py` — local medicine alias matching
+  - `agents/` — coordinator, safety, RAG evidence, memory/routine, and response simplifier modules
+  - `orchestrator.py` — main shared entrypoint used by CLI, MCP, Nanobot, Telegram, and WhatsApp
 
 ## Current status
 
-- Created the initial source packages for PDF-to-markdown conversion, document chunking, and embedding.
-- The repository is ready to accept PDFs under `src/` or another designated input folder.
+- Local dementia/MCI RAG pipeline is working from Markdown files under `data/mds/`.
+- PDF and website ingestion write Markdown into `data/mds/`, then the CLI/runtime chunks and embeds that corpus into Chroma.
+- `handle_dementia_user_message(message, user_id=None)` is the main compatible tool for Nanobot, Telegram, WhatsApp, and local client use.
+- Safety and medication/diagnosis boundaries run before normal RAG and do not provide medication advice.
 
 ## Usage
 
@@ -61,11 +67,81 @@ python -m src.web_ingest --delay 0.5 --timeout 30
 - Chunking is paragraph-aware and uses default values `chunk_size=1000` and `chunk_overlap=200`.
 - The embedder tries a local `sentence-transformers` model first; if unavailable, it can use the OpenAI-compatible API with `OPENAI_API_KEY`.
 
-## Next steps
+## Knowledge Sources
 
-- Add a PDF ingestion script and vector store integration.
-- Add retrieval, prompt construction, and DeepSeek API wiring.
-- Add evaluation logic so the system can say "I don't know" when support is missing.
+The bot must answer from the local database only. The database is built from PDFs in `data/pdfs/` and web pages listed in `data/websites.txt`, converted into Markdown under `data/mds/`, then chunked and embedded into Chroma.
+
+### PDF Sources
+
+The current PDF source files in `data/pdfs/` are:
+
+- `chinese_foreward_executive_summary_dementia_guidelines.pdf`
+- `who-eng-risk-dementia.pdf`
+- `World-Alzheimer-Report-2023.pdf`
+- `World-Alzheimer-Report-2023_Chinese.pdf`
+- `World-Alzheimer-Report-2024.pdf`
+- `World-Alzheimer-Report-2025.pdf`
+
+Their generated top-level Markdown files in `data/mds/` are:
+
+- `chinese_foreward_executive_summary_dementia_guidelines.md`
+- `who-eng-risk-dementia.md`
+- `World-Alzheimer-Report-2023.md`
+- `World-Alzheimer-Report-2023_Chinese.md`
+- `World-Alzheimer-Report-2024.md`
+- `World-Alzheimer-Report-2025.md`
+
+### Web Sources
+
+The configured web source list is `data/websites.txt`. It currently includes:
+
+Traditional Chinese:
+
+- `https://www.jccpa.org.hk/`
+- `https://www.smartpatient.ha.org.hk/smart-patient-web/disease-management/disease-information/disease/Dementia`
+- `https://www3.ha.org.hk/cph/imh/tc/mental-health-info/4/1/2/anti-dementia-agents`
+- `https://www.elderly.gov.hk/tc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
+
+Simplified Chinese:
+
+- `https://www.jccpa.org.hk/zh-hans/`
+- `https://www.smartpatient.ha.org.hk/zh-cn/smart-patient-web/disease-management/disease-information/disease/Dementia`
+- `https://www3.ha.org.hk/cph/imh/sc/about-us`
+- `https://www.elderly.gov.hk/sc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
+
+English:
+
+- `https://www.jccpa.org.hk/en/`
+- `https://www.smartpatient.ha.org.hk/en/smart-patient-web/disease-management/disease-information/disease/Dementia`
+- `https://www3.ha.org.hk/cph/imh/en/about-us`
+- `https://www.elderly.gov.hk/english/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
+- `https://www.alzint.org/about/`
+
+Website ingestion may skip pages that do not expose enough useful content after cleaning, especially landing pages or JavaScript-heavy pages. Crawled and converted web Markdown lives under `data/mds/web/`; the current local corpus contains 182 web Markdown files.
+
+## Routing And Safety
+
+`src/intent_router.py` classifies messages into:
+
+- `knowledge_qa`
+- `personal_memory`
+- `reminder_request`
+- `cognitive_activity`
+- `emotional_support`
+- `safety_sensitive`
+- `medication_or_diagnosis`
+- `unknown`
+
+`src/agents/coordinator_agent.py` maps those intents into the five-agent architecture routes: safety, medical boundary, RAG QA, memory, routine, activity, supportive, or unknown. Safety and medication/diagnosis routes override normal RAG. Unknown messages do not call RAG and do not invent dementia knowledge.
+
+## Medicine Identification
+
+Medicine identification is deterministic and local:
+
+- `data/medicine_aliases.json` stores canonical medicine names and aliases in English, Traditional Chinese, and Simplified Chinese.
+- `src/meds/medicine_normalizer.py` matches aliases in user messages and returns canonical names, matched aliases, confidence, and source metadata.
+- `src/safety/medication_guard.py` detects medication decision questions such as taking, stopping, repeating, mixing, or changing dose.
+- Medication and diagnosis questions bypass normal RAG. The bot does not provide medication suitability, timing, dosage, stopping, starting, or change advice; it directs the user to a doctor, pharmacist, caregiver, or emergency services when appropriate.
 
 ## Asking the agent questions
 
@@ -134,4 +210,3 @@ See `docs/rag_debugging.md` for retrieval/answer debugging commands and the ligh
 ```bash
 python -m tests.run_rag_eval
 ```
-
