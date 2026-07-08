@@ -4,6 +4,15 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 
+UserRole = Literal[
+    "unknown",
+    "caregiver_or_family",
+    "self_with_cognitive_concern",
+    "professional_or_researcher",
+    "general_user",
+]
+
+
 Route = Literal[
     "safety",
     "medical_boundary",
@@ -25,6 +34,7 @@ class AgentDecision:
     matched_terms: list[str] = field(default_factory=list)
     rag_required: bool = False
     safety_override: bool = False
+    user_role: UserRole = "unknown"
 
 
 @dataclass

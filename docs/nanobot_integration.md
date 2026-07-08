@@ -19,9 +19,9 @@ Example `~/.nanobot/config.json` fragment:
         "enabledTools": [
           "handle_dementia_user_message"
         ],
-        "toolTimeout": 60,
+        "toolTimeout": 120,
         "env": {
-          "CHROMA_DIR": ".chroma/ling_rag",
+          "CHROMA_DIR": "/home/aine/.cache/coa-agent/chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
           "EMBEDDER_PROVIDER": "dummy",
           "EMBEDDINGS_OFFLINE": "true",
@@ -36,6 +36,7 @@ Example `~/.nanobot/config.json` fragment:
 ```
 
 If running on a cloud server, replace the `cd` path with the deployed project path, for example `/home/aine/CoA-Agent`.
+The `CHROMA_DIR` value can be changed per deployment, but keep it on a writable local filesystem. If it is omitted, the server defaults to `/home/aine/.cache/coa-agent/chroma/ling_rag`.
 
 Do not print MCP debug messages to stdout. MCP uses stdout for protocol traffic. Use stderr:
 
@@ -53,8 +54,12 @@ If your Nanobot config launches the server by absolute file path instead, this a
         "command": "python3",
         "args": ["/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent/src/dementia_rag_mcp_server.py"],
         "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent",
+        "enabledTools": [
+          "handle_dementia_user_message"
+        ],
+        "toolTimeout": 120,
         "env": {
-          "CHROMA_DIR": ".chroma/ling_rag",
+          "CHROMA_DIR": "/home/aine/.cache/coa-agent/chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
           "EMBEDDER_PROVIDER": "dummy",
           "EMBEDDINGS_OFFLINE": "true",
@@ -116,6 +121,10 @@ The MCP server exposes only `handle_dementia_user_message` by default. Set
 `RAG_ENABLE_DEBUG_TOOLS=true` only in a local debugging session if you need
 `search_dementia_knowledge` or `answer_from_dementia_knowledge`; never enable
 those debug tools for Telegram production.
+
+Nanobot production config should list only `handle_dementia_user_message` in
+`enabledTools`. Do not add the debug MCP tools to Telegram or WhatsApp bot
+config.
 ```
 
 ## Security

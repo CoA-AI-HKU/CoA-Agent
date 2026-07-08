@@ -50,6 +50,10 @@ if mcp is not None:
 def main() -> None:
     if mcp is None:
         raise RuntimeError("Install the Python MCP package to run this server: pip install mcp")
+    config = build_default_rag_config("mcp")
+    print(f"MCP_STARTUP chroma_dir={config['chroma_dir']}", file=sys.stderr)
+    print(f"MCP_STARTUP collection_name={config['collection_name']}", file=sys.stderr)
+    print("MCP_STARTUP enabled_tools=handle_dementia_user_message", file=sys.stderr)
     mcp.run()
 
 

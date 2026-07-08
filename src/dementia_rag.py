@@ -12,7 +12,7 @@ from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from .pipeline.document import Document
 from .pipeline.markdown_loader import load_markdown_documents
 from .pipeline.prompts import FALLBACK_ANSWER
-from .pipeline.rag_agent import RagAgent, answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.rag_agent import DEFAULT_CHROMA_DIR, RagAgent, answer_question as shared_answer_question, build_default_rag_config
 from .pipeline.vector_store import get_default_vector_store
 
 
@@ -29,8 +29,11 @@ def _debug(message: str) -> None:
 
 
 def _resolve_project_path(path_value: str | Path) -> Path:
-    path = Path(path_value).expanduser()
+    raw_path = str(path_value)
+    path = Path(raw_path).expanduser()
     if path.is_absolute():
+        return path
+    if raw_path.startswith("/"):
         return path
     return PROJECT_ROOT / path
 
@@ -122,7 +125,7 @@ def _format_search_response(
 
 
 def _build_runtime_agent() -> RagAgent:
-    persist_dir = _resolve_project_path(os.getenv("CHROMA_DIR", ".chroma/ling_rag"))
+    persist_dir = _resolve_project_path(os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR))
     collection_name = os.getenv("CHROMA_COLLECTION", "ling_rag")
     embedder_provider = os.getenv("EMBEDDER_PROVIDER", "dummy")
     embedder_model = os.getenv("EMBEDDER_MODEL") or None

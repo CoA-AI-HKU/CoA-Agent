@@ -95,6 +95,7 @@ def _attach_coordinator_debug(result: dict[str, Any], decision: AgentDecision) -
         "matched_terms": decision.matched_terms,
         "rag_required": decision.rag_required,
         "safety_override": decision.safety_override,
+        "user_role": decision.user_role,
     }
     debug["answer_language"] = result.get("answer_language")
     debug["source_count"] = len(result.get("sources") or [])
@@ -110,6 +111,7 @@ def _emit_debug(user_id: str | None, message: str, result: dict[str, Any]) -> No
         "user_id": user_id,
         "message_preview": message[:80],
         "coordinator_route": coordinator.get("route"),
+        "user_role": coordinator.get("user_role"),
         "intent": result.get("intent"),
         "rag_called": result.get("rag_called"),
         "safety_level": result.get("safety_level"),

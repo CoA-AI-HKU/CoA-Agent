@@ -29,6 +29,7 @@ RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_CHROMA_DIR = "/home/aine/.cache/coa-agent/chroma/ling_rag"
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
     "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 )
@@ -553,8 +554,11 @@ def _format_answer_with_sources(
 
 
 def _resolve_project_path(path_value: str | Path) -> Path:
-    path = Path(path_value).expanduser()
+    raw_path = str(path_value)
+    path = Path(raw_path).expanduser()
     if path.is_absolute():
+        return path
+    if raw_path.startswith("/"):
         return path
     return PROJECT_ROOT / path
 
@@ -565,7 +569,7 @@ def build_default_rag_config(mode: str = "shared", overrides: dict[str, Any] | N
     config = {
         "cwd": str(Path.cwd()),
         "docs_dir": _resolve_project_path(overrides.get("docs_dir") or os.getenv("RAG_DATA_DIR", "data/mds")),
-        "chroma_dir": _resolve_project_path(overrides.get("chroma_dir") or os.getenv("CHROMA_DIR", ".chroma/ling_rag")),
+        "chroma_dir": _resolve_project_path(overrides.get("chroma_dir") or os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR)),
         "collection_name": overrides.get("collection_name") or os.getenv("CHROMA_COLLECTION", "ling_rag"),
         "embedder_provider": overrides.get("embedder_provider") or os.getenv("EMBEDDER_PROVIDER", "dummy"),
         "embedder_model": overrides.get("embedder_model") or os.getenv("EMBEDDER_MODEL") or None,
@@ -646,36 +650,14 @@ def _save_manifest(path: Path, manifest: dict[str, Any]) -> None:
 
 
 def _ensure_directory(path: Path) -> None:
-    target = path.resolve(strict=False)
-    workspace = PROJECT_ROOT.resolve()
-    if target == workspace or workspace not in target.parents:
-        raise ValueError(f"Refusing to create vector index directory outside the project: {target}")
-
-    parts = []
-    current = target
-    while current != current.parent:
-        parts.append(current)
-        if current.exists():
-            break
-        current = current.parent
-
-    for part in reversed(parts):
-        if os.path.lexists(part) and not part.is_dir():
-            part.unlink()
-        try:
-            part.mkdir(exist_ok=True)
-        except FileExistsError:
-            if part.is_dir():
-                continue
-            part.unlink()
-            part.mkdir(exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
 
 def _clear_chroma_dir(path: Path) -> None:
-    target = path.resolve()
-    workspace = PROJECT_ROOT.resolve()
-    if target == workspace or workspace not in target.parents:
-        raise ValueError(f"Refusing to clear vector index outside the project: {target}")
+    target = path.resolve(strict=False)
+    chroma_parts = {part.lower() for part in target.parts}
+    if not any("chroma" in part for part in chroma_parts):
+        raise ValueError(f"Refusing to clear non-Chroma vector index directory: {target}")
     if target.exists() and target.is_dir():
         shutil.rmtree(target)
     elif target.exists():

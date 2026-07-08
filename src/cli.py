@@ -10,7 +10,7 @@ from typing import Any, Callable, List
 from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from .pipeline.document import Document
 from .pipeline.markdown_loader import load_markdown_documents
-from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.rag_agent import DEFAULT_CHROMA_DIR, answer_question as shared_answer_question, build_default_rag_config
 from .pipeline.vector_store import get_default_vector_store
 
 
@@ -55,37 +55,14 @@ def _save_manifest(path: Path, manifest: dict[str, Any]) -> None:
 
 
 def _ensure_directory(path: Path | str) -> None:
-    target = Path(path)
-    workspace = Path.cwd().resolve()
-    resolved = target.resolve(strict=False)
-    if resolved == workspace or workspace not in resolved.parents:
-        raise ValueError(f"Refusing to create vector index directory outside the workspace: {resolved}")
-
-    parts = []
-    current = resolved
-    while current != current.parent:
-        parts.append(current)
-        if current.exists():
-            break
-        current = current.parent
-
-    for part in reversed(parts):
-        if os.path.lexists(part) and not part.is_dir():
-            part.unlink()
-        try:
-            part.mkdir(exist_ok=True)
-        except FileExistsError:
-            if part.is_dir():
-                continue
-            part.unlink()
-            part.mkdir(exist_ok=True)
+    Path(path).mkdir(parents=True, exist_ok=True)
 
 
 def _clear_persist_dir(path: Path | str) -> None:
-    target = Path(path).resolve()
-    workspace = Path.cwd().resolve()
-    if target == workspace or workspace not in target.parents:
-        raise ValueError(f"Refusing to clear vector index outside the workspace: {target}")
+    target = Path(path).resolve(strict=False)
+    chroma_parts = {part.lower() for part in target.parts}
+    if not any("chroma" in part for part in chroma_parts):
+        raise ValueError(f"Refusing to clear non-Chroma vector index directory: {target}")
     if target.exists() and target.is_dir():
         shutil.rmtree(target)
     elif target.exists():
@@ -98,7 +75,7 @@ def build_agent(
     embedder_model: str | None = None,
     offline_embeddings: bool = False,
     skip_index: bool = False,
-    persist_dir: Path | str = ".chroma/ling_rag",
+    persist_dir: Path | str = DEFAULT_CHROMA_DIR,
     force_reindex: bool = False,
     min_shared_query_terms: int = 1,
     retrieve_top_k: int = 8,
@@ -282,7 +259,7 @@ def main() -> None:
     parser.add_argument("--data-dir", default="data/mds", help="Path to markdown documents")
     parser.add_argument("--skip-index", action="store_true", help="Skip indexing step (fast start)")
     parser.add_argument("--force-reindex", action="store_true", help="Rebuild the vector index even if the source files have not changed")
-    parser.add_argument("--persist-dir", default=os.getenv("CHROMA_DIR", ".chroma/ling_rag"), help="Directory for the persistent Chroma index")
+    parser.add_argument("--persist-dir", default=os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR), help="Directory for the persistent Chroma index")
     # CHANGE: embedder-provider default from "dummy" to "auto"
     parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "auto"), help="Embedder provider: auto|local|openai|dummy")
     parser.add_argument("--embedder-model", default=os.getenv("EMBEDDER_MODEL"), help="Embedding model name or local model directory")

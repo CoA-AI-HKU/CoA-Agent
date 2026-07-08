@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from src.web_ingest import convert_website_url, load_urls_from_file, markdown_path_for_url
-from src.web_to_markdown import html_to_markdown
+from src.ingest.web_ingest import convert_website_url, load_urls_from_file, markdown_path_for_url
+from src.ingest.web_to_markdown import html_to_markdown
 
 
 def test_html_to_markdown_preserves_readable_content() -> None:

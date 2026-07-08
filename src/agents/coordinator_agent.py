@@ -5,8 +5,97 @@ from src.intent_router import classify_intent
 from src.safety.medication_guard import is_medication_decision_question
 
 
+def infer_user_role(message: str) -> str:
+    """Infer broad speaking context without diagnosing the user."""
+    normalized = (message or "").strip().lower()
+    if not normalized:
+        return "unknown"
+
+    caregiver_terms = [
+        "媽媽",
+        "媽咪",
+        "爸爸",
+        "爺爺",
+        "嫲嫲",
+        "奶奶",
+        "公公",
+        "婆婆",
+        "老公",
+        "老婆",
+        "太太",
+        "先生",
+        "家人",
+        "照顧",
+        "照护",
+        "caregiver",
+        "carer",
+        "my mother",
+        "my father",
+        "my parent",
+        "my wife",
+        "my husband",
+        "family member",
+    ]
+    professional_terms = [
+        "醫生",
+        "護士",
+        "社工",
+        "治療師",
+        "研究",
+        "論文",
+        "臨床",
+        "doctor",
+        "nurse",
+        "clinician",
+        "researcher",
+        "study",
+        "clinical",
+    ]
+    self_concern_terms = [
+        "我有腦退化",
+        "我有認知障礙",
+        "我有mci",
+        "醫生話我有",
+        "醫生說我有",
+        "我被診斷",
+        "我成日唔記得",
+        "我經常忘記",
+        "我記性",
+        "我唔記得",
+        "我不記得",
+        "i have dementia",
+        "i have mci",
+        "i was diagnosed",
+        "my memory",
+        "i keep forgetting",
+    ]
+    general_terms = [
+        "是什麼",
+        "係咩",
+        "是甚麼",
+        "有什麼",
+        "點解",
+        "為什麼",
+        "what is",
+        "what are",
+        "how does",
+        "why",
+    ]
+
+    if any(term in normalized for term in caregiver_terms):
+        return "caregiver_or_family"
+    if any(term in normalized for term in self_concern_terms):
+        return "self_with_cognitive_concern"
+    if any(term in normalized for term in professional_terms):
+        return "professional_or_researcher"
+    if any(term in normalized for term in general_terms):
+        return "general_user"
+    return "unknown"
+
+
 def coordinate_message(message: str, user_id: str | None = None) -> AgentDecision:
     intent_result = classify_intent(message)
+    user_role = infer_user_role(message)
 
     if is_medication_decision_question(message):
         return AgentDecision(
@@ -16,6 +105,7 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
             matched_terms=intent_result.matched_terms,
             reason="Medication decision question detected by safety guard.",
             safety_override=True,
+            user_role=user_role,
         )
 
     route_map = {
@@ -38,4 +128,5 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         reason=intent_result.reason,
         rag_required=rag_required,
         safety_override=safety_override,
+        user_role=user_role,
     )

@@ -7,8 +7,8 @@ import pytest
 from src.pipeline.chunker import chunk_document, chunk_text
 from src.pipeline.document import Document
 from src.pipeline.embedder import Embedder
-from src.pdf_ingest import convert_pdf_file
-from src.pdf_to_markdown import load_pdf_as_markdown
+from src.ingest.pdf_ingest import convert_pdf_file
+from src.ingest.pdf_to_markdown import load_pdf_as_markdown
 from src.pipeline.rag_agent import RagAgent
 from src.pipeline.vector_store import get_default_vector_store
 

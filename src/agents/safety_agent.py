@@ -18,6 +18,33 @@ MEDICAL_BOUNDARY_RESPONSES = {
     "en": "I can't provide diagnosis or any medication advice. Please ask a doctor, pharmacist, or qualified clinician.",
 }
 
+MEDICATION_UNCERTAINTY_RESPONSES = {
+    "zh-Hant": "如果唔肯定食咗藥未，先唔好自行補食或食多一劑。請盡快問家人、照顧者、藥劑師或醫生。",
+    "zh-Hans": "如果不确定是否已经吃药，先不要自行补吃或多吃一剂。请尽快问家人、照顾者、药剂师或医生。",
+    "en": "If you are not sure whether you already took the medicine, do not take an extra dose on your own. Please ask family, a caregiver, pharmacist, or doctor.",
+}
+
+
+def _is_medication_uncertainty(message: str) -> bool:
+    normalized = message.lower()
+    uncertainty_terms = [
+        "唔知",
+        "不知",
+        "不確定",
+        "不确定",
+        "記唔記得",
+        "忘記",
+        "唔記得",
+        "not sure",
+        "unsure",
+        "forgot",
+        "can't remember",
+    ]
+    medication_terms = ["藥", "药", "medicine", "medication", "dose"]
+    return any(term in normalized for term in uncertainty_terms) and any(
+        term in normalized for term in medication_terms
+    )
+
 
 def handle_safety(message: str, decision: AgentDecision) -> dict:
     answer_language = detect_answer_language(message)
@@ -37,7 +64,9 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
     answer_language = detect_answer_language(message)
     detected_medicines = normalize_medicine_mentions(message)
     red_flags = detect_red_flags(message)
-    if detected_medicines or red_flags:
+    if _is_medication_uncertainty(message):
+        answer = MEDICATION_UNCERTAINTY_RESPONSES[answer_language]
+    elif detected_medicines or red_flags:
         answer = build_short_medication_safety_response(
             patient_profile={},
             detected_medicines=detected_medicines,
