@@ -24,6 +24,23 @@ ALLOWED_EVENT_FIELDS = {
     "score",
     "exercise_type",
     "medication_status",
+    "check_version",
+    "total_score",
+    "max_score",
+    "risk_flag",
+    "domain_scores",
+    "raw_answers_saved",
+}
+
+CONCERN_SIGNAL_EVENT_TYPES = {
+    "memory_concern",
+    "orientation_confusion",
+    "medication_uncertainty",
+    "wandering_safety",
+    "cognitive_check_requested",
+    "cognitive_check_started",
+    "cognitive_check_completed",
+    "cognitive_check_followup_suggested",
 }
 
 
@@ -54,6 +71,29 @@ class MetricsCollector:
             for event in events
             if event.get("event_type") == "activity_score" and _to_float(event.get("score")) is not None
         ]
+        cognitive_check_events = [
+            event
+            for event in events
+            if event.get("event_type") == "cognitive_check_completed"
+            and _to_float(event.get("total_score")) is not None
+        ]
+        cognitive_history.extend(
+            {
+                "timestamp": event.get("timestamp"),
+                "score": _to_float(event.get("total_score")),
+                "exercise_type": "簡單認知小練習",
+            }
+            for event in cognitive_check_events
+        )
+        cognitive_history.sort(key=lambda item: str(item.get("timestamp") or ""))
+
+        concern_signal_counts: dict[str, int] = {}
+        for event in events:
+            event_type = str(event.get("event_type") or "").strip()
+            if event_type in CONCERN_SIGNAL_EVENT_TYPES:
+                concern_signal_counts[event_type] = concern_signal_counts.get(event_type, 0) + 1
+
+        latest_cognitive_check = _latest_event(cognitive_check_events)
         intent_counts: dict[str, int] = {}
         for event in events:
             intent = str(event.get("intent") or "unknown").strip() or "unknown"
@@ -81,6 +121,12 @@ class MetricsCollector:
             "mood_history": mood_history,
             "cognitive_history": cognitive_history,
             "intent_counts": intent_counts,
+            "cognitive_check_count": len(cognitive_check_events),
+            "latest_cognitive_check": _format_cognitive_check(latest_cognitive_check),
+            "latest_risk_flag": str(latest_cognitive_check.get("risk_flag") or "")
+            if latest_cognitive_check
+            else None,
+            "concern_signal_counts": concern_signal_counts,
         }
 
 
@@ -139,6 +185,8 @@ def infer_event_type(result: dict[str, Any]) -> str:
     intent = str(result.get("intent") or "")
     safety_level = str(result.get("safety_level") or "")
 
+    if route == "memory_concern" or intent == "self_memory_concern":
+        return "memory_concern"
     if safety_level == "urgent_boundary" or route == "safety":
         return "safety_alert"
     if intent == "medication_or_diagnosis" or route == "medical_boundary":
@@ -163,6 +211,27 @@ def _events_path() -> Path:
 def _average(values: Any) -> float | None:
     numeric = [value for value in values if isinstance(value, (int, float))]
     return sum(numeric) / len(numeric) if numeric else None
+
+
+def _latest_event(events: list[dict[str, Any]]) -> dict[str, Any]:
+    if not events:
+        return {}
+    return sorted(events, key=lambda event: str(event.get("timestamp") or ""))[-1]
+
+
+def _format_cognitive_check(event: dict[str, Any]) -> dict[str, Any] | None:
+    if not event:
+        return None
+    formatted = {
+        "timestamp": event.get("timestamp"),
+        "check_version": event.get("check_version"),
+        "total_score": event.get("total_score"),
+        "max_score": event.get("max_score"),
+        "risk_flag": event.get("risk_flag"),
+        "domain_scores": event.get("domain_scores") if isinstance(event.get("domain_scores"), dict) else {},
+        "raw_answers_saved": bool(event.get("raw_answers_saved")),
+    }
+    return formatted
 
 
 def _to_float(value: Any) -> float | None:
@@ -205,6 +274,8 @@ def _sanitize_event_field(key: str, value: Any) -> Any:
         return value
     if key == "event_value":
         return value if isinstance(value, (int, float, bool)) else _DROP
+    if key == "domain_scores":
+        return _sanitize_domain_scores(value)
     if isinstance(value, str):
         text = value.strip()
         if not text:
@@ -221,6 +292,8 @@ def _sanitize_event_field(key: str, value: Any) -> Any:
             "event_type",
             "exercise_type",
             "medication_status",
+            "check_version",
+            "risk_flag",
         }:
             return text[:64] if _looks_like_structured_token(text) else _DROP
         return _DROP
@@ -231,3 +304,17 @@ def _looks_like_structured_token(text: str) -> bool:
     return bool(repr(text)) and len(text) <= 64 and all(
         char.isalnum() or char in {"_", "-", ":", ".", "/", "@"} for char in text
     )
+
+
+def _sanitize_domain_scores(value: Any) -> dict[str, int | float] | object:
+    if not isinstance(value, dict):
+        return _DROP
+    sanitized: dict[str, int | float] = {}
+    for key, score in value.items():
+        key_text = str(key or "").strip()
+        if not key_text or not _looks_like_structured_token(key_text):
+            continue
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            continue
+        sanitized[key_text[:64]] = score
+    return sanitized

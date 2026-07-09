@@ -87,7 +87,7 @@ def _is_mode_info_command(message: str) -> bool:
 
 def _mode_info_result(sender_id: str, role: str, record: dict[str, Any]) -> dict[str, Any]:
     return {
-        "answer": format_mode_info(sender_id, role, record),
+        "answer": format_mode_info(role, get_registry_user_id(sender_id) or sender_id),
         "role": role,
         "route": "mode_info",
         "manager": "message_router",
