@@ -58,3 +58,6 @@ Connect to whatsapp: --needs virtual number
 - Introduction of paper done
 
 ## Week 4
+### 7/8 
+- cut dementia bias and assumption
+- fixed issue of over-citations of sources
