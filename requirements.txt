@@ -1,4 +1,7 @@
 beautifulsoup4
 markdownify
+pandas
+plotly
 requests
+streamlit
 trafilatura

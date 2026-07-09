@@ -15,8 +15,22 @@ SOURCE_INTRO_PATTERNS = [
     r"資料庫的指引(?:是清楚的)?[：:\s]*",
     r"文件嘅指引[，,:：\s…]*",
     r"文件提到[，,:：\s…]*",
+    r"根據資料庫(?:嘅資料|的資料)?[，,:：\s…]*",
+    r"根據文件[，,:：\s…]*",
+    r"根據資料[，,:：\s…]*",
+    r"資料庫提到[，,:：\s…]*",
+    r"資料庫冇提到[^。！？\n]*[。！？]?",
+    r"資料庫嘅指引(?:係清楚嘅)?[：:\s]*",
+    r"資料庫的指引(?:是清楚的)?[：:\s]*",
+    r"文件嘅指引[，,:：\s…]*",
+    r"文件提到[，,:：\s…]*",
 ]
 SOURCE_MARKER_PATTERNS = [
+    r"（來源：[^）]*）",
+    r"\(來源：[^)]*\)",
+    r"（資料來源：[^）]*）",
+    r"\(資料來源：[^)]*\)",
+    r"（资料来源：[^）]*）",
     r"（來源：[^）]*）",
     r"\(來源：[^)]*\)",
     r"（資料來源：[^）]*）",
@@ -47,6 +61,34 @@ INTERNAL_LEAKAGE_TERMS = [
     "debug",
     "traceback",
     "exception",
+    "RAG",
+    "MCP",
+    "mcp",
+    "tool",
+    "Tool",
+    "function",
+    "Function",
+    "debug",
+    "Debug",
+    "traceback",
+    "Traceback",
+    "exception",
+    "Exception",
+    "來源",
+    "資料來源",
+    "根據資料庫",
+    "根據文件",
+    "資料庫",
+    "文件提到",
+    "工具",
+    "函數",
+    "調用",
+    "呼叫工具",
+    "查資料庫",
+    "handle_incoming_message",
+    "mcp_dementia",
+    "chroma",
+    "Chroma",
 ]
 KNOWLEDGE_FAILURE_FALLBACK = (
     "我暫時未能從資料中找到足夠資料回答這個問題。"
@@ -57,6 +99,40 @@ MEDICATION_FALLBACK = (
     "請先詢問醫生或藥劑師；不要自行加藥、停藥或改變劑量。"
 )
 SAFETY_FALLBACK = "這個情況可能需要即時協助。請先確保安全，並盡快聯絡家人、照顧者、醫護人員或緊急服務。"
+
+
+SELF_MEMORY_CONCERN_FALLBACK = (
+    "記不住事情會令人很困擾，也可能和壓力、睡眠不足、情緒、藥物、身體狀況或認知變化有關。"
+    "你可以先用一些簡單方法幫自己：把重要事情寫下來、用手機提醒、把常用物品放在固定位置、每天保持規律作息。\n\n"
+    "如果這種情況最近明顯變多、影響日常生活，或家人也有留意到，建議和醫生或醫護人員討論，找出原因。"
+    "你也可以告訴我有什麼事情想記住，我可以幫你整理成簡單提醒。"
+)
+ADDITIONAL_BLOCKED_TERMS = [
+    "來源",
+    ".md",
+    "資料庫",
+    "根據",
+    "根據資料庫",
+    "資料庫指出",
+    "資料庫講到",
+    "資料庫提到",
+    "handle_dementia_user_message",
+    "handle_incoming_message",
+    "MCP",
+    "RAG_DEBUG",
+    "RAG",
+    "你有腦退化症",
+    "你嘅腦退化症",
+    "你的腦退化症",
+    "作為腦退化症患者",
+    "病情嘅一部分",
+    "病情的一部分",
+    "你之前都問過",
+    "你重複問",
+    "腦退化症好常見",
+    "腦退化症嘅一部分",
+    "腦退化症的一部分",
+]
 
 
 def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False) -> dict[str, Any]:
@@ -112,6 +188,15 @@ def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[
     output["debug"] = debug
     logging.warning("Output guard removed internal leakage from user-facing answer")
     return output
+
+
+def answer_has_user_visible_leakage(answer: str) -> bool:
+    """Public predicate for final-channel checks before returning to Telegram/WhatsApp."""
+    return _contains_internal_leakage(answer) or _contains_user_visible_source_text(answer)
+
+
+def answer_has_user_visible_source_text(answer: str) -> bool:
+    return _contains_user_visible_source_text(answer)
 
 
 def _clean_source_text(answer: str) -> str:
@@ -191,7 +276,7 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
     if not answer:
         return answer
 
-    if safety_level == "screening_check_in":
+    if safety_level in {"screening_check_in", "self_memory_concern", "memory_concern", "caregiver_observation_guidance"}:
         max_chars = 650
     elif safety_level in {"urgent_boundary", "medical_boundary"}:
         max_chars = 250
@@ -232,6 +317,8 @@ def _split_sentences(answer: str) -> list[str]:
 
 
 def _contains_user_visible_source_text(answer: str) -> bool:
+    if any(term in answer for term in ADDITIONAL_BLOCKED_TERMS):
+        return True
     return any(
         phrase in answer
         for phrase in [
@@ -249,6 +336,11 @@ def _contains_user_visible_source_text(answer: str) -> bool:
 
 def _contains_internal_leakage(answer: str) -> bool:
     lowered = answer.lower()
+    for term in ADDITIONAL_BLOCKED_TERMS:
+        haystack = lowered if term.isascii() else answer
+        needle = term.lower() if term.isascii() else term
+        if needle in haystack:
+            return True
     for term in INTERNAL_LEAKAGE_TERMS:
         haystack = lowered if term.isascii() else answer
         needle = term.lower() if term.isascii() else term
@@ -265,6 +357,8 @@ def _fallback_for_route(result: dict[str, Any], message: str) -> str:
 
     if safety_level == "urgent_boundary" or route == "safety" or intent == "safety_sensitive":
         return SAFETY_FALLBACK
+    if route in {"memory_concern", "self_memory_concern"} or intent == "self_memory_concern" or _looks_like_self_memory_concern(message):
+        return SELF_MEMORY_CONCERN_FALLBACK
     if (
         safety_level == "medical_boundary"
         or route == "medical_boundary"
@@ -291,6 +385,32 @@ def _looks_like_medication_question(text: str) -> bool:
             "medicine",
             "medication",
             "dose",
+        ]
+    )
+
+
+def _looks_like_self_memory_concern(text: str) -> bool:
+    lowered = text.lower()
+    return any(
+        term in lowered
+        for term in [
+            "我最近覺得很多事情記不住",
+            "我最近覺得很多事情好像都有點記不住",
+            "我成日唔記得嘢",
+            "最近記性差",
+            "我好似忘記好多事",
+            "我經常忘記事情",
+            "記唔住",
+            "記不住",
+            "記性差",
+            "記憶力變差",
+            "忘記事情",
+            "我是不是有腦退化症",
+            "我是否有腦退化症",
+            "我係咪有腦退化症",
+            "i keep forgetting",
+            "do i have dementia",
+            "am i getting dementia",
         ]
     )
 

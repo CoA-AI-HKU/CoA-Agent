@@ -125,3 +125,52 @@ def test_final_answer_removes_memory_caregiver_and_capacity_assumptions(monkeypa
 
     _assert_no_blocked_assumptions(result["answer"])
     assert "如有需要，可以請家人、照顧者或醫護人員協助" in result["answer"]
+
+
+def test_memory_concern_uses_neutral_template_without_sources() -> None:
+    result = handle_dementia_user_message("我最近覺得很多事情好像都有點記不住")
+    answer = result["answer"]
+
+    assert result["route"] == "memory_concern"
+    assert "來源" not in answer
+    assert ".md" not in answer
+    assert "資料庫" not in answer
+    assert "腦退化症好常見" not in answer
+    assert "病情" not in answer
+    assert "你之前都問過" not in answer
+    assert "手機提醒" in answer
+    assert "固定位置" in answer
+    assert "醫生" in answer or "醫護人員" in answer
+    assert "影響日常生活" in answer
+
+
+def test_repeated_memory_concern_is_not_called_out() -> None:
+    handle_dementia_user_message("我最近覺得很多事情好像都有點記不住")
+    second = handle_dementia_user_message("我最近覺得很多事情好像都有點記不住")
+
+    assert "你之前都問過" not in second["answer"]
+    assert "你重複問" not in second["answer"]
+    assert "重複" not in second["answer"]
+
+
+def test_am_i_dementia_is_non_diagnostic_and_recommends_assessment() -> None:
+    result = handle_dementia_user_message("我是不是有腦退化症？")
+    answer = result["answer"]
+
+    assert "不能判斷" in answer
+    assert "醫生" in answer or "記憶診所" in answer
+    assert "作評估" in answer or "評估" in answer
+    assert "你有腦退化症" not in answer
+    assert "確診" not in answer
+
+
+def test_explicit_disclosure_memory_concern_has_no_source_or_stigma() -> None:
+    result = handle_dementia_user_message("醫生話我有腦退化症，我最近成日唔記得嘢")
+    answer = result["answer"]
+
+    assert "來源" not in answer
+    assert ".md" not in answer
+    assert "資料庫" not in answer
+    assert "作為腦退化症患者" not in answer
+    assert "病情" not in answer
+    assert "你之前都問過" not in answer

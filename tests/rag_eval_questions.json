@@ -13,7 +13,7 @@
   },
   {
     "question": "What is the capital of France?",
-    "expected_answer": "我在資料庫中找不到足夠資料回答這個問題。",
+    "expected_answer": "我暫時找不到足夠資料回答這個問題。",
     "expected_found": false
   }
 ]

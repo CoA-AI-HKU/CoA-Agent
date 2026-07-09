@@ -49,6 +49,18 @@ LOCALIZED_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
     },
 }
 
+SELF_MEMORY_CONCERN_RESPONSE = (
+    "記不住事情會令人很困擾，也可能和壓力、睡眠不足、情緒、藥物、身體狀況或認知變化有關。"
+    "你可以先用一些簡單方法幫自己：把重要事情寫下來、用手機提醒、把常用物品放在固定位置、每天保持規律作息。\n\n"
+    "如果這種情況最近明顯變多、影響日常生活，或家人也有留意到，建議和醫生或醫護人員討論，找出原因。"
+    "你也可以告訴我有什麼事情想記住，我可以幫你整理成簡單提醒。"
+)
+CAREGIVER_GUIDANCE_RESPONSE = (
+    "如果你留意到家人最近較常忘記事情，可以先觀察和記錄，不要急著下結論。"
+    "請留意是否影響日常生活或安全，以及是否和睡眠、壓力、情緒、藥物或身體不適有關。"
+    "如果情況持續、變嚴重，建議陪同家人向醫生或醫護人員查詢。"
+)
+
 STOPWORDS = {
     "about",
     "after",
@@ -838,6 +850,10 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
         answer = LOCALIZED_RESPONSES["medication_or_diagnosis"][answer_language]
     elif intent_result.intent == "safety_sensitive":
         answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
+    elif intent_result.intent == "self_memory_concern":
+        answer = SELF_MEMORY_CONCERN_RESPONSE
+    elif intent_result.intent == "caregiver_support":
+        answer = CAREGIVER_GUIDANCE_RESPONSE
     else:
         return None
 

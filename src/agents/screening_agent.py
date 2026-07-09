@@ -71,6 +71,69 @@ URGENT_FOLLOWUP_RESPONSE = (
     "這不像一般慢性記憶變差，可能需要較快求醫。請盡快聯絡醫護人員；"
     "如果有即時危險，請聯絡緊急服務。"
 )
+MEMORY_CONCERN_RESPONSE = (
+    "記不住事情會令人很困擾，也可能和壓力、睡眠不足、情緒、藥物、身體狀況或認知變化有關。"
+    "你可以先用一些簡單方法幫自己：把重要事情寫下來、用手機提醒、把常用物品放在固定位置、每天保持規律作息。\n\n"
+    "如果這種情況最近明顯變多、影響日常生活，或家人也有留意到，建議和醫生或醫護人員討論，找出原因。"
+    "你也可以告訴我有什麼事情想記住，我可以幫你整理成簡單提醒。"
+)
+DEMENTIA_QUESTION_RESPONSE = (
+    "單靠這些情況不能判斷是不是腦退化症。記憶變差可能有很多原因。"
+    "如果情況持續、變嚴重，或影響日常生活，建議約見醫生或記憶診所作評估。"
+)
+CAREGIVER_OBSERVATION_GUIDANCE_RESPONSE = (
+    "如果你留意到家人最近較常忘記事情，可以先用觀察和記錄的方式了解情況，"
+    "不要急著下結論。請記下什麼時候最容易忘記、是否影響日常生活或安全、"
+    "是否和睡眠、壓力、情緒、藥物或身體不適有關。"
+    "如果情況持續、變嚴重，或影響生活和安全，建議陪同家人向醫生或醫護人員查詢。"
+)
+
+
+def handle_memory_concern(message: str, user_id: str | None = None) -> dict[str, Any]:
+    answer_language = detect_answer_language(message)
+    answer = DEMENTIA_QUESTION_RESPONSE if _is_explicit_dementia_question(message) else MEMORY_CONCERN_RESPONSE
+    result = AgentResult(
+        answer=answer,
+        intent="self_memory_concern",
+        safety_level="memory_concern",
+        found=False,
+        sources=[],
+        rag_called=False,
+        route="memory_concern",
+        debug={
+            "agent": "screening",
+            "answer_language": answer_language,
+            "screening_classification": None,
+            "diagnosis_provided": False,
+        },
+    ).to_dict()
+    result["answer_language"] = answer_language
+    return result
+
+
+def handle_self_memory_concern(message: str, user_id: str | None = None) -> dict[str, Any]:
+    return handle_memory_concern(message, user_id)
+
+
+def handle_caregiver_observation_guidance(message: str, user_id: str | None = None) -> dict[str, Any]:
+    answer_language = detect_answer_language(message)
+    result = AgentResult(
+        answer=CAREGIVER_OBSERVATION_GUIDANCE_RESPONSE,
+        intent="caregiver_guidance",
+        safety_level="caregiver_observation_guidance",
+        found=False,
+        sources=[],
+        rag_called=False,
+        route="caregiver_guidance",
+        debug={
+            "agent": "caregiver_guidance",
+            "answer_language": answer_language,
+            "screening_classification": None,
+            "diagnosis_provided": False,
+        },
+    ).to_dict()
+    result["answer_language"] = answer_language
+    return result
 
 
 def handle_cognitive_concern_screening(message: str, user_id: str | None = None) -> dict[str, Any]:
@@ -153,3 +216,31 @@ def _classify_followup(message: str, red_flags: list[str]) -> str:
     if any(term in normalized for term in impact_context):
         return "non_urgent_medical_evaluation"
     return "monitor"
+
+
+def _is_explicit_dementia_question(message: str) -> bool:
+    normalized = message.strip().lower()
+    question_terms = [
+        "是不是",
+        "是否",
+        "係咪",
+        "係唔係",
+        "會唔會",
+        "會不會",
+        "有冇",
+        "有沒有",
+        "is this",
+        "do i have",
+        "am i",
+    ]
+    dementia_terms = [
+        "腦退化症",
+        "腦退化",
+        "脑退化症",
+        "脑退化",
+        "認知障礙",
+        "认知障碍",
+        "dementia",
+        "mci",
+    ]
+    return any(term in normalized for term in question_terms) and any(term in normalized for term in dementia_terms)

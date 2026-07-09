@@ -6,6 +6,8 @@ from typing import Literal
 
 Intent = Literal[
     "knowledge_qa",
+    "self_memory_concern",
+    "caregiver_support",
     "cognitive_concern_screening",
     "personal_memory",
     "reminder_request",
@@ -248,6 +250,66 @@ COGNITIVE_CONCERN_SCREENING_TERMS = [
     "cognitive test",
 ]
 
+SELF_MEMORY_CONCERN_TERMS = [
+    "我最近覺得很多事情記不住",
+    "我最近覺得很多事情好像都有點記不住",
+    "我成日唔記得嘢",
+    "最近記性差",
+    "我好似忘記好多事",
+    "我經常忘記事情",
+    "我是不是有腦退化症",
+    "這是不是腦退化症",
+    "最近好多嘢記唔住",
+    "好多嘢記唔住",
+    "好多事情記不住",
+    "很多事情記不住",
+    "記不住很多事情",
+    "我覺得自己記性差",
+    "我覺得自己記憶力變差",
+    "我常常忘記事情",
+    "我成日唔記得",
+    "我成日唔記得嘢",
+    "我最近記憶力變差",
+    "我最近記性變差",
+    "最近記憶力變差",
+    "最近記性變差",
+    "我是不是有腦退化症",
+    "我是否有腦退化症",
+    "我會不會有腦退化症",
+    "我係咪有腦退化症",
+    "我係唔係有腦退化症",
+    "我是不是有認知障礙",
+    "我是否有認知障礙",
+    "我會不會有認知障礙",
+    "我是不是有mci",
+    "我是否有mci",
+    "最近很多事情好像都有點記不住",
+    "最近覺得很多事情好像都有點記不住",
+    "i keep forgetting things",
+    "i keep forgetting",
+    "i forget things",
+    "my memory is getting worse",
+    "am i getting dementia",
+    "do i have dementia",
+]
+
+CAREGIVER_SUPPORT_TERMS = [
+    "媽媽記唔住",
+    "媽媽記不住",
+    "爸爸記唔住",
+    "爸爸記不住",
+    "家人記唔住",
+    "家人記不住",
+    "媽媽是不是有腦退化症",
+    "爸爸是不是有腦退化症",
+    "家人是不是有腦退化症",
+    "媽媽係咪有腦退化症",
+    "爸爸係咪有腦退化症",
+    "媽媽成日重複問",
+    "爸爸成日重複問",
+    "家人成日重複問",
+]
+
 REMINDER_TERMS = [
     "提醒",
     "提我",
@@ -417,6 +479,18 @@ def classify_intent(message: str) -> IntentResult:
         )
 
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
+        (
+            "self_memory_concern",
+            SELF_MEMORY_CONCERN_TERMS,
+            0.94,
+            "Matched first-person memory concern terms.",
+        ),
+        (
+            "caregiver_support",
+            CAREGIVER_SUPPORT_TERMS,
+            0.9,
+            "Matched caregiver observation or support terms.",
+        ),
         (
             "cognitive_concern_screening",
             COGNITIVE_CONCERN_SCREENING_TERMS,

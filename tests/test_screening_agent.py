@@ -14,12 +14,11 @@ def test_self_screening_question_routes_to_check_in() -> None:
     intent = classify_intent("我是不是有腦退化症？")
     result = handle_dementia_user_message("我是不是有腦退化症？")
 
-    assert intent.intent == "cognitive_concern_screening"
-    assert result["route"] == "screening"
-    assert result["intent"] == "cognitive_concern_screening"
-    assert "我不能判斷你是否有腦退化症" in result["answer"]
-    assert "1." in result["answer"]
-    assert "醫生或記憶診所評估" in result["answer"]
+    assert intent.intent == "self_memory_concern"
+    assert result["route"] == "memory_concern"
+    assert result["intent"] == "self_memory_concern"
+    assert "不能判斷是不是腦退化症" in result["answer"]
+    assert "醫生或記憶診所" in result["answer"]
     _assert_no_diagnosis(result["answer"])
 
 
