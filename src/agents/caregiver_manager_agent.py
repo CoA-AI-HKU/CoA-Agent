@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.users.caregiver_mode import handle_caregiver_message
+from src.caregiver_mode import handle_caregiver_message
 from src.orchestrator import handle_dementia_user_message
 from src.users.user_memory import build_memory_for_user_id, build_user_memory
 

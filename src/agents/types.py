@@ -16,6 +16,7 @@ UserRole = Literal[
 Route = Literal[
     "safety",
     "medical_boundary",
+    "memory_concern",
     "self_memory_concern",
     "caregiver_guidance",
     "screening",

@@ -4,8 +4,8 @@ from .language import AnswerLanguage, language_name
 
 
 FALLBACK_ANSWERS: dict[AnswerLanguage, str] = {
-    "zh-Hant": "我在資料庫中找不到足夠資料回答這個問題。",
-    "zh-Hans": "我在资料库中找不到足够资料回答这个问题。",
+    "zh-Hant": "我暫時找不到足夠資料回答這個問題。",
+    "zh-Hans": "我暂时找不到足够资料回答这个问题。",
     "en": "I don't know from the provided documents.",
 }
 SOURCE_LABELS: dict[AnswerLanguage, str] = {

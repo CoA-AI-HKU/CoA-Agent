@@ -101,6 +101,7 @@ def simplify_response(result: dict[str, Any], message: str, user_id: str | None 
         "urgent_boundary",
         "medical_boundary",
         "screening_check_in",
+        "memory_concern",
         "self_memory_concern",
         "caregiver_observation_guidance",
     }:

@@ -97,10 +97,6 @@ a broad search, web search, browser search, or generic knowledge lookup. Wait
 for the Telegram or WhatsApp user message, then use only the `dementia_rag` MCP
 tool below.
 
-On startup, do not run a broad search, web search, browser search, or generic
-knowledge lookup. Wait for the Telegram user message, then use only the
-`dementia_rag` MCP tool below.
-
 For every Telegram or WhatsApp user message, call the MCP tool
 `handle_incoming_message` before answering, passing the platform sender ID when
 available. This router separates caregiver mode from user support mode.

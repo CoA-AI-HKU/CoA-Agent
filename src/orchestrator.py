@@ -17,7 +17,6 @@ from .agents.screening_agent import (
     handle_caregiver_observation_guidance,
     handle_cognitive_concern_screening,
     handle_memory_concern,
-    handle_self_memory_concern,
 )
 from .agents.types import AgentDecision
 from .agents.user_facing_formatter import (
