@@ -1,0 +1,19 @@
+﻿{
+    "user_id": "test_ah_ming",
+    "name": "陳亞明",
+    "family": {
+        "wife": "阿珍",
+        "son": "阿強"
+    },
+    "likes": {
+        "music": ["英文歌", "Beyond"],
+        "activities": ["行山", "打籃球", "睇新聞"]
+    },
+    "medical": {
+        "medications": {},
+        "conditions": ["健康良好", "無長期病患"]
+    },
+    "safety_contact": {
+        "primary": "阿珍 (太太)"
+    }
+}
