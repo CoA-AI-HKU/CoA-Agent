@@ -26,11 +26,12 @@ def _assert_clean(answer: str) -> None:
 def test_forgetfulness_routes_to_self_memory_concern_without_rag() -> None:
     result = handle_dementia_user_message("最近覺得很多事情好像都有點記不住")
 
-    assert result["route"] == "self_memory_concern"
+    assert result["route"] == "memory_concern"
     assert result["intent"] == "self_memory_concern"
     assert result["sources"] == []
     assert result["rag_called"] is False
-    assert "不一定代表是腦退化症" in result["answer"]
+    assert "記不住事情會令人很困擾" in result["answer"]
+    assert "手機提醒" in result["answer"]
     assert "醫生" in result["answer"] or "醫護人員" in result["answer"]
     _assert_clean(result["answer"])
 
@@ -38,10 +39,10 @@ def test_forgetfulness_routes_to_self_memory_concern_without_rag() -> None:
 def test_am_i_dementia_question_is_non_diagnostic() -> None:
     result = handle_dementia_user_message("我是不是有腦退化症？")
 
-    assert result["route"] == "self_memory_concern"
+    assert result["route"] == "memory_concern"
     assert result["sources"] == []
     assert result["rag_called"] is False
-    assert "不一定代表是腦退化症" in result["answer"]
+    assert "不能判斷是不是腦退化症" in result["answer"]
     assert "醫生" in result["answer"] or "醫護人員" in result["answer"]
     assert "你有腦退化症" not in result["answer"]
     _assert_clean(result["answer"])

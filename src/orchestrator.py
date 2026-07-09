@@ -16,6 +16,7 @@ from .agents.safety_agent import handle_medical_boundary, handle_safety
 from .agents.screening_agent import (
     handle_caregiver_observation_guidance,
     handle_cognitive_concern_screening,
+    handle_memory_concern,
     handle_self_memory_concern,
 )
 from .agents.types import AgentDecision
@@ -48,8 +49,8 @@ def handle_dementia_user_message(
         result = handle_medical_boundary(message, decision)
     elif decision.route == "screening":
         result = handle_cognitive_concern_screening(message, user_id)
-    elif decision.route == "self_memory_concern":
-        result = handle_self_memory_concern(message, user_id)
+    elif decision.route in {"memory_concern", "self_memory_concern"}:
+        result = handle_memory_concern(message, user_id)
     elif decision.route == "caregiver_guidance":
         result = handle_caregiver_observation_guidance(message, user_id)
     elif decision.route == "rag_qa":
