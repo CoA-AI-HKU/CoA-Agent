@@ -101,6 +101,8 @@ def simplify_response(result: dict[str, Any], message: str, user_id: str | None 
         "urgent_boundary",
         "medical_boundary",
         "screening_check_in",
+        "self_memory_concern",
+        "caregiver_observation_guidance",
     }:
         paragraphs = [part.strip() for part in answer.split("\n\n") if part.strip()]
         if len(paragraphs) > 2:

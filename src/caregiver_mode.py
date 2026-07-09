@@ -65,10 +65,11 @@ def _summary_answer(linked_user_id: str | None) -> tuple[str, dict[str, int]]:
         return SUMMARY_EMPTY_RESPONSE, {}
 
     counts = _count_event_types(events)
+    medication_uncertain = counts.get("medication_unsure", 0) + counts.get("medication_uncertainty", 0)
     answer = (
         "今日摘要：\n"
         f"- 互動次數：{len(events)}\n"
-        f"- 用藥不確定：{counts.get('medication_unsure', 0)}\n"
+        f"- 用藥不確定：{medication_uncertain}\n"
         f"- 安全提醒：{counts.get('safety_alert', 0)}\n"
         f"- 情緒支援訊號：{counts.get('emotional_support_signal', 0)}\n"
         f"- 活動請求：{counts.get('activity_request', 0)}"

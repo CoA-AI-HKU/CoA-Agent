@@ -13,9 +13,17 @@ from .agents.memory_routine_agent import (
 from .agents.rag_evidence_agent import answer_with_dementia_evidence
 from .agents.response_simplifier_agent import simplify_response
 from .agents.safety_agent import handle_medical_boundary, handle_safety
-from .agents.screening_agent import handle_cognitive_concern_screening
+from .agents.screening_agent import (
+    handle_caregiver_observation_guidance,
+    handle_cognitive_concern_screening,
+    handle_self_memory_concern,
+)
 from .agents.types import AgentDecision
-from .agents.user_facing_formatter import format_user_facing_answer, guard_user_facing_answer
+from .agents.user_facing_formatter import (
+    answer_has_user_visible_leakage,
+    format_user_facing_answer,
+    guard_user_facing_answer,
+)
 from .pipeline.language import detect_answer_language
 
 
@@ -40,6 +48,10 @@ def handle_dementia_user_message(
         result = handle_medical_boundary(message, decision)
     elif decision.route == "screening":
         result = handle_cognitive_concern_screening(message, user_id)
+    elif decision.route == "self_memory_concern":
+        result = handle_self_memory_concern(message, user_id)
+    elif decision.route == "caregiver_guidance":
+        result = handle_caregiver_observation_guidance(message, user_id)
     elif decision.route == "rag_qa":
         result = answer_with_dementia_evidence(message, user_id)
     elif decision.route == "memory":
@@ -72,6 +84,11 @@ def handle_dementia_user_message(
             debug["source_text_warning"] = True
             user_facing["debug"] = debug
     user_facing = guard_user_facing_answer(user_facing, message)
+    if not show_sources and answer_has_user_visible_leakage(str(user_facing.get("answer") or "")):
+        debug = dict(user_facing.get("debug", {}))
+        debug["orchestrator_final_guard_retry"] = True
+        user_facing["debug"] = debug
+        user_facing = guard_user_facing_answer(user_facing, message)
     _emit_debug(user_id, message, user_facing)
     return user_facing
 

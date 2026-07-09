@@ -4,6 +4,12 @@ from typing import Any
 
 from src.agents.caregiver_manager_agent import handle_caregiver_manager_message
 from src.agents.patient_user_manager_agent import handle_patient_user_message
+from src.agents.user_facing_formatter import (
+    answer_has_user_visible_leakage,
+    answer_has_user_visible_source_text,
+    format_user_facing_answer,
+    guard_user_facing_answer,
+)
 from src.metrics import infer_event_type, log_event
 from src.mode_info import format_mode_info
 from src.user_registry import (
@@ -78,6 +84,7 @@ def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> 
         debug["metrics_warning"] = str(exc)
 
     output["debug"] = debug
+    output = _finalize_user_output(output, message)
     return output
 
 
@@ -98,3 +105,17 @@ def _mode_info_result(sender_id: str, role: str, record: dict[str, Any]) -> dict
         "safety_level": "normal",
         "debug": {"agent": "message_router", "mode_info": True},
     }
+
+
+def _finalize_user_output(result: dict[str, Any], message: str) -> dict[str, Any]:
+    output = dict(result)
+    if answer_has_user_visible_source_text(str(output.get("answer") or "")):
+        output = format_user_facing_answer(output, show_sources=False)
+    output = guard_user_facing_answer(output, message)
+    answer = str(output.get("answer") or "")
+    if answer_has_user_visible_leakage(answer):
+        debug = dict(output.get("debug", {}))
+        debug["router_final_guard_retry"] = True
+        output["debug"] = debug
+        output = guard_user_facing_answer(output, message)
+    return output

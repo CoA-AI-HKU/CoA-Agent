@@ -71,6 +71,60 @@ URGENT_FOLLOWUP_RESPONSE = (
     "這不像一般慢性記憶變差，可能需要較快求醫。請盡快聯絡醫護人員；"
     "如果有即時危險，請聯絡緊急服務。"
 )
+SELF_MEMORY_CONCERN_RESPONSE = (
+    "記不住很多事情會令人擔心，但這不一定代表是腦退化症。"
+    "壓力、睡眠不足、情緒、藥物或身體狀況都可能影響記憶。"
+    "你可以先記錄最近什麼時候最容易忘記；如果情況持續、變嚴重，或影響日常生活，"
+    "建議和醫生或醫護人員討論。"
+)
+CAREGIVER_OBSERVATION_GUIDANCE_RESPONSE = (
+    "如果你留意到家人最近較常忘記事情，可以先用觀察和記錄的方式了解情況，"
+    "不要急著下結論。請記下什麼時候最容易忘記、是否影響日常生活或安全、"
+    "是否和睡眠、壓力、情緒、藥物或身體不適有關。"
+    "如果情況持續、變嚴重，或影響生活和安全，建議陪同家人向醫生或醫護人員查詢。"
+)
+
+
+def handle_self_memory_concern(message: str, user_id: str | None = None) -> dict[str, Any]:
+    answer_language = detect_answer_language(message)
+    result = AgentResult(
+        answer=SELF_MEMORY_CONCERN_RESPONSE,
+        intent="self_memory_concern",
+        safety_level="self_memory_concern",
+        found=False,
+        sources=[],
+        rag_called=False,
+        route="self_memory_concern",
+        debug={
+            "agent": "screening",
+            "answer_language": answer_language,
+            "screening_classification": None,
+            "diagnosis_provided": False,
+        },
+    ).to_dict()
+    result["answer_language"] = answer_language
+    return result
+
+
+def handle_caregiver_observation_guidance(message: str, user_id: str | None = None) -> dict[str, Any]:
+    answer_language = detect_answer_language(message)
+    result = AgentResult(
+        answer=CAREGIVER_OBSERVATION_GUIDANCE_RESPONSE,
+        intent="caregiver_guidance",
+        safety_level="caregiver_observation_guidance",
+        found=False,
+        sources=[],
+        rag_called=False,
+        route="caregiver_guidance",
+        debug={
+            "agent": "caregiver_guidance",
+            "answer_language": answer_language,
+            "screening_classification": None,
+            "diagnosis_provided": False,
+        },
+    ).to_dict()
+    result["answer_language"] = answer_language
+    return result
 
 
 def handle_cognitive_concern_screening(message: str, user_id: str | None = None) -> dict[str, Any]:
