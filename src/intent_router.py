@@ -6,6 +6,7 @@ from typing import Literal
 
 Intent = Literal[
     "knowledge_qa",
+    "cognitive_concern_screening",
     "personal_memory",
     "reminder_request",
     "cognitive_activity",
@@ -215,6 +216,38 @@ MEDICATION_DIAGNOSIS_TERMS = [
     "has dementia",
 ]
 
+COGNITIVE_CONCERN_SCREENING_TERMS = [
+    "我是不是有腦退化症",
+    "我是否有腦退化症",
+    "我會不會有認知障礙",
+    "我會唔會有認知障礙",
+    "我最近成日唔記得嘢",
+    "我最近記性差咗",
+    "我媽媽是不是有腦退化症",
+    "我媽媽是不是有認知障礙",
+    "我媽媽最近成日唔記得嘢",
+    "我媽媽係咪腦退化",
+    "我爸爸是不是有腦退化症",
+    "點樣知道係正常老化定腦退化",
+    "怎樣知道是正常老化還是腦退化",
+    "正常老化定腦退化",
+    "正常老化還是腦退化",
+    "腦退化症測試",
+    "腦退化測試",
+    "認知障礙測試",
+    "記憶測試",
+    "記憶力測試",
+    "記性差",
+    "記性差咗",
+    "忘記東西",
+    "忘記嘢",
+    "cognitive screening",
+    "dementia test",
+    "memory test",
+    "memory screening",
+    "cognitive test",
+]
+
 REMINDER_TERMS = [
     "提醒",
     "提我",
@@ -384,6 +417,12 @@ def classify_intent(message: str) -> IntentResult:
         )
 
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
+        (
+            "cognitive_concern_screening",
+            COGNITIVE_CONCERN_SCREENING_TERMS,
+            0.92,
+            "Matched cognitive concern screening terms.",
+        ),
         (
             "medication_or_diagnosis",
             MEDICATION_DIAGNOSIS_TERMS,

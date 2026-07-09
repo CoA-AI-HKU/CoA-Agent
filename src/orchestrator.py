@@ -13,7 +13,9 @@ from .agents.memory_routine_agent import (
 from .agents.rag_evidence_agent import answer_with_dementia_evidence
 from .agents.response_simplifier_agent import simplify_response
 from .agents.safety_agent import handle_medical_boundary, handle_safety
+from .agents.screening_agent import handle_cognitive_concern_screening
 from .agents.types import AgentDecision
+from .agents.user_facing_formatter import format_user_facing_answer, guard_user_facing_answer
 from .pipeline.language import detect_answer_language
 
 
@@ -24,7 +26,11 @@ EMOTIONAL_SUPPORT_RESPONSE = (
 UNKNOWN_RESPONSE = "我未能清楚理解你的意思。你可以用簡單一句再問一次嗎？"
 
 
-def handle_dementia_user_message(message: str, user_id: str | None = None) -> dict[str, Any]:
+def handle_dementia_user_message(
+    message: str,
+    user_id: str | None = None,
+    show_sources: bool = False,
+) -> dict[str, Any]:
     decision = coordinate_message(message, user_id)
     answer_language = detect_answer_language(message)
 
@@ -32,6 +38,8 @@ def handle_dementia_user_message(message: str, user_id: str | None = None) -> di
         result = handle_safety(message, decision)
     elif decision.route == "medical_boundary":
         result = handle_medical_boundary(message, decision)
+    elif decision.route == "screening":
+        result = handle_cognitive_concern_screening(message, user_id)
     elif decision.route == "rag_qa":
         result = answer_with_dementia_evidence(message, user_id)
     elif decision.route == "memory":
@@ -53,10 +61,19 @@ def handle_dementia_user_message(message: str, user_id: str | None = None) -> di
     result.setdefault("safety_level", "normal")
     result["answer_language"] = result.get("answer_language", answer_language)
     _attach_coordinator_debug(result, decision)
+    result["debug"]["user_message"] = message
 
     simplified = simplify_response(result, message, user_id)
-    _emit_debug(user_id, message, simplified)
-    return simplified
+    user_facing = format_user_facing_answer(simplified, show_sources=show_sources)
+    if not show_sources and _answer_contains_source_text(str(user_facing.get("answer") or "")):
+        user_facing = format_user_facing_answer(user_facing, show_sources=False)
+        if _answer_contains_source_text(str(user_facing.get("answer") or "")):
+            debug = dict(user_facing.get("debug", {}))
+            debug["source_text_warning"] = True
+            user_facing["debug"] = debug
+    user_facing = guard_user_facing_answer(user_facing, message)
+    _emit_debug(user_id, message, user_facing)
+    return user_facing
 
 
 def _supportive_response(decision: AgentDecision) -> dict[str, Any]:
@@ -118,3 +135,19 @@ def _emit_debug(user_id: str | None, message: str, result: dict[str, Any]) -> No
         "source_count": len(result.get("sources") or []),
     }
     print(f"ORCHESTRATOR_DEBUG {printable}", file=sys.stderr)
+
+
+def _answer_contains_source_text(answer: str) -> bool:
+    return any(
+        phrase in answer
+        for phrase in [
+            "來源",
+            ".md",
+            "根據資料庫",
+            "資料庫嘅指引",
+            "資料庫的指引",
+            "資料庫冇提到",
+            "source:",
+            "sources:",
+        ]
+    )

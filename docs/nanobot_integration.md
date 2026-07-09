@@ -98,6 +98,10 @@ knowledge lookup. Wait for the Telegram user message, then use only the
 
 For every Telegram user message, call the MCP tool
 `handle_dementia_user_message` before answering.
+This call is internal. Never tell the user to call
+`handle_dementia_user_message`, and never mention MCP tools, function names,
+Python functions, tool names, database filenames, RAG internals, Chroma, debug
+logs, tracebacks, exceptions, or implementation details to the user.
 
 Do not use web search, browser search, generic knowledge search, or any
 non-dementia_rag tool for Telegram replies. The only allowed source for final
@@ -110,6 +114,8 @@ care, or patient-support questions from model knowledge alone.
 Your final reply must be based only on the returned tool result.
 Reply with the exact answer text returned by the tool unless formatting is
 strictly necessary for Telegram.
+If tool use fails, provide a short safe fallback and do not reveal the tool
+failure or any internal tool/debug text.
 
 If the tool says the database has insufficient information, repeat that fallback
 and do not add outside information.
@@ -117,10 +123,10 @@ and do not add outside information.
 Do not provide medication advice. If the tool returns a medication or diagnosis
 boundary message, repeat it and add nothing else.
 
-The MCP server exposes only `handle_dementia_user_message` by default. Set
-`RAG_ENABLE_DEBUG_TOOLS=true` only in a local debugging session if you need
-`search_dementia_knowledge` or `answer_from_dementia_knowledge`; never enable
-those debug tools for Telegram production.
+The MCP server exposes only `handle_dementia_user_message`. Debug helper
+functions such as `search_dementia_knowledge` or
+`answer_from_dementia_knowledge` must not be exposed to Nanobot, Telegram, or
+WhatsApp production config.
 
 Nanobot production config should list only `handle_dementia_user_message` in
 `enabledTools`. Do not add the debug MCP tools to Telegram or WhatsApp bot

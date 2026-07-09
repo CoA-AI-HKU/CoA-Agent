@@ -28,9 +28,13 @@ def answer_from_dementia_knowledge_tool(question: str) -> dict[str, Any]:
     return shared_answer_question(question, build_default_rag_config("mcp"))
 
 
-def handle_dementia_user_message_tool(message: str, user_id: str = "") -> dict[str, Any]:
+def handle_dementia_user_message_tool(
+    message: str,
+    user_id: str = "",
+    show_sources: bool = False,
+) -> dict[str, Any]:
     """Production Telegram tool: answer using only the local dementia database and built-in safety boundaries."""
-    return handle_dementia_user_message(message, user_id or None)
+    return handle_dementia_user_message(message, user_id or None, show_sources=show_sources)
 
 
 try:
@@ -42,9 +46,6 @@ except ImportError:
 mcp = FastMCP("dementia_rag") if FastMCP is not None else None
 if mcp is not None:
     mcp.tool(name="handle_dementia_user_message")(handle_dementia_user_message_tool)
-    if os.getenv("RAG_ENABLE_DEBUG_TOOLS", "").lower() in {"1", "true", "yes"}:
-        mcp.tool(name="search_dementia_knowledge")(search_dementia_knowledge_tool)
-        mcp.tool(name="answer_from_dementia_knowledge")(answer_from_dementia_knowledge_tool)
 
 
 def main() -> None:

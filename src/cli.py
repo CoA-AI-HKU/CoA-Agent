@@ -207,10 +207,10 @@ def interactive_loop(
                 print("Fallback mode active: True")
             print("Answer:\n", answer)
         else:
-            result = handle_dementia_user_message(query)
+            result = handle_dementia_user_message(query, show_sources=show_sources)
             print("Answer:\n", result.get("answer", result))
             if show_sources and result.get("sources"):
-                print("Sources:", result.get("sources"))
+                print("Sources metadata:", result.get("sources"))
             if debug_rag:
                 print("Debug:", result.get("debug", {}))
 

@@ -27,7 +27,25 @@ UNSUPPORTED_DEMENTIA_ASSUMPTION_REPLACEMENTS = {
     "作為一名腦退化症患者": "如果這是關於腦退化症照顧",
     "因為你記性不好": "如果近期較難記住",
     "你的記憶力不好": "如果近期較難記住",
+    "你有記憶力問題": "如果近期較難記住",
+    "你有記憶問題": "如果近期較難記住",
+    "你的記憶力衰退": "如果近期記憶有變化",
+    "你有記憶力衰退": "如果近期記憶有變化",
+    "你有記憶障礙": "如果近期記憶有變化",
+    "因為你有記憶障礙": "如果近期記憶有變化",
     "你的照顧者": "家人、照顧者或醫護人員",
+    "你的看護": "家人、照顧者或醫護人員",
+    "你的護理員": "家人、照顧者或醫護人員",
+    "你需要照顧者": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你需要看護": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你不能自己": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你唔可以自己": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你無能力": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你没有能力": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你沒有能力": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你不具備能力": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你不適合自己處理": "如有需要，可以請家人、照顧者或醫護人員協助",
+    "你不适合自己处理": "如有需要，可以請家人、照顧者或醫護人員協助",
 }
 
 
@@ -79,7 +97,11 @@ def simplify_response(result: dict[str, Any], message: str, user_id: str | None 
 
     answer, bias_guard_applied = remove_unsupported_dementia_assumptions(answer, message)
 
-    if len(answer) > 220 and output.get("safety_level") not in {"urgent_boundary", "medical_boundary"}:
+    if len(answer) > 220 and output.get("safety_level") not in {
+        "urgent_boundary",
+        "medical_boundary",
+        "screening_check_in",
+    }:
         paragraphs = [part.strip() for part in answer.split("\n\n") if part.strip()]
         if len(paragraphs) > 2:
             answer = "\n\n".join(paragraphs[:2])

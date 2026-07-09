@@ -10,6 +10,10 @@ BLOCKED_ASSUMPTIONS = [
     "作為腦退化症患者",
     "因為你記性不好",
     "你的照顧者",
+    "你有記憶力問題",
+    "你需要照顧者",
+    "你不能自己",
+    "你無能力",
 ]
 
 
@@ -21,6 +25,8 @@ def _assert_no_blocked_assumptions(answer: str) -> None:
 def test_user_role_defaults_to_unknown() -> None:
     assert infer_user_role("") == "unknown"
     assert infer_user_role("下午三點") == "unknown"
+    assert infer_user_role("我唔記得我食咗藥未") == "unknown"
+    assert infer_user_role("我忘記了今天要做什麼") == "unknown"
 
 
 def test_general_dementia_question_does_not_assume_user_has_dementia(monkeypatch) -> None:
@@ -73,7 +79,11 @@ def test_medication_uncertainty_does_not_invent_dementia_context() -> None:
     result = handle_dementia_user_message("我唔知我食咗藥未")
 
     _assert_no_blocked_assumptions(result["answer"])
-    assert "唔好自行補食" in result["answer"] or "不要自行补吃" in result["answer"]
+    assert (
+        "不要自行再服一次" in result["answer"]
+        or "唔好自行補食" in result["answer"]
+        or "不要自行补吃" in result["answer"]
+    )
     assert "藥劑師" in result["answer"] or "药剂师" in result["answer"]
     assert "醫生" in result["answer"] or "医生" in result["answer"]
 
@@ -95,3 +105,23 @@ def test_explicit_self_disclosure_can_be_acknowledged_without_stigma(monkeypatch
     assert "因為你記性不好" not in result["answer"]
     assert "可以" in result["answer"]
     assert result["debug"]["coordinator"]["user_role"] == "self_with_cognitive_concern"
+
+
+def test_final_answer_removes_memory_caregiver_and_capacity_assumptions(monkeypatch) -> None:
+    def fake_answer_question(message, config):
+        return {
+            "answer": (
+                "你有記憶力問題，所以你需要照顧者。"
+                "你不能自己處理這件事，因為你無能力判斷。"
+            ),
+            "found": True,
+            "sources": ["care.md"],
+            "debug": {"retrieved_count": 1},
+        }
+
+    monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fake_answer_question)
+
+    result = handle_dementia_user_message("記憶力有什麼支援方法？")
+
+    _assert_no_blocked_assumptions(result["answer"])
+    assert "如有需要，可以請家人、照顧者或醫護人員協助" in result["answer"]
