@@ -3,9 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.message_router import handle_incoming_message
-from src.user_memory import build_memory_for_user_id, build_user_memory
-from src.user_registry import get_caregiver_records_for_user, get_linked_user_id, get_linked_user_ids
+from src.users.message_router import handle_incoming_message
+from src.users.user_memory import build_memory_for_user_id, build_user_memory
+from src.users.user_registry import get_caregiver_records_for_user, get_linked_user_id, get_linked_user_ids
 
 
 def _write_registry(path: Path) -> None:

@@ -7,7 +7,7 @@ from typing import Any
 
 try:
     from .dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from .message_router import handle_incoming_message
+    from .users.message_router import handle_incoming_message
     from .orchestrator import handle_dementia_user_message
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 except ImportError:
@@ -15,7 +15,7 @@ except ImportError:
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from src.dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from src.message_router import handle_incoming_message
+    from src.users.message_router import handle_incoming_message
     from src.orchestrator import handle_dementia_user_message
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 

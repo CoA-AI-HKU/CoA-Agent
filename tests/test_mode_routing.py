@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.message_router import handle_incoming_message
+from src.users.message_router import handle_incoming_message
 
 
 def _write_registry(path: Path) -> None:

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from src.orchestrator import handle_dementia_user_message
-from src.user_memory import build_memory_for_user_id, build_user_memory
+from src.users.user_memory import build_memory_for_user_id, build_user_memory
 
 
 def handle_patient_user_message(
