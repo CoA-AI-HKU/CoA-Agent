@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.caregiver_mode import handle_caregiver_message
+from src.user.caregiver_mode import handle_caregiver_message
 from src.orchestrator import handle_dementia_user_message
-from src.users.user_memory import build_memory_for_user_id, build_user_memory
+from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
 CAREGIVER_COMMANDS = {"/help", "help", "/summary", "/alerts", "/set_routine", "/set_reminder"}

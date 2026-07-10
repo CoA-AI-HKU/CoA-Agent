@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 # Add the project root to Python path so imports work
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_ROOT))
 
 # Import our EXPERIMENTAL agent (not the original one!)

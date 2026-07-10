@@ -11,15 +11,15 @@ from src.agents.user_facing_formatter import (
     guard_user_facing_answer,
 )
 from src.metrics import infer_event_type, log_event
-from src.mode_info import format_mode_info
-from src.user_registry import (
+from src.user.mode_info import format_mode_info
+from src.user.user_registry import (
     get_linked_user_id,
     get_registry_user_id,
     get_user_record,
     get_user_role,
     normalize_sender_id,
 )
-from src.user_memory import build_memory_for_user_id, build_user_memory
+from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
 def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> dict[str, Any]:

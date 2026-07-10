@@ -209,5 +209,5 @@ See `docs/nanobot_integration.md` for:
 See `docs/rag_debugging.md` for retrieval/answer debugging commands and the lightweight eval:
 
 ```bash
-python -m tests.run_rag_eval
+python tests/evaluation/run_rag_eval.py
 ```

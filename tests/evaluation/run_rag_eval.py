@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+import sys
 from pathlib import Path
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.pipeline.document import Document
 from src.pipeline.embedder import Embedder

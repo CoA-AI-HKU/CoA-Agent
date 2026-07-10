@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from src.user_registry import (
+from src.user.user_registry import (
     get_caregiver_records_for_user,
     get_linked_user_ids,
     get_user_record,
