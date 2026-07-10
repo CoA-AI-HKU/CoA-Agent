@@ -38,6 +38,11 @@ ASPIRIN_HEADACHE_RESPONSES = {
     "zh-Hans": "我不能判断你是否适合吃阿司匹林。头痛可能有很多原因，而阿司匹林也不适合所有人。请先询问医生或药剂师；如果头痛突然很严重、伴随胸痛、呼吸困难、说话不清、手脚无力或视力改变，请立即求医。",
     "en": "I cannot judge whether aspirin is suitable for you. Headache can have many causes, and aspirin is not suitable for everyone. Please ask a doctor or pharmacist first; if the headache is sudden or severe, or comes with chest pain, breathing trouble, slurred speech, weakness, or vision changes, seek urgent medical help.",
 }
+MEDICATION_COMPLETION_RESPONSES = {
+    "zh-Hant": "收到，你今天已經服藥了。可以在藥盒或服藥記錄上做個記號，方便之後核對。",
+    "zh-Hans": "收到，你今天已经服药了。可以在药盒或服药记录上做个记号，方便之后核对。",
+    "en": "Got it—you have taken today's medicine. You can mark it on the pill box or medication record for later reference.",
+}
 
 
 def _is_medication_uncertainty(message: str) -> bool:
@@ -104,6 +109,26 @@ def _is_aspirin_headache_question(message: str) -> bool:
     return any(term in normalized for term in aspirin_terms) and any(term in normalized for term in headache_terms)
 
 
+def _is_medication_completion_statement(message: str) -> bool:
+    normalized = message.lower()
+    medication_terms = ["藥", "药", "medicine", "medication", "dose", "pill"]
+    completion_terms = [
+        "已經吃過",
+        "已经吃过",
+        "已經服",
+        "已经服",
+        "食咗",
+        "服咗",
+        "i took",
+        "i have taken",
+        "already took",
+        "already taken",
+    ]
+    return any(term in normalized for term in medication_terms) and any(
+        term in normalized for term in completion_terms
+    )
+
+
 def handle_safety(message: str, decision: AgentDecision) -> dict:
     answer_language = detect_answer_language(message)
     if _is_cognitive_red_flag(message):
@@ -128,7 +153,10 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
     answer_language = detect_answer_language(message)
     detected_medicines = normalize_medicine_mentions(message)
     red_flags = detect_red_flags(message)
-    if _is_aspirin_headache_question(message):
+    medication_status = "taken" if _is_medication_completion_statement(message) else None
+    if medication_status == "taken":
+        answer = MEDICATION_COMPLETION_RESPONSES[answer_language]
+    elif _is_aspirin_headache_question(message):
         answer = ASPIRIN_HEADACHE_RESPONSES[answer_language]
     elif _is_medication_uncertainty(message):
         answer = MEDICATION_UNCERTAINTY_RESPONSES[answer_language]
@@ -142,7 +170,7 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
     else:
         answer = MEDICAL_BOUNDARY_RESPONSES[answer_language]
 
-    return AgentResult(
+    result = AgentResult(
         answer=answer,
         intent=decision.intent,
         safety_level="medical_boundary",
@@ -157,3 +185,6 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
             "red_flags": red_flags,
         },
     ).to_dict()
+    if medication_status:
+        result["medication_status"] = medication_status
+    return result

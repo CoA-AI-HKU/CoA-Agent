@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_REGISTRY_PATH = PROJECT_ROOT / "data" / "private" / "user_registry.json"
 
 
@@ -106,6 +106,26 @@ def get_user_record_by_user_id(user_id: str | None) -> tuple[str | None, dict[st
         if str(record.get("user_id") or "").strip() == target_user_id:
             return sender_id, record
     return None, {}
+
+
+def get_registered_patient_accounts() -> list[dict[str, str]]:
+    """Return registered patient accounts suitable for dashboard selection."""
+    accounts_by_user_id: dict[str, dict[str, str]] = {}
+    for sender_id, record in iter_sender_records():
+        if str(record.get("role") or "").strip().lower() != "user":
+            continue
+        user_id = str(record.get("user_id") or sender_id).strip()
+        if not user_id:
+            continue
+        display_name = str(record.get("display_name") or user_id).strip() or user_id
+        accounts_by_user_id[user_id] = {
+            "user_id": user_id,
+            "display_name": display_name,
+        }
+    return sorted(
+        accounts_by_user_id.values(),
+        key=lambda account: (account["display_name"].casefold(), account["user_id"].casefold()),
+    )
 
 
 def get_caregiver_records_for_user(user_id: str | None) -> list[tuple[str, dict[str, Any]]]:

@@ -322,3 +322,55 @@ def test_memory_concern_leak_uses_neutral_memory_fallback() -> None:
     assert "資料庫" not in guarded["answer"]
     assert ".md" not in guarded["answer"]
     assert "腦退化症嘅一部分" not in guarded["answer"]
+
+
+def test_medication_completion_has_no_citations_or_dementia_assumption() -> None:
+    result = handle_dementia_user_message("已經吃過今天需要吃的藥了")
+
+    assert result["medication_status"] == "taken"
+    assert "今天已經服藥" in result["answer"]
+    for blocked in ["來源", ".md", "資料庫", "腦退化", "dementia"]:
+        assert blocked.lower() not in result["answer"].lower()
+
+
+def test_exact_leaking_reply_is_replaced_at_final_output_guard() -> None:
+    leaking_answer = """叻叻！記得準時食藥好重要 😺
+
+資料庫提到，定時服藥同維持規律生活對腦退化症人士好有幫助。
+（來源：dementia-medications-358f15bdfa.md）
+
+繼續保持，有咩需要提你嘅話我幫手都得㗎！"""
+    guarded = guard_user_facing_answer(
+        {
+            "answer": leaking_answer,
+            "route": "medical_boundary",
+            "intent": "medication_or_diagnosis",
+            "safety_level": "medical_boundary",
+            "sources": ["dementia-medications-358f15bdfa.md"],
+        },
+        "已經吃過今天需要吃的藥了",
+    )
+
+    for blocked in ["來源", ".md", "資料庫", "腦退化", "dementia"]:
+        assert blocked.lower() not in guarded["answer"].lower()
+    assert guarded["debug"]["unsupported_dementia_assumption_removed"] is True
+
+
+def test_production_mcp_result_excludes_internal_source_and_debug_fields(monkeypatch) -> None:
+    from src.dementia_rag_mcp_server import handle_incoming_message_tool
+
+    monkeypatch.setattr(
+        "src.dementia_rag_mcp_server.handle_incoming_message",
+        lambda message, sender_id, channel: {
+            "answer": "安全回答",
+            "route": "supportive",
+            "intent": "unknown",
+            "sources": ["private-source.md"],
+            "debug": {"raw_answer_before_formatting": "來源：private-source.md"},
+            "answer_with_sources": "安全回答（來源：private-source.md）",
+        },
+    )
+
+    result = handle_incoming_message_tool("你好", "user_1", "telegram")
+
+    assert result == {"answer": "安全回答", "route": "supportive", "intent": "unknown"}

@@ -28,6 +28,7 @@ ALLOWED_EVENT_FIELDS = {
     "total_score",
     "max_score",
     "risk_flag",
+    "follow_up_status",
     "domain_scores",
     "raw_answers_saved",
 }
@@ -41,7 +42,11 @@ CONCERN_SIGNAL_EVENT_TYPES = {
     "cognitive_check_started",
     "cognitive_check_completed",
     "cognitive_check_followup_suggested",
+    "caregiver_reported_worsening",
 }
+
+FOLLOW_UP_SUGGESTED = "follow_up_suggested"
+CAREGIVER_FOLLOWUP_RECOMMENDED = "caregiver_followup_recommended"
 
 
 class MetricsCollector:
@@ -184,13 +189,16 @@ def infer_event_type(result: dict[str, Any]) -> str:
     route = str(result.get("route") or "")
     intent = str(result.get("intent") or "")
     safety_level = str(result.get("safety_level") or "")
+    medication_status = str(result.get("medication_status") or "").strip().lower()
 
+    if medication_status in {"taken", "missed", "unsure"}:
+        return "medication_response"
     if route == "memory_concern" or intent == "self_memory_concern":
         return "memory_concern"
     if safety_level == "urgent_boundary" or route == "safety":
         return "safety_alert"
     if intent == "medication_or_diagnosis" or route == "medical_boundary":
-        return "medication_uncertainty"
+        return "medication_question"
     if intent == "emotional_support":
         return "emotional_support_signal"
     if intent == "cognitive_concern_screening" or route == "screening":
@@ -202,6 +210,212 @@ def infer_event_type(result: dict[str, Any]) -> str:
     if intent == "knowledge_qa" or route == "rag_qa":
         return "knowledge_qa"
     return "interaction"
+
+
+def detect_concern_signal(
+    message: str,
+    role: str,
+    result: dict[str, Any],
+) -> dict[str, str] | None:
+    """Classify a concern without retaining the source message.
+
+    The most immediately actionable signal wins when a message matches more
+    than one category. Returned values are structured tokens safe for the
+    privacy-filtered event log.
+    """
+    normalized = " ".join(str(message or "").lower().split())
+    route = str(result.get("route") or "").strip().lower()
+    intent = str(result.get("intent") or "").strip().lower()
+    normalized_role = str(role or "").strip().lower()
+
+    if _is_wandering_safety_signal(normalized, route):
+        return {
+            "event_type": "wandering_safety",
+            "follow_up_status": CAREGIVER_FOLLOWUP_RECOMMENDED,
+        }
+    if _is_medication_uncertainty_signal(normalized):
+        return {
+            "event_type": "medication_uncertainty",
+            "follow_up_status": CAREGIVER_FOLLOWUP_RECOMMENDED,
+        }
+    if _is_orientation_confusion_signal(normalized):
+        return {
+            "event_type": "orientation_confusion",
+            "follow_up_status": FOLLOW_UP_SUGGESTED,
+        }
+    if _is_caregiver_reported_worsening(normalized, normalized_role, intent, route):
+        return {
+            "event_type": "caregiver_reported_worsening",
+            "follow_up_status": CAREGIVER_FOLLOWUP_RECOMMENDED,
+        }
+    if route == "memory_concern" or intent == "self_memory_concern" or _has_any(
+        normalized,
+        (
+            "記唔住",
+            "唔記得",
+            "忘記",
+            "记不住",
+            "记性差",
+            "記性差",
+            "memory problem",
+            "memory concern",
+            "more forgetful",
+            "keep forgetting",
+            "can't remember",
+            "cannot remember",
+        ),
+    ):
+        return {
+            "event_type": "memory_concern",
+            "follow_up_status": FOLLOW_UP_SUGGESTED,
+        }
+    return None
+
+
+def _is_medication_uncertainty_signal(message: str) -> bool:
+    return _has_any(message, ("藥", "药", "medicine", "medication", "dose")) and _has_any(
+        message,
+        (
+            "食咗未",
+            "食咗藥未",
+            "服咗藥未",
+            "吃過沒有",
+            "吃过没有",
+            "吃過藥沒有",
+            "吃过药没有",
+            "有冇食",
+            "有沒有服藥",
+            "有没有服药",
+            "不確定",
+            "不确定",
+            "唔記得",
+            "忘記",
+            "忘记",
+            "not sure",
+            "unsure",
+            "forgot whether",
+            "can't remember if",
+            "cannot remember if",
+            "extra dose",
+            "double dose",
+            "did i take",
+            "have i taken",
+        ),
+    )
+
+
+def _is_wandering_safety_signal(message: str, route: str) -> bool:
+    if route != "safety":
+        return False
+    return _has_any(
+        message,
+        (
+            "走失",
+            "失蹤",
+            "失踪",
+            "失去聯絡",
+            "失去联络",
+            "搵唔到",
+            "找不到",
+            "不見",
+            "迷路",
+            "missing",
+            "wandered off",
+            "can't find",
+            "cannot find",
+            "got lost",
+        ),
+    )
+
+
+def _is_orientation_confusion_signal(message: str) -> bool:
+    return _has_any(
+        message,
+        (
+            "唔知自己喺邊",
+            "不知道自己在哪",
+            "不知道自己在哪里",
+            "唔知今日幾號",
+            "不知道今天幾號",
+            "不知道今天几号",
+            "唔知星期幾",
+            "不知道星期几",
+            "認唔到路",
+            "认不得路",
+            "迷路",
+            "成日行錯路",
+            "经常走错路",
+            "方向混亂",
+            "方向混乱",
+            "where am i",
+            "don't know where i am",
+            "do not know where i am",
+            "what day is it",
+            "confused about where",
+            "confused about the date",
+        ),
+    )
+
+
+def _is_caregiver_reported_worsening(
+    message: str,
+    role: str,
+    intent: str,
+    route: str,
+) -> bool:
+    caregiver_context = (
+        role == "caregiver"
+        or intent == "caregiver_guidance"
+        or route == "caregiver_guidance"
+    )
+    if not caregiver_context:
+        return False
+    worsening = _has_any(
+        message,
+        (
+            "差咗",
+            "變差",
+            "变差",
+            "嚴重咗",
+            "严重了",
+            "越來越",
+            "越来越",
+            "多咗",
+            "more forgetful",
+            "getting worse",
+            "worsening",
+            "increasingly confused",
+        ),
+    )
+    concern_context = _has_any(
+        message,
+        (
+            "記性",
+            "记性",
+            "記憶",
+            "记忆",
+            "唔記得",
+            "忘記",
+            "忘记",
+            "混亂",
+            "混乱",
+            "方向",
+            "走失",
+            "藥",
+            "药",
+            "memory",
+            "forgetful",
+            "confused",
+            "orientation",
+            "wandering",
+            "medication",
+        ),
+    )
+    return worsening and concern_context
+
+
+def _has_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
 
 
 def _events_path() -> Path:
@@ -294,6 +508,7 @@ def _sanitize_event_field(key: str, value: Any) -> Any:
             "medication_status",
             "check_version",
             "risk_flag",
+            "follow_up_status",
         }:
             return text[:64] if _looks_like_structured_token(text) else _DROP
         return _DROP

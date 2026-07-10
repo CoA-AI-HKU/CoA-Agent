@@ -20,7 +20,8 @@ class InsightGenerator:
                 {
                     "level": "info",
                     "icon": "⚠️",
-                    "message": "最近沒有互動記錄。",
+                    "code": "no_recent_events",
+                    "message": "最近沒有互動記錄。這不是診斷。",
                 }
             ]
 
@@ -28,9 +29,10 @@ class InsightGenerator:
         if any(event.get("event_type") == "wandering_safety" for event in seven_day_events):
             alerts.append(
                 {
-                    "level": "warning",
+                    "level": "urgent",
                     "icon": "⚠️",
-                    "message": "最近出現走失或安全相關訊號，建議立即跟進安全安排。",
+                    "code": "caregiver_followup_recommended",
+                    "message": "最近出現走失或安全相關訊號，建議照顧者立即跟進安全安排。這不是診斷。",
                 }
             )
         elif any(event.get("event_type") == "safety_alert" or event.get("route") == "safety" for event in events):
@@ -38,19 +40,21 @@ class InsightGenerator:
                 {
                     "level": "warning",
                     "icon": "⚠️",
-                    "message": "最近出現安全相關訊號，建議照顧者留意。",
+                    "code": "caregiver_followup_recommended",
+                    "message": "最近出現安全相關訊號，建議照顧者留意。這不是診斷。",
                 }
             )
         if any(
             event.get("event_type") == "medication_uncertainty"
             or str(event.get("medication_status") or "").strip().lower() == "unsure"
-            for event in events
+            for event in seven_day_events
         ):
             alerts.append(
                 {
                     "level": "warning",
                     "icon": "⚠️",
-                    "message": "最近有使用者表示不確定是否已服藥，建議照顧者協助核對。",
+                    "code": "caregiver_followup_recommended",
+                    "message": "最近有使用者表示不確定是否已服藥，建議照顧者協助核對。這不是診斷。",
                 }
             )
         concern_count = sum(
@@ -63,7 +67,17 @@ class InsightGenerator:
                 {
                     "level": "warning",
                     "icon": "⚠️",
+                    "code": "follow_up_suggested",
                     "message": "最近出現多次記憶或方向感相關擔憂。這不是診斷，但建議照顧者留意。",
+                }
+            )
+        if any(event.get("event_type") == "caregiver_reported_worsening" for event in seven_day_events):
+            alerts.append(
+                {
+                    "level": "warning",
+                    "icon": "⚠️",
+                    "code": "caregiver_followup_recommended",
+                    "message": "照顧者最近提到情況有所轉變，建議持續記錄並考慮向醫護人員查詢。這不是診斷。",
                 }
             )
 
@@ -75,6 +89,7 @@ class InsightGenerator:
                 {
                     "level": "warning",
                     "icon": "⚠️",
+                    "code": "follow_up_suggested",
                     "message": "最近的簡單認知小練習出現多項困難。這不是診斷，但建議照顧者留意，並考慮安排專業評估。",
                 }
             )
@@ -83,7 +98,8 @@ class InsightGenerator:
                 {
                     "level": "info",
                     "icon": "ℹ️",
-                    "message": "最近的簡單認知小練習顯示部分項目較困難，建議持續觀察。",
+                    "code": "follow_up_suggested",
+                    "message": "最近的簡單認知小練習顯示部分項目較困難，建議持續觀察。這不是診斷。",
                 }
             )
         return alerts

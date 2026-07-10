@@ -1,7 +1,7 @@
 # Manual Dementia Bot Route Tests
 
 Use these examples after startup to confirm Nanobot calls only the MCP tool
-`handle_dementia_user_message` and that Telegram/WhatsApp compatible routing is
+`handle_incoming_message` and that Telegram/WhatsApp compatible routing is
 unchanged.
 
 | # | Example question | Expected route | Expected behavior |
@@ -33,5 +33,5 @@ Startup logs should include the actual writable Chroma path, for example:
 ```text
 MCP_STARTUP chroma_dir=/home/aine/.cache/coa-agent/chroma/ling_rag
 MCP_STARTUP collection_name=ling_rag
-MCP_STARTUP enabled_tools=handle_dementia_user_message
+MCP_STARTUP enabled_tools=handle_incoming_message
 ```

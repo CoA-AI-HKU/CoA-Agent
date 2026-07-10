@@ -10,7 +10,7 @@ from src.agents.user_facing_formatter import (
     format_user_facing_answer,
     guard_user_facing_answer,
 )
-from src.metrics import infer_event_type, log_event
+from src.metrics import detect_concern_signal, infer_event_type, log_event
 from src.user.mode_info import format_mode_info
 from src.user.user_registry import (
     get_linked_user_id,
@@ -65,21 +65,23 @@ def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> 
     }
 
     try:
-        log_event(
-            event_user_id,
-            {
-                "user_id": event_user_id,
-                "sender_id": normalized_sender_id,
-                "channel": channel,
-                "role": role,
-                "intent": output.get("intent"),
-                "route": output.get("route"),
-                "safety_level": output.get("safety_level"),
-                "risk_level": output.get("risk_level"),
-                "rag_called": output.get("rag_called"),
-                "event_type": infer_event_type(output),
-            },
-        )
+        event = {
+            "user_id": event_user_id,
+            "sender_id": normalized_sender_id,
+            "channel": channel,
+            "role": role,
+            "intent": output.get("intent"),
+            "route": output.get("route"),
+            "safety_level": output.get("safety_level"),
+            "medication_status": output.get("medication_status"),
+            "rag_called": output.get("rag_called"),
+        }
+        concern_signal = detect_concern_signal(message, role, output)
+        if concern_signal:
+            event.update(concern_signal)
+        else:
+            event["event_type"] = infer_event_type(output)
+        log_event(event_user_id, event)
     except Exception as exc:  # pragma: no cover - defensive; user response must continue.
         debug["metrics_warning"] = str(exc)
 
