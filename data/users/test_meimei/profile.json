@@ -1,0 +1,28 @@
+﻿{
+    "user_id": "test_meimei",
+    "name": "眉眉婆婆",
+    "family": {
+        "daughter": "嘉欣",
+        "deceased_husband": "阿明",
+        "granddaughter": "Chloe",
+        "helper": "Maria",
+        "son": "嘉偉"
+    },
+    "likes": {
+        "music": ["粵曲", "徐小鳳", "羅文"],
+        "activities": ["睇舊相", "摺衣服", "散步", "睇TVB劇"],
+        "food": ["魚", "菜心", "蒸蛋"]
+    },
+    "medical": {
+        "medications": {
+            "Donepezil": "晚上",
+            "Amlodipine": "早上",
+            "Metformin": "早晚"
+        },
+        "conditions": ["高血壓", "輕微糖尿病", "膝關節退化"]
+    },
+    "safety_contact": {
+        "primary": "陳嘉欣 (女兒)",
+        "in_home": "Maria (外傭)"
+    }
+}
