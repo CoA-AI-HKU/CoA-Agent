@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="五步非診斷認知篩查練習" />
+    <meta name="theme-color" content="#f3f0e7" />
+    <title>認知篩查練習 | 小安</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="check-body">
+    <main class="check-shell">
+      <section class="check-card" aria-labelledby="screening-title">
+        <header>
+          <p class="eyebrow">Private · 5 questions</p>
+          <h1 id="screening-title">認知篩查練習</h1>
+          <p class="intro">完成五個簡短頁面。答案只會保留至重新整理或關閉頁面。</p>
+          <div class="disclaimer"><strong>這不是診斷。</strong> 本練習不能確認或排除任何疾病，也不會提供醫療分數。</div>
+        </header>
+
+        <div class="steps" aria-label="題目進度">
+          <div class="step active" data-screen-step="1">1</div>
+          <div class="step" data-screen-step="2">2</div>
+          <div class="step" data-screen-step="3">3</div>
+          <div class="step" data-screen-step="4">4</div>
+          <div class="step" data-screen-step="5">5</div>
+        </div>
+
+        <section class="question" data-screen-question="1">
+          <span class="question-number">問題 1 / 5</span>
+          <h2>請點擊時鐘，將時間調校至 10:05</h2>
+          <p>先點擊鐘面設定小時，再點擊一次設定分鐘。</p>
+
+          <div class="clock-stage">
+            <svg class="clock-face" id="clock-face" viewBox="0 0 100 100" role="img" aria-label="可調校的時鐘，目前時間 12:00">
+              <circle class="clock-ring" cx="50" cy="50" r="46"></circle>
+              <g id="clock-ticks" aria-hidden="true"></g>
+              <g aria-hidden="true">
+                <text x="50" y="13">12</text><text x="69" y="18">1</text><text x="82" y="31">2</text>
+                <text x="87" y="50">3</text><text x="82" y="69">4</text><text x="69" y="82">5</text>
+                <text x="50" y="87">6</text><text x="31" y="82">7</text><text x="18" y="69">8</text>
+                <text x="13" y="50">9</text><text x="18" y="31">10</text><text x="31" y="18">11</text>
+              </g>
+              <line class="clock-hand hour-hand" id="hour-hand" x1="50" y1="52" x2="50" y2="29"></line>
+              <line class="clock-hand minute-hand" id="minute-hand" x1="50" y1="53" x2="50" y2="17"></line>
+              <circle class="clock-center" cx="50" cy="50" r="3"></circle>
+              <circle class="clock-hit" id="clock-hit" cx="50" cy="50" r="46"></circle>
+            </svg>
+
+            <div class="clock-readout" id="clock-readout" aria-live="polite">12:00</div>
+            <p class="clock-instruction" id="clock-instruction">請點擊鐘面設定小時</p>
+            <div class="clock-controls" aria-label="時鐘設定模式">
+              <button class="clock-mode active" id="set-hour" type="button">設定小時</button>
+              <button class="clock-mode" id="set-minute" type="button">設定分鐘</button>
+              <button class="clock-mode" id="reset-clock" type="button">重設</button>
+            </div>
+          </div>
+
+          <p class="validation" id="clock-validation" aria-live="polite"></p>
+          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
+        </section>
+
+        <section class="question blank-screen" data-screen-question="2" hidden>
+          <span class="question-number">問題 2 / 5</span>
+          <div class="blank-space" aria-label="空白題目"></div>
+          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
+        </section>
+
+        <section class="question blank-screen" data-screen-question="3" hidden>
+          <span class="question-number">問題 3 / 5</span>
+          <div class="blank-space" aria-label="空白題目"></div>
+          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
+        </section>
+
+        <section class="question blank-screen" data-screen-question="4" hidden>
+          <span class="question-number">問題 4 / 5</span>
+          <div class="blank-space" aria-label="空白題目"></div>
+          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
+        </section>
+
+        <section class="question blank-screen" data-screen-question="5" hidden>
+          <span class="question-number">問題 5 / 5</span>
+          <div class="blank-space" aria-label="空白題目"></div>
+          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
+        </section>
+
+        <section class="result" id="screening-result" hidden aria-live="polite">
+          <div class="result-icon">✓</div>
+          <p class="eyebrow">Exercise complete</p>
+          <h2>已完成篩查練習</h2>
+          <p>你的答案沒有被儲存。</p>
+          <div class="result-note">這不是診斷。如你對記憶、方向感或日常生活能力有任何擔心，請向醫生或合資格醫護人員查詢。</div>
+        </section>
+      </section>
+    </main>
+    <script src="screening.js"></script>
+  </body>
+</html>

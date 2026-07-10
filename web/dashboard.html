@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="只顯示結構化照護訊號的私隱優先儀表板" />
+    <meta name="theme-color" content="#f3f0e7" />
+    <title>照顧者儀表板 | 小安</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="dashboard">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">安</div>
+          <div><strong>小安照護</strong><small>Care companion</small></div>
+        </div>
+
+        <label class="side-label" for="patient-select">已登記使用者</label>
+        <select class="user-select" id="patient-select" disabled>
+          <option>載入中…</option>
+        </select>
+
+        <div class="privacy">
+          <strong>私隱保護</strong><br />
+          本頁只讀取結構化事件，不顯示或儲存對話內容。
+        </div>
+      </aside>
+
+      <main class="dashboard-main">
+        <header class="heading">
+          <div>
+            <p class="eyebrow">Care overview · 7 days</p>
+            <h1>照護概覽</h1>
+            <p id="patient-heading">正在載入使用者資料…</p>
+          </div>
+          <span class="date" id="today"></span>
+        </header>
+
+        <section class="metrics" aria-label="近期指標">
+          <article class="metric"><span>互動記錄</span><strong data-metric="interactions">—</strong><small>過去 7 日</small></article>
+          <article class="metric"><span>服藥確認</span><strong data-metric="medicationConfirmations">—</strong><small>只計已確認</small></article>
+          <article class="metric"><span>關注訊號</span><strong data-metric="concernSignals">—</strong><small>非診斷指標</small></article>
+          <article class="metric"><span>活動請求</span><strong data-metric="activityRequests">—</strong><small>過去 7 日</small></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="chart">
+            <div class="card-head"><h2>每日互動</h2><span>最近七天</span></div>
+            <div class="bars" id="activity-bars" aria-label="七日互動柱狀圖"></div>
+          </article>
+          <article class="alerts">
+            <h2>照顧者提示</h2>
+            <div class="alert-list" id="alert-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+    <script src="dashboard.js"></script>
+  </body>
+</html>

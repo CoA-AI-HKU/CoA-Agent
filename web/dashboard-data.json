@@ -1,0 +1,19 @@
+{
+  "users": [
+    {
+      "userId": "patient_001",
+      "displayName": "Patient Test User",
+      "interactions": 12,
+      "medicationConfirmations": 5,
+      "concernSignals": 2,
+      "activityRequests": 3,
+      "weeklyActivity": [1, 3, 2, 0, 4, 1, 1],
+      "alerts": [
+        {
+          "level": "warning",
+          "message": "最近有需要持續留意的結構化訊號。這不是診斷。"
+        }
+      ]
+    }
+  ]
+}
