@@ -61,3 +61,8 @@ Connect to whatsapp: --needs virtual number
 ### 7/8 
 - cut dementia bias and assumption
 - fixed issue of over-citations of sources
+- added dementia screening module
+
+### 7/9
+- Integrated dashboard module 
+- Fixed over-citation issue
