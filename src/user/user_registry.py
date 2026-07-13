@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
+import string
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +25,135 @@ def normalize_sender_id(sender_id: str | None) -> str:
 
 def _registry_path() -> Path:
     return Path(os.getenv("USER_REGISTRY_PATH") or DEFAULT_REGISTRY_PATH)
+
+
+def save_user_registry(registry: dict[str, Any]) -> None:
+    path = _registry_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(json.dumps(registry, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
+
+
+def register_account(sender_id: str, role: str, display_name: str = "") -> dict[str, Any]:
+    normalized = normalize_sender_id(sender_id)
+    normalized_role = str(role or "").strip().lower()
+    if normalized_role not in {"user", "caregiver"}:
+        raise ValueError("role must be user or caregiver")
+    registry = load_user_registry()
+    users = registry.setdefault("users", {})
+    existing = users.get(normalized, {}) if isinstance(users.get(normalized), dict) else {}
+    record = dict(existing)
+    record["role"] = normalized_role
+    if display_name.strip():
+        record["display_name"] = display_name.strip()[:80]
+    if normalized_role == "user":
+        record["user_id"] = str(record.get("user_id") or f"patient_{secrets.token_hex(6)}")
+        record.pop("linked_user_id", None)
+        record.pop("linked_user_ids", None)
+    users[normalized] = record
+    save_user_registry(registry)
+    return record
+
+
+def create_pairing_code(sender_id: str, lifetime_minutes: int = 15) -> str:
+    record = get_user_record(sender_id)
+    if str(record.get("role") or "").lower() != "user":
+        raise ValueError("only a registered patient can create a pairing code")
+    alphabet = string.ascii_uppercase.replace("I", "").replace("O", "") + "23456789"
+    registry = load_user_registry()
+    codes = registry.setdefault("pairing_codes", {})
+    code = "".join(secrets.choice(alphabet) for _ in range(8))
+    codes[code] = {
+        "user_id": str(record.get("user_id") or normalize_sender_id(sender_id)),
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=lifetime_minutes)).isoformat(),
+    }
+    save_user_registry(registry)
+    return code
+
+
+def redeem_pairing_code(sender_id: str, code: str, *, replace_existing: bool = False) -> str:
+    caregiver_id = normalize_sender_id(sender_id)
+    record = get_user_record(caregiver_id)
+    if str(record.get("role") or "").lower() != "caregiver":
+        raise ValueError("register as a caregiver before linking")
+    normalized_code = str(code or "").strip().upper()
+    registry = load_user_registry()
+    codes = registry.get("pairing_codes", {})
+    entry = codes.get(normalized_code) if isinstance(codes, dict) else None
+    if not isinstance(entry, dict):
+        raise ValueError("invalid or expired pairing code")
+    try:
+        expires_at = datetime.fromisoformat(str(entry.get("expires_at") or "").replace("Z", "+00:00"))
+    except ValueError as exc:
+        raise ValueError("invalid or expired pairing code") from exc
+    if expires_at.astimezone(timezone.utc) < datetime.now(timezone.utc):
+        codes.pop(normalized_code, None)
+        save_user_registry(registry)
+        raise ValueError("invalid or expired pairing code")
+    user_id = str(entry.get("user_id") or "").strip()
+    users = registry.setdefault("users", {})
+    caregiver = dict(users.get(caregiver_id) or {})
+    linked = [] if replace_existing else (caregiver.get("linked_user_ids") or caregiver.get("linked_user_id") or [])
+    linked_ids = list(linked) if isinstance(linked, list) else [linked]
+    if user_id and user_id not in linked_ids:
+        linked_ids.append(user_id)
+    caregiver["linked_user_ids"] = [value for value in linked_ids if value]
+    caregiver["linked_user_id"] = caregiver["linked_user_ids"][0]
+    users[caregiver_id] = caregiver
+    codes.pop(normalized_code, None)
+    save_user_registry(registry)
+    return user_id
+
+
+def unlink_caregiver(sender_id: str, user_id: str | None = None) -> int:
+    caregiver_id = normalize_sender_id(sender_id)
+    registry = load_user_registry()
+    users = registry.get("users", {})
+    record = dict(users.get(caregiver_id) or {}) if isinstance(users, dict) else {}
+    if str(record.get("role") or "").lower() != "caregiver":
+        raise ValueError("only a registered caregiver can unlink a patient")
+    existing = record.get("linked_user_ids") or record.get("linked_user_id") or []
+    linked_ids = list(existing) if isinstance(existing, list) else [existing]
+    target = str(user_id or "").strip()
+    retained = [value for value in linked_ids if value and (not target or str(value) != target)]
+    removed = len([value for value in linked_ids if value]) - len(retained)
+    record["linked_user_ids"] = retained
+    if retained:
+        record["linked_user_id"] = retained[0]
+    else:
+        record.pop("linked_user_id", None)
+    users[caregiver_id] = record
+    save_user_registry(registry)
+    return removed
+
+
+def revoke_caregivers_for_user(sender_id: str) -> int:
+    patient = get_user_record(sender_id)
+    if str(patient.get("role") or "").lower() != "user":
+        raise ValueError("only a registered patient can revoke caregiver access")
+    user_id = str(patient.get("user_id") or normalize_sender_id(sender_id))
+    registry = load_user_registry()
+    users = registry.get("users", {})
+    changed = 0
+    for caregiver_id, raw_record in list(users.items()):
+        if not isinstance(raw_record, dict) or str(raw_record.get("role") or "").lower() != "caregiver":
+            continue
+        existing = raw_record.get("linked_user_ids") or raw_record.get("linked_user_id") or []
+        linked_ids = list(existing) if isinstance(existing, list) else [existing]
+        if user_id not in linked_ids:
+            continue
+        retained = [value for value in linked_ids if value != user_id]
+        updated = dict(raw_record)
+        updated["linked_user_ids"] = retained
+        if retained:
+            updated["linked_user_id"] = retained[0]
+        else:
+            updated.pop("linked_user_id", None)
+        users[caregiver_id] = updated
+        changed += 1
+    save_user_registry(registry)
+    return changed
 
 
 def load_user_registry() -> dict[str, Any]:

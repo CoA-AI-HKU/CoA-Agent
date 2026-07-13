@@ -100,6 +100,11 @@ tool below.
 For every Telegram or WhatsApp user message, call the MCP tool
 `handle_incoming_message` before answering, passing the platform sender ID when
 available. This router separates caregiver mode from user support mode.
+This includes the CoA internal commands beginning with `\`. Do not answer or
+consume these commands inside Nanobot; pass the complete message unchanged to
+`handle_incoming_message`. CoA uses the backslash form (for example,
+`\accountcommands`) so these private RAG commands are not confused with
+Telegram's native slash-command handling.
 This call is internal. Never tell the user to call
 `handle_incoming_message`, `handle_dementia_user_message`, or any other tool,
 and never mention MCP tools, function names,

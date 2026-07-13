@@ -19,3 +19,5 @@ python -m src.web_server
 Then open `http://localhost:8080/dashboard.html` or `http://localhost:8080/screening.html`.
 
 The standalone screening exercise keeps answers in page memory only and clears them when the page is closed or refreshed. It does not expose the caregiver dashboard, store typed answers, or identify the participant. The exercise is not a diagnosis.
+
+Account registration, caregiver pairing, chat-history controls, and screening invitations are handled privately inside the Telegram/WhatsApp RAG conversation. They are deliberately not part of the website or caregiver dashboard. See the project-level `README.md` for those features.

@@ -169,6 +169,37 @@ def load_events(
     return events[-limit:] if limit is not None else events
 
 
+def clear_user_events(user_id: str) -> int:
+    """Delete one user's structured event history without touching other users."""
+    target = str(user_id or "").strip()
+    if not target:
+        raise ValueError("user_id is required")
+    path = _events_path()
+    if not path.exists():
+        return 0
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return 0
+    retained: list[str] = []
+    removed = 0
+    for line in lines:
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            retained.append(line)
+            continue
+        if isinstance(event, dict) and str(event.get("user_id") or "") == target:
+            removed += 1
+        else:
+            retained.append(line)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    content = "\n".join(retained)
+    temporary.write_text(f"{content}\n" if content else "", encoding="utf-8")
+    temporary.replace(path)
+    return removed
+
+
 def log_event(user_id: str, event: dict[str, Any]) -> None:
     path = _events_path()
     path.parent.mkdir(parents=True, exist_ok=True)
