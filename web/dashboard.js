@@ -1,85 +1,58 @@
-const select = document.querySelector("#patient-select");
-const heading = document.querySelector("#patient-heading");
-const bars = document.querySelector("#activity-bars");
-const alertList = document.querySelector("#alert-list");
-const dayLabels = ["一", "二", "三", "四", "五", "六", "日"];
-let users = [];
-const fallbackUsers = [
-  {
-    userId: "patient_001",
-    displayName: "Patient Test User",
-    interactions: 12,
-    medicationConfirmations: 5,
-    concernSignals: 2,
-    activityRequests: 3,
-    weeklyActivity: [1, 3, 2, 0, 4, 1, 1],
-    alerts: [{ level: "warning", message: "最近有需要持續留意的結構化訊號。這不是診斷。" }],
-  },
-];
+const select = document.querySelector('#patient-select');
+const daysSelect = document.querySelector('#days-select');
+const statusEl = document.querySelector('#dashboard-status');
+let accounts = [];
 
-document.querySelector("#today").textContent = new Intl.DateTimeFormat("zh-Hant", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-}).format(new Date());
-
-function renderUser(userId) {
-  const user = users.find((item) => item.userId === userId);
-  if (!user) return;
-
-  heading.textContent = `${user.displayName} 的近期記錄`;
-  for (const key of ["interactions", "medicationConfirmations", "concernSignals", "activityRequests"]) {
-    const element = document.querySelector(`[data-metric="${key}"]`);
-    element.textContent = String(user[key] ?? 0);
-  }
-
-  bars.replaceChildren();
-  user.weeklyActivity.forEach((value, index) => {
-    const column = document.createElement("div");
-    column.className = "bar-wrap";
-    const bar = document.createElement("div");
-    bar.className = "bar";
-    bar.style.height = `${Math.max(8, value * 24)}px`;
-    bar.setAttribute("aria-label", `${dayLabels[index]}：${value} 次互動`);
-    const label = document.createElement("span");
-    label.textContent = dayLabels[index];
-    column.append(bar, label);
-    bars.append(column);
+function valueOrNA(value, suffix = '') { return value == null ? 'N/A' : `${Number(value).toFixed(1)}${suffix}`; }
+function renderBars(container, items, valueKey, labelKey) {
+  container.replaceChildren();
+  if (!items?.length) { container.textContent = window.t('noData'); return; }
+  const max = Math.max(1, ...items.map(x => Number(x[valueKey]) || 0));
+  items.forEach(item => {
+    const wrap = document.createElement('div'); wrap.className = 'bar-wrap';
+    const bar = document.createElement('div'); bar.className = 'bar'; bar.style.height = `${Math.max(8, (Number(item[valueKey]) || 0) / max * 150)}px`;
+    bar.title = `${item[labelKey]}: ${item[valueKey]}`;
+    const label = document.createElement('span'); label.textContent = String(item[labelKey]).slice(5);
+    wrap.append(bar, label); container.append(wrap);
   });
-
-  alertList.replaceChildren();
-  const alerts = user.alerts.length
-    ? user.alerts
-    : [{ level: "empty", message: "暫時沒有需要跟進的結構化訊號。" }];
-  for (const alert of alerts) {
-    const item = document.createElement("div");
-    item.className = `alert ${alert.level}`;
-    item.textContent = alert.message;
-    alertList.append(item);
-  }
 }
-
-function loadUsers(data) {
-  users = Array.isArray(data.users) && data.users.length ? data.users : fallbackUsers;
-  select.replaceChildren();
-  for (const user of users) {
-    const option = document.createElement("option");
-    option.value = user.userId;
-    option.textContent = `${user.displayName} · ${user.userId}`;
-    select.append(option);
-  }
-  select.disabled = false;
-  renderUser(users[0].userId);
+function renderHistory(id, items) {
+  const normalized = (items || []).map(x => ({...x, label: String(x.timestamp || '').slice(0, 10)}));
+  renderBars(document.querySelector(id), normalized, 'score', 'label');
 }
-
-fetch("dashboard-data.json")
-  .then((response) => {
-    if (!response.ok) throw new Error("Dashboard data unavailable");
-    return response.json();
-  })
-  .then(loadUsers)
-  .catch(() => {
-    loadUsers({ users: fallbackUsers });
-  });
-
-select.addEventListener("change", () => renderUser(select.value));
+function render(payload) {
+  const m = payload.metrics; const s = payload.summary;
+  const account = accounts.find(x => x.user_id === payload.user_id);
+  document.querySelector('#patient-heading').textContent = `${account?.display_name || payload.user_id} · ${payload.days} ${window.t('days')}`;
+  document.querySelector('[data-metric="avg_mood"]').textContent = valueOrNA(m.avg_mood);
+  document.querySelector('[data-metric="avg_cognitive"]').textContent = valueOrNA(m.avg_cognitive);
+  document.querySelector('[data-metric="total_interactions"]').textContent = m.total_interactions ?? 0;
+  document.querySelector('[data-metric="medication_adherence"]').textContent = m.medication_adherence == null ? 'N/A' : `${Math.round(m.medication_adherence * 100)}%`;
+  document.querySelectorAll('[data-summary]').forEach(el => { el.textContent = s[el.dataset.summary] || ''; });
+  renderBars(document.querySelector('#activity-bars'), payload.daily_activity.slice(-7), 'count', 'date');
+  renderHistory('#mood-chart', m.mood_history); renderHistory('#cognitive-chart', m.cognitive_history);
+  const alerts = document.querySelector('#alert-list'); alerts.replaceChildren();
+  (payload.alerts || []).forEach(a => { const el = document.createElement('div'); el.className = `alert ${a.level}`; el.textContent = a.message; alerts.append(el); });
+  const intents = document.querySelector('#intent-list'); intents.replaceChildren();
+  Object.entries(m.intent_counts || {}).sort((a,b) => b[1]-a[1]).forEach(([name,count]) => { const el=document.createElement('div'); el.innerHTML=`<span>${name.replaceAll('_',' ')}</span><strong>${count}</strong>`; intents.append(el); });
+  if (!intents.children.length) intents.textContent = window.t('noData');
+  statusEl.textContent = '';
+}
+async function loadDashboard() {
+  if (!select.value) return;
+  statusEl.textContent = window.t('loading');
+  try { const r = await fetch(`/api/dashboard?user_id=${encodeURIComponent(select.value)}&days=${daysSelect.value}`); if(!r.ok) throw new Error(); render(await r.json()); }
+  catch { statusEl.textContent = window.t('serverRequired'); }
+}
+async function start() {
+  document.querySelector('#today').textContent = new Intl.DateTimeFormat(window.currentLang(), {dateStyle:'long'}).format(new Date());
+  try {
+    const r = await fetch('/api/users'); if(!r.ok) throw new Error(); accounts = (await r.json()).users || [];
+    select.replaceChildren(); accounts.forEach(u => { const o=document.createElement('option'); o.value=u.user_id; o.textContent=`${u.display_name} · ${u.user_id}`; select.append(o); });
+    if (!accounts.length) { statusEl.textContent=window.t('noUsers'); return; }
+    select.disabled=false; loadDashboard();
+  } catch { statusEl.textContent=window.t('serverRequired'); }
+}
+select.addEventListener('change', loadDashboard); daysSelect.addEventListener('change', loadDashboard);
+window.addEventListener('languagechange', () => { window.applyTranslations(); document.querySelector('#today').textContent = new Intl.DateTimeFormat(window.currentLang(), {dateStyle:'long'}).format(new Date()); if(select.value) loadDashboard(); });
+start();

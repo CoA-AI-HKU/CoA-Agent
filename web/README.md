@@ -1,22 +1,21 @@
 # CoA Care Web
 
-This folder is a standalone static website. It does not use Astro, Python, Streamlit, a package manager, or a build step.
+The caregiver dashboard is served by the project's lightweight Python server. Its API uses the same `MetricsCollector`, `InsightGenerator`, registered accounts, and privacy-filtered event log as the Streamlit dashboard and Telegram/WhatsApp message router.
+
+The caregiver dashboard and potential-patient screening experience are deliberately separate. Neither page links to or passes identity into the other.
 
 Pages:
 
-- `dashboard.html` — caregiver dashboard
-- `check.html` — five-step non-diagnostic cognitive concern check-in
-- `screening.html` — five-step screening exercise with an interactive clock on question 1
+- `dashboard.html` — live caregiver dashboard
+- `screening.html` — instructed five-step exercise with an interactive 10:50 clock task
+- `check.html` — compatibility redirect to the screening exercise
 
-There is intentionally no home page and no link between the two pages.
-
-You can double-click either HTML file to open it directly. To load edited values from `dashboard-data.json`, serve the folder with any basic static server:
+Start the integrated server from the project root:
 
 ```powershell
-cd web
-python -m http.server 8080
+python -m src.web_server
 ```
 
-Then open `http://localhost:8080/dashboard.html` or `http://localhost:8080/check.html`.
+Then open `http://localhost:8080/dashboard.html` or `http://localhost:8080/screening.html`.
 
-The questionnaire stores answers only in page memory and clears them when the page is closed or refreshed. It is not a diagnosis and does not produce a medical score.
+The standalone screening exercise keeps answers in page memory only and clears them when the page is closed or refreshed. It does not expose the caregiver dashboard, store typed answers, or identify the participant. The exercise is not a diagnosis.

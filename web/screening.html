@@ -1,98 +1,16 @@
-<!doctype html>
-<html lang="zh-Hant">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="五步非診斷認知篩查練習" />
-    <meta name="theme-color" content="#f3f0e7" />
-    <title>認知篩查練習 | 小安</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body class="check-body">
-    <main class="check-shell">
-      <section class="check-card" aria-labelledby="screening-title">
-        <header>
-          <p class="eyebrow">Private · 5 questions</p>
-          <h1 id="screening-title">認知篩查練習</h1>
-          <p class="intro">完成五個簡短頁面。答案只會保留至重新整理或關閉頁面。</p>
-          <div class="disclaimer"><strong>這不是診斷。</strong> 本練習不能確認或排除任何疾病，也不會提供醫療分數。</div>
-        </header>
-
-        <div class="steps" aria-label="題目進度">
-          <div class="step active" data-screen-step="1">1</div>
-          <div class="step" data-screen-step="2">2</div>
-          <div class="step" data-screen-step="3">3</div>
-          <div class="step" data-screen-step="4">4</div>
-          <div class="step" data-screen-step="5">5</div>
-        </div>
-
-        <section class="question" data-screen-question="1">
-          <span class="question-number">問題 1 / 5</span>
-          <h2>請點擊時鐘，將時間調校至 10:05</h2>
-          <p>先點擊鐘面設定小時，再點擊一次設定分鐘。</p>
-
-          <div class="clock-stage">
-            <svg class="clock-face" id="clock-face" viewBox="0 0 100 100" role="img" aria-label="可調校的時鐘，目前時間 12:00">
-              <circle class="clock-ring" cx="50" cy="50" r="46"></circle>
-              <g id="clock-ticks" aria-hidden="true"></g>
-              <g aria-hidden="true">
-                <text x="50" y="13">12</text><text x="69" y="18">1</text><text x="82" y="31">2</text>
-                <text x="87" y="50">3</text><text x="82" y="69">4</text><text x="69" y="82">5</text>
-                <text x="50" y="87">6</text><text x="31" y="82">7</text><text x="18" y="69">8</text>
-                <text x="13" y="50">9</text><text x="18" y="31">10</text><text x="31" y="18">11</text>
-              </g>
-              <line class="clock-hand hour-hand" id="hour-hand" x1="50" y1="52" x2="50" y2="29"></line>
-              <line class="clock-hand minute-hand" id="minute-hand" x1="50" y1="53" x2="50" y2="17"></line>
-              <circle class="clock-center" cx="50" cy="50" r="3"></circle>
-              <circle class="clock-hit" id="clock-hit" cx="50" cy="50" r="46"></circle>
-            </svg>
-
-            <div class="clock-readout" id="clock-readout" aria-live="polite">12:00</div>
-            <p class="clock-instruction" id="clock-instruction">請點擊鐘面設定小時</p>
-            <div class="clock-controls" aria-label="時鐘設定模式">
-              <button class="clock-mode active" id="set-hour" type="button">設定小時</button>
-              <button class="clock-mode" id="set-minute" type="button">設定分鐘</button>
-              <button class="clock-mode" id="reset-clock" type="button">重設</button>
-            </div>
-          </div>
-
-          <p class="validation" id="clock-validation" aria-live="polite"></p>
-          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
-        </section>
-
-        <section class="question blank-screen" data-screen-question="2" hidden>
-          <span class="question-number">問題 2 / 5</span>
-          <div class="blank-space" aria-label="空白題目"></div>
-          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
-        </section>
-
-        <section class="question blank-screen" data-screen-question="3" hidden>
-          <span class="question-number">問題 3 / 5</span>
-          <div class="blank-space" aria-label="空白題目"></div>
-          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
-        </section>
-
-        <section class="question blank-screen" data-screen-question="4" hidden>
-          <span class="question-number">問題 4 / 5</span>
-          <div class="blank-space" aria-label="空白題目"></div>
-          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
-        </section>
-
-        <section class="question blank-screen" data-screen-question="5" hidden>
-          <span class="question-number">問題 5 / 5</span>
-          <div class="blank-space" aria-label="空白題目"></div>
-          <div class="actions"><button class="next" type="button" data-screen-next>Next question 下一題</button></div>
-        </section>
-
-        <section class="result" id="screening-result" hidden aria-live="polite">
-          <div class="result-icon">✓</div>
-          <p class="eyebrow">Exercise complete</p>
-          <h2>已完成篩查練習</h2>
-          <p>你的答案沒有被儲存。</p>
-          <div class="result-note">這不是診斷。如你對記憶、方向感或日常生活能力有任何擔心，請向醫生或合資格醫護人員查詢。</div>
-        </section>
-      </section>
-    </main>
-    <script src="screening.js"></script>
-  </body>
-</html>
+<!doctype html><html lang="zh-Hant"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Cognitive exercise | CoA</title><link rel="stylesheet" href="styles.css"></head>
+<body class="check-body">
+<div class="language-switcher"><button data-lang="zh-Hant">繁體</button><button data-lang="zh-Hans">简体</button><button data-lang="en">EN</button></div>
+<main class="check-shell"><section class="check-card">
+  <header><p class="eyebrow" data-i18n="privateExercise">私人 · 五項練習</p><h1 data-i18n="screeningTitle">簡短認知練習</h1><div class="disclaimer" data-i18n="disclaimer">這不是診斷，也不能確認或排除任何疾病。</div></header>
+  <div class="steps"><div class="step active">i</div><div class="step">1</div><div class="step">2</div><div class="step">3</div><div class="step">4</div><div class="step">5</div></div>
+  <section class="question" data-page="instructions"><h2 data-i18n="howTitle">如何完成練習</h2><ol class="instruction-list"><li data-i18n="how1">每頁只需完成畫面上的一項任務。</li><li data-i18n="how2">完成後按「確認」提交；答案不必正確也可以繼續。</li><li data-i18n="how3">時鐘題可直接點擊鐘面，先設定小時，再設定分鐘。</li><li data-i18n="how4">請盡量自行完成，途中可隨時休息。</li></ol><div class="actions"><button class="next" data-next type="button" data-i18n="start">開始</button></div></section>
+  <section class="question" data-page="clock" hidden><span class="question-number">1 / 5</span><h2 data-i18n="clockTitle">請把時鐘設定為 10:50</h2><p data-i18n="clockHelp">點擊鐘面設定小時，然後再點擊設定分鐘。</p>
+    <div class="clock-stage"><svg class="clock-face" id="clock-face" viewBox="0 0 100 100" aria-label="Interactive clock"><circle class="clock-ring" cx="50" cy="50" r="46"/><g id="clock-ticks"></g><g id="clock-numbers"></g><line class="clock-hand hour-hand" id="hour-hand" x1="50" y1="52" x2="50" y2="29"/><line class="clock-hand minute-hand" id="minute-hand" x1="50" y1="53" x2="50" y2="17"/><circle class="clock-center" cx="50" cy="50" r="3"/><circle class="clock-hit" id="clock-hit" cx="50" cy="50" r="46"/></svg><div class="clock-readout" id="clock-readout">12:00</div><p id="clock-instruction"></p><div class="clock-controls"><button class="clock-mode active" id="set-hour" type="button" data-i18n="setHour">設定小時</button><button class="clock-mode" id="set-minute" type="button" data-i18n="setMinute">設定分鐘</button><button class="clock-mode" id="reset-clock" type="button" data-i18n="reset">重設</button></div></div>
+    <p class="validation"></p><div class="actions"><button class="next confirm" data-confirm type="button" data-i18n="confirm">確認</button></div></section>
+  <section class="question" data-page="recall" hidden><span class="question-number">2 / 5</span><h2 data-i18n="recallTitle">記住三個詞語</h2><div class="word-cards"><strong data-i18n="word1">蘋果</strong><strong data-i18n="word2">椅子</strong><strong data-i18n="word3">河流</strong></div><p data-i18n="recallHelp">讀完並嘗試記住後，勾選完成。</p><label class="completion"><input type="checkbox" data-complete><span data-i18n="doneReading">我已讀完並嘗試記住</span></label><p class="validation"></p><div class="actions"><button class="next confirm" data-confirm type="button" data-i18n="confirm">確認</button></div></section>
+  <section class="question" data-page="attention" hidden><span class="question-number">3 / 5</span><h2 data-i18n="attentionTitle">倒轉輸入數字 7 2 9</h2><p data-i18n="attentionHelp">請在方格輸入倒轉後的數字。</p><input class="task-input" inputmode="numeric" maxlength="3" data-answer="927"><p class="validation"></p><div class="actions"><button class="next confirm" data-confirm type="button" data-i18n="confirm">確認</button></div></section>
+  <section class="question" data-page="language" hidden><span class="question-number">4 / 5</span><h2 data-i18n="languageTitle">寫出一種動物</h2><p data-i18n="languageHelp">任何動物名稱都可以。</p><input class="task-input" data-any-text><p class="validation"></p><div class="actions"><button class="next confirm" data-confirm type="button" data-i18n="confirm">確認</button></div></section>
+  <section class="question" data-page="delayed" hidden><span class="question-number">5 / 5</span><h2 data-i18n="delayedTitle">輸入剛才記住的三個詞語</h2><p data-i18n="delayedHelp">不確定也沒關係，輸入你記得的內容即可。</p><textarea class="task-input" rows="3" data-any-text></textarea><p class="validation"></p><div class="actions"><button class="next confirm" data-confirm type="button" data-i18n="confirmFinish">確認並完成</button></div></section>
+  <section class="result" id="screening-result" hidden><div class="result-icon">✓</div><h2 data-i18n="completeTitle">練習已完成</h2><p data-i18n="completeText">謝謝你完成所有任務。表現好壞不等同診斷。</p><div class="result-note" data-i18n="completeNote">如你對記憶或日常生活有持續擔心，請向合資格醫護人員查詢。</div></section>
+</section></main><script src="i18n.js"></script><script src="screening.js"></script></body></html>
