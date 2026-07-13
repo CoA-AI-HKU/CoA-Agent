@@ -7,6 +7,8 @@ from src.metrics import clear_user_events, load_events, log_event
 from src.user.screening_offer import consent_reply, should_offer_screening
 from src.user.user_registry import (
     create_pairing_code,
+    create_dashboard_access_token,
+    get_dashboard_patient_accounts,
     get_linked_user_id,
     redeem_pairing_code,
     register_account,
@@ -89,3 +91,15 @@ def test_incomplete_internal_command_does_not_fall_through_to_rag(tmp_path, monk
     result = handle_incoming_message("/register@CoAHelperBot", "new_user", "telegram")
     assert result["intent"] == "account_help"
     assert result["rag_called"] is False
+
+
+def test_caregiver_dashboard_token_only_exposes_paired_patient(tmp_path, monkeypatch):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    first = register_account("patient_1", "user", "First")
+    register_account("patient_2", "user", "Second")
+    register_account("caregiver", "caregiver", "Caregiver")
+    redeem_pairing_code("caregiver", create_pairing_code("patient_1"))
+
+    token = create_dashboard_access_token("caregiver")
+    assert get_dashboard_patient_accounts(token) == [{"user_id": first["user_id"], "display_name": "First"}]
+    assert get_dashboard_patient_accounts("wrong-token") == []

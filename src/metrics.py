@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 
-DEFAULT_EVENTS_PATH = Path.home() / ".nanobot" / "data" / "private" / "events.jsonl"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_EVENTS_PATH = PROJECT_ROOT / "data" / "private" / "events.jsonl"
+LEGACY_EVENTS_PATH = Path.home() / ".nanobot" / "data" / "private" / "events.jsonl"
 ALLOWED_EVENT_FIELDS = {
     "timestamp",
     "user_id",
@@ -450,7 +453,16 @@ def _has_any(text: str, terms: tuple[str, ...]) -> bool:
 
 
 def _events_path() -> Path:
-    return Path(os.getenv("EVENTS_LOG_PATH") or DEFAULT_EVENTS_PATH)
+    configured = os.getenv("EVENTS_LOG_PATH")
+    if configured:
+        return Path(configured)
+    if not DEFAULT_EVENTS_PATH.exists() and LEGACY_EVENTS_PATH.exists():
+        DEFAULT_EVENTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            shutil.copy2(LEGACY_EVENTS_PATH, DEFAULT_EVENTS_PATH)
+        except OSError:
+            pass
+    return DEFAULT_EVENTS_PATH
 
 
 def _average(values: Any) -> float | None:

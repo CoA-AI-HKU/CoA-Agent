@@ -27,6 +27,7 @@ These commands are handled inside the RAG message router when sent through Teleg
 \relink CODE
 \unlink
 \unlink PATIENT_ID
+\dashboard
 \clearhistory
 \clearhistory confirm
 \accountcommands
@@ -40,6 +41,7 @@ These commands are handled inside the RAG message router when sent through Teleg
 - `\relink CODE` replaces the caregiver's existing patient link.
 - `\unlink` removes all links for a caregiver, or revokes every caregiver when sent by a patient.
 - `\unlink PATIENT_ID` removes one patient from a caregiver account.
+- `\dashboard` gives a paired caregiver a private dashboard link that expires after 30 minutes. The dashboard only exposes patients paired to that caregiver.
 - `\clearhistory` displays a deletion warning.
 - `\clearhistory confirm` lets a patient delete their structured chat-derived event history. Caregivers cannot delete patient history.
 - `\accountcommands` displays the internal command list in chat.
@@ -55,6 +57,9 @@ The patient generates and shares the pairing code; there is no permanent shared 
 - Repeated memory-related concerns on separate days can trigger a gentle offer of the standalone screening exercise. Its link is sent only after the patient agrees.
 - The standalone screening supports Traditional Chinese, Simplified Chinese, and English, with instructions, confirmation for every task, and a clickable 10:50 clock task.
 - The caregiver dashboard remains separate from screening and reads privacy-filtered structured Telegram/WhatsApp events without displaying raw conversation text.
+- Telegram/WhatsApp routing and the caregiver dashboard use the shared project event store at `data/private/events.jsonl` by default. This avoids Windows and WSL reading different home-directory event files.
+- On first use, an existing legacy Nanobot event file under `~/.nanobot/data/private/events.jsonl` is copied into the shared project store when the shared file does not exist.
+- Citation handling classifies evidence as internal, external, or unknown. Internal Markdown files, local paths, database IDs, and Chroma references remain available in result/debug metadata but are never shown in normal Telegram/WhatsApp answers. Approved public website citations can be displayed compactly when source display is enabled.
 
 ## Usage
 

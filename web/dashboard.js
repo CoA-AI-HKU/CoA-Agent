@@ -2,6 +2,12 @@ const select = document.querySelector('#patient-select');
 const daysSelect = document.querySelector('#days-select');
 const statusEl = document.querySelector('#dashboard-status');
 let accounts = [];
+const urlToken = new URLSearchParams(location.search).get('access_token');
+if (urlToken) {
+  sessionStorage.setItem('coa-dashboard-token', urlToken);
+  history.replaceState({}, '', location.pathname);
+}
+const accessToken = sessionStorage.getItem('coa-dashboard-token') || '';
 
 function valueOrNA(value, suffix = '') { return value == null ? 'N/A' : `${Number(value).toFixed(1)}${suffix}`; }
 function renderBars(container, items, valueKey, labelKey) {
@@ -41,17 +47,18 @@ function render(payload) {
 async function loadDashboard() {
   if (!select.value) return;
   statusEl.textContent = window.t('loading');
-  try { const r = await fetch(`/api/dashboard?user_id=${encodeURIComponent(select.value)}&days=${daysSelect.value}`); if(!r.ok) throw new Error(); render(await r.json()); }
+  try { const r = await fetch(`/api/dashboard?user_id=${encodeURIComponent(select.value)}&days=${daysSelect.value}&access_token=${encodeURIComponent(accessToken)}`); if(!r.ok) throw new Error(); render(await r.json()); }
   catch { statusEl.textContent = window.t('serverRequired'); }
 }
 async function start() {
   document.querySelector('#today').textContent = new Intl.DateTimeFormat(window.currentLang(), {dateStyle:'long'}).format(new Date());
+  if (!accessToken) { statusEl.textContent = window.t('dashboardAccessRequired'); return; }
   try {
-    const r = await fetch('/api/users'); if(!r.ok) throw new Error(); accounts = (await r.json()).users || [];
+    const r = await fetch(`/api/users?access_token=${encodeURIComponent(accessToken)}`); if(!r.ok) throw new Error(); accounts = (await r.json()).users || [];
     select.replaceChildren(); accounts.forEach(u => { const o=document.createElement('option'); o.value=u.user_id; o.textContent=`${u.display_name} · ${u.user_id}`; select.append(o); });
     if (!accounts.length) { statusEl.textContent=window.t('noUsers'); return; }
     select.disabled=false; loadDashboard();
-  } catch { statusEl.textContent=window.t('serverRequired'); }
+  } catch { statusEl.textContent=window.t('dashboardAccessRequired'); }
 }
 select.addEventListener('change', loadDashboard); daysSelect.addEventListener('change', loadDashboard);
 window.addEventListener('languagechange', () => { window.applyTranslations(); document.querySelector('#today').textContent = new Intl.DateTimeFormat(window.currentLang(), {dateStyle:'long'}).format(new Date()); if(select.value) loadDashboard(); });

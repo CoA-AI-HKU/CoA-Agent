@@ -4,6 +4,13 @@ import logging
 import re
 from typing import Any
 
+from src.citations import (
+    classify_source,
+    clean_internal_citations_from_text,
+    filter_user_facing_sources,
+    source_display_value,
+)
+
 
 SOURCE_INTRO_PATTERNS = [
     r"根據資料庫(?:嘅資料|的資料)?[，,:：\s…]*",
@@ -135,7 +142,15 @@ ADDITIONAL_BLOCKED_TERMS = [
 ]
 
 
-def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False) -> dict[str, Any]:
+def format_user_facing_answer(
+    result: dict[str, Any],
+    show_sources: bool = False,
+    *,
+    allow_external_citations: bool = True,
+    allow_internal_citations: bool = False,
+    show_unknown_sources: bool = False,
+    debug_mode: bool = False,
+) -> dict[str, Any]:
     """Return a messaging-friendly result while preserving internal evidence fields."""
     output = dict(result)
     answer = str(output.get("answer") or "").strip()
@@ -150,6 +165,17 @@ def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False
     else:
         effective_safety_level = output.get("safety_level")
 
+    all_sources = list(output.get("sources") or [])
+    internal_sources = [source for source in all_sources if classify_source(source) == "internal"]
+    external_sources = [source for source in all_sources if classify_source(source) == "external"]
+    user_facing_sources = filter_user_facing_sources(
+        all_sources,
+        allow_external_citations=allow_external_citations,
+        allow_internal_citations=allow_internal_citations and debug_mode,
+        show_unknown_sources=show_unknown_sources,
+    )
+
+    answer = clean_internal_citations_from_text(answer)
     answer = _clean_source_text(answer)
     answer = _compact_answer(answer, effective_safety_level)
     if not show_sources and _contains_user_visible_source_text(answer):
@@ -157,15 +183,25 @@ def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False
         answer = _clean_source_text(answer)
         answer = _compact_answer(answer, effective_safety_level)
 
+    if show_sources and user_facing_sources:
+        labels = list(dict.fromkeys(filter(None, (source_display_value(source) for source in user_facing_sources))))[:3]
+        if labels:
+            reference_label = "References" if str(output.get("answer_language") or "").startswith("en") else "參考"
+            answer = f"{answer}\n\n{reference_label}：{' / '.join(labels)}"
+
     output["answer"] = answer
     output["answer_with_sources"] = answer
     output["user_facing_answer"] = answer
     output["show_sources"] = show_sources
     output["source_count"] = len(output.get("sources") or [])
     output["sources_available"] = bool(output.get("sources"))
+    output["user_facing_sources"] = user_facing_sources
+    output["internal_sources_hidden"] = bool(internal_sources) and not (allow_internal_citations and debug_mode)
     debug["user_facing_formatter_applied"] = True
     debug["show_sources"] = show_sources
     debug["source_count"] = output["source_count"]
+    debug["internal_sources"] = internal_sources
+    debug["external_sources"] = external_sources
     debug["source_text_removed"] = debug["raw_answer_before_formatting"] != answer
     output["debug"] = debug
     return output
@@ -203,7 +239,7 @@ def answer_has_user_visible_source_text(answer: str) -> bool:
 
 
 def _clean_source_text(answer: str) -> str:
-    cleaned = answer.strip()
+    cleaned = clean_internal_citations_from_text(answer).strip()
     cleaned = _remove_cited_quote_blocks(cleaned)
     for pattern in SOURCE_INTRO_PATTERNS:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)

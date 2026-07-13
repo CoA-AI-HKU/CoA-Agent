@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from src.agents.caregiver_manager_agent import handle_caregiver_manager_message
@@ -14,6 +15,7 @@ from src.metrics import clear_user_events, detect_concern_signal, infer_event_ty
 from src.user.mode_info import format_mode_info
 from src.user.user_registry import (
     create_pairing_code,
+    create_dashboard_access_token,
     get_linked_user_id,
     get_registry_user_id,
     get_user_record,
@@ -162,8 +164,16 @@ def _handle_account_command(message: str, sender_id: str, role: str) -> dict[str
             return _simple_result(f"Your retained chat-derived history has been cleared ({removed} event(s) deleted).", "account_history")
         if command == "\\accountcommands":
             return _simple_result(
-                "Account commands:\n\\register patient NAME\n\\register caregiver NAME\n\\paircode\n\\link CODE\n\\relink CODE\n\\unlink [PATIENT_ID]\n\\clearhistory confirm",
+                "Account commands:\n\\register patient NAME\n\\register caregiver NAME\n\\paircode\n\\link CODE\n\\relink CODE\n\\unlink [PATIENT_ID]\n\\dashboard\n\\clearhistory confirm",
                 "account_help",
+            )
+        if command == "\\dashboard":
+            token = create_dashboard_access_token(sender_id)
+            base_url = os.getenv("DASHBOARD_PUBLIC_URL", "http://localhost:8080/dashboard.html")
+            separator = "&" if "?" in base_url else "?"
+            return _simple_result(
+                f"Open your caregiver dashboard here: {base_url}{separator}access_token={token}\n\nThis private link expires in 30 minutes.",
+                "account_dashboard",
             )
     except ValueError as exc:
         return _simple_result(str(exc), "account_pairing")

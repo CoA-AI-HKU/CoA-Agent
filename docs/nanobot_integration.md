@@ -14,7 +14,7 @@ Example `~/.nanobot/config.json` fragment:
         "command": "bash",
         "args": [
           "-lc",
-          "cd '/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent' && source .venv/bin/activate && python -m src.dementia_rag_mcp_server"
+          "cd '/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent' && source .venv/bin/activate && python -m src.dementia_rag_mcp_server"
         ],
         "enabledTools": [
           "handle_incoming_message"
@@ -27,7 +27,10 @@ Example `~/.nanobot/config.json` fragment:
           "EMBEDDINGS_OFFLINE": "true",
           "RAG_RETRIEVE_TOP_K": "8",
           "RAG_ANSWER_TOP_K": "2",
-          "RAG_ANSWER_LANGUAGE": "auto"
+          "RAG_ANSWER_LANGUAGE": "auto",
+          "EVENTS_LOG_PATH": "/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent/data/private/events.jsonl",
+          "USER_REGISTRY_PATH": "/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent/data/private/user_registry.json",
+          "DASHBOARD_PUBLIC_URL": "https://your-host.example/dashboard.html"
         }
       }
     }
@@ -52,8 +55,8 @@ If your Nanobot config launches the server by absolute file path instead, this a
     "mcpServers": {
       "dementia_rag": {
         "command": "python3",
-        "args": ["/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent/src/dementia_rag_mcp_server.py"],
-        "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/coarag/CoA-Agent",
+        "args": ["/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent/src/dementia_rag_mcp_server.py"],
+        "cwd": "/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent",
         "enabledTools": [
           "handle_incoming_message"
         ],
@@ -64,7 +67,10 @@ If your Nanobot config launches the server by absolute file path instead, this a
           "EMBEDDER_PROVIDER": "dummy",
           "EMBEDDINGS_OFFLINE": "true",
           "RAG_ANSWER_TOP_K": "2",
-          "RAG_ANSWER_LANGUAGE": "auto"
+          "RAG_ANSWER_LANGUAGE": "auto",
+          "EVENTS_LOG_PATH": "/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent/data/private/events.jsonl",
+          "USER_REGISTRY_PATH": "/mnt/d/Documents/College/Internships/LCK Yung/CoA-Agent/data/private/user_registry.json",
+          "DASHBOARD_PUBLIC_URL": "https://your-host.example/dashboard.html"
         }
       }
     }
