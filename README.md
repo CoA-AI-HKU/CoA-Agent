@@ -13,12 +13,48 @@ A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistan
   - `agents/` — coordinator, safety, RAG evidence, memory/routine, and response simplifier modules
   - `orchestrator.py` — main shared entrypoint used by CLI, MCP, Nanobot, Telegram, and WhatsApp
 
+
+## Telegram and WhatsApp internal commands
+
+These commands are handled inside the RAG message router when sent through Telegram or WhatsApp. They intentionally begin with a backslash so Telegram does not treat them as native bot-menu commands. Nanobot must pass the complete message and platform sender ID to `handle_incoming_message`.
+
+```text
+\register patient DISPLAY_NAME
+\register caregiver DISPLAY_NAME
+\whichroleami
+\paircode
+\link CODE
+\relink CODE
+\unlink
+\unlink PATIENT_ID
+\clearhistory
+\clearhistory confirm
+\accountcommands
+```
+
+- `\register patient DISPLAY_NAME` registers the sender as a patient account.
+- `\register caregiver DISPLAY_NAME` registers the sender as a caregiver account.
+- `\whichroleami` shows the sender's registered role and linkage state.
+- `\paircode` creates a patient-owned, one-time caregiver invitation code that expires after 15 minutes.
+- `\link CODE` adds the patient to a caregiver account.
+- `\relink CODE` replaces the caregiver's existing patient link.
+- `\unlink` removes all links for a caregiver, or revokes every caregiver when sent by a patient.
+- `\unlink PATIENT_ID` removes one patient from a caregiver account.
+- `\clearhistory` displays a deletion warning.
+- `\clearhistory confirm` lets a patient delete their structured chat-derived event history. Caregivers cannot delete patient history.
+- `\accountcommands` displays the internal command list in chat.
+
+The patient generates and shares the pairing code; there is no permanent shared password. Pairing and history management are private chat functions and are not exposed in the screening website or caregiver dashboard. Forward-slash variants remain parser-compatible for existing integrations but are not the documented interface.
+
 ## Current status
 
 - Local dementia/MCI RAG pipeline is working from Markdown files under `data/mds/`.
 - PDF and website ingestion write Markdown into `data/mds/`, then the CLI/runtime chunks and embeds that corpus into Chroma.
-- `handle_dementia_user_message(message, user_id=None)` is the main compatible tool for Nanobot, Telegram, WhatsApp, and local client use.
+- `handle_incoming_message(message, sender_id, channel)` is the production entrypoint for Nanobot, Telegram, and WhatsApp. It handles role separation, internal commands, account pairing, structured event logging, and normal RAG routing.
 - Safety and medication/diagnosis boundaries run before normal RAG and do not provide medication advice.
+- Repeated memory-related concerns on separate days can trigger a gentle offer of the standalone screening exercise. Its link is sent only after the patient agrees.
+- The standalone screening supports Traditional Chinese, Simplified Chinese, and English, with instructions, confirmation for every task, and a clickable 10:50 clock task.
+- The caregiver dashboard remains separate from screening and reads privacy-filtered structured Telegram/WhatsApp events without displaying raw conversation text.
 
 ## Usage
 
@@ -209,5 +245,5 @@ See `docs/nanobot_integration.md` for:
 See `docs/rag_debugging.md` for retrieval/answer debugging commands and the lightweight eval:
 
 ```bash
-python -m tests.run_rag_eval
+python tests/evaluation/run_rag_eval.py
 ```

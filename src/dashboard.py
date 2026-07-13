@@ -17,6 +17,10 @@ sys.path.insert(0, str(Path.home() / ".nanobot"))
 
 from metrics import MetricsCollector
 from insights import InsightGenerator
+try:
+    from user.user_registry import get_registered_patient_accounts
+except ImportError:  # pragma: no cover - package import path.
+    from src.user.user_registry import get_registered_patient_accounts
 
 # ============================================================
 # Page Config
@@ -48,12 +52,19 @@ with st.sidebar:
     st.image("https://placehold.co/60x60/4A90D9/white?text=小安", width=60)
     st.title("👤 患者選擇")
     
-    # Get users
-    users = collector.get_all_users()
-    if users:
-        selected_user = st.selectbox("選擇患者", users)
+    registered_accounts = get_registered_patient_accounts()
+    if registered_accounts:
+        account_labels = {
+            account["user_id"]: f'{account["display_name"]} ({account["user_id"]})'
+            for account in registered_accounts
+        }
+        selected_user = st.selectbox(
+            "選擇患者",
+            list(account_labels),
+            format_func=account_labels.__getitem__,
+        )
     else:
-        st.info("📭 暫無數據。請先與小安對話收集數據。")
+        st.info("📭 暫無已登記的使用者帳戶。")
         selected_user = None
     
     st.divider()
@@ -194,7 +205,9 @@ if alerts:
         icon = alert.get("icon", "ℹ️")
         message = alert.get("message", "")
         
-        if level == "warning":
+        if level == "urgent":
+            st.error(f"{icon} {message}")
+        elif level == "warning":
             st.warning(f"{icon} {message}")
         elif level == "success":
             st.success(f"{icon} {message}")

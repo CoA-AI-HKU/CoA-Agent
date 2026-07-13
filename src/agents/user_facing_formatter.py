@@ -175,13 +175,16 @@ def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[
     """Replace any user-visible implementation leakage with a safe fallback."""
     output = dict(result)
     answer = str(output.get("answer") or "")
-    if not _contains_internal_leakage(answer):
+    has_internal_leakage = _contains_internal_leakage(answer)
+    has_unsupported_assumption = _contains_unsupported_dementia_assumption(answer, message)
+    if not has_internal_leakage and not has_unsupported_assumption:
         return output
 
     debug = dict(output.get("debug", {}))
     if "raw_answer_before_output_guard" not in debug:
         debug["raw_answer_before_output_guard"] = answer
     debug["output_guard_applied"] = True
+    debug["unsupported_dementia_assumption_removed"] = has_unsupported_assumption
     output["answer"] = _fallback_for_route(output, message)
     output["answer_with_sources"] = output["answer"]
     output["user_facing_answer"] = output["answer"]
@@ -349,6 +352,25 @@ def _contains_internal_leakage(answer: str) -> bool:
     return False
 
 
+def _contains_unsupported_dementia_assumption(answer: str, message: str) -> bool:
+    user_text = str(message or "").lower()
+    answer_text = str(answer or "").lower()
+    explicit_user_terms = (
+        "腦退化",
+        "脑退化",
+        "認知障礙",
+        "认知障碍",
+        "失智",
+        "dementia",
+        "alzheimer",
+        "mci",
+    )
+    answer_terms = explicit_user_terms
+    user_explicitly_raised_topic = any(term in user_text for term in explicit_user_terms)
+    answer_introduces_topic = any(term in answer_text for term in answer_terms)
+    return answer_introduces_topic and not user_explicitly_raised_topic
+
+
 def _fallback_for_route(result: dict[str, Any], message: str) -> str:
     safety_level = str(result.get("safety_level") or "")
     route = str(result.get("route") or "")
@@ -416,6 +438,8 @@ def _looks_like_self_memory_concern(text: str) -> bool:
 
 
 def _medication_safety_answer_if_needed(answer: str, result: dict[str, Any], debug: dict[str, Any]) -> str:
+    if str(result.get("medication_status") or "").strip().lower() == "taken":
+        return ""
     message = str(debug.get("user_message") or debug.get("message") or "")
     combined = f"{message}\n{answer}".lower()
     medication_terms = [

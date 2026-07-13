@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Caregiver Dashboard | CoA</title><link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="language-switcher" aria-label="Language">
+    <button data-lang="zh-Hant">繁體</button><button data-lang="zh-Hans">简体</button><button data-lang="en">EN</button>
+  </div>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="brand"><div class="brand-mark">安</div><div><strong data-i18n="brand">小安照護</strong><small>Care companion</small></div></div>
+      <label class="side-label" for="patient-select" data-i18n="patient">選擇使用者</label>
+      <select class="user-select" id="patient-select" disabled><option data-i18n="loading">載入中…</option></select>
+      <label class="side-label range-label" for="days-select" data-i18n="range">時間範圍</label>
+      <select class="user-select" id="days-select"><option value="7">7</option><option value="14">14</option><option value="30">30</option><option value="60">60</option></select>
+      <div class="privacy"><strong data-i18n="privacyTitle">私隱保護</strong><br><span data-i18n="privacy">分析 Telegram／WhatsApp 產生的結構化記錄，不顯示或儲存對話內容。</span></div>
+    </aside>
+    <main class="dashboard-main">
+      <header class="heading"><div><p class="eyebrow" data-i18n="overview">Care overview</p><h1 data-i18n="title">照顧者洞察儀表板</h1><p id="patient-heading"></p></div><span class="date" id="today"></span></header>
+      <p class="status" id="dashboard-status" aria-live="polite"></p>
+      <section class="metrics">
+        <article class="metric"><span data-i18n="mood">情緒狀態</span><strong data-metric="avg_mood">—</strong><small data-summary="mood_status"></small></article>
+        <article class="metric"><span data-i18n="cognitive">認知表現</span><strong data-metric="avg_cognitive">—</strong><small data-summary="cognitive_status"></small></article>
+        <article class="metric"><span data-i18n="interactions">互動次數</span><strong data-metric="total_interactions">—</strong><small data-i18n="selectedRange">所選時段</small></article>
+        <article class="metric"><span data-i18n="adherence">用藥依從</span><strong data-metric="medication_adherence">—</strong><small data-summary="medication_status"></small></article>
+      </section>
+      <section class="dashboard-grid">
+        <article class="chart"><div class="card-head"><h2 data-i18n="activity">每日互動</h2><span data-i18n="structured">結構化事件</span></div><div class="bars" id="activity-bars"></div></article>
+        <article class="alerts"><h2 data-i18n="alerts">提醒與建議</h2><div class="alert-list" id="alert-list"></div></article>
+        <article class="chart"><div class="card-head"><h2 data-i18n="moodTrend">情緒趨勢</h2><span>1–5</span></div><div class="simple-chart" id="mood-chart"></div></article>
+        <article class="chart"><div class="card-head"><h2 data-i18n="cognitiveHistory">認知練習表現</h2></div><div class="simple-chart" id="cognitive-chart"></div></article>
+        <article class="chart wide"><div class="card-head"><h2 data-i18n="intentAnalysis">互動分析</h2></div><div class="intent-list" id="intent-list"></div></article>
+      </section>
+    </main>
+  </div>
+  <script src="i18n.js"></script><script src="dashboard.js"></script>
+</body></html>

@@ -54,7 +54,7 @@ MCP server, because stdout is used for MCP protocol messages.
 Run the lightweight eval set:
 
 ```bash
-python -m tests.run_rag_eval
+python tests/evaluation/run_rag_eval.py
 ```
 
 The eval checks expected sources, key answer terms, concise answers, fallback

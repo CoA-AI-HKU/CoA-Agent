@@ -7,7 +7,7 @@ from typing import Any
 
 try:
     from .dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from .users.message_router import handle_incoming_message
+    from .user.message_router import handle_incoming_message
     from .orchestrator import handle_dementia_user_message
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 except ImportError:
@@ -15,7 +15,7 @@ except ImportError:
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
     from src.dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
-    from src.users.message_router import handle_incoming_message
+    from src.user.message_router import handle_incoming_message
     from src.orchestrator import handle_dementia_user_message
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
 
@@ -41,7 +41,25 @@ def handle_dementia_user_message_tool(
 
 def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str = "") -> dict[str, Any]:
     """Production router tool: separate caregiver mode from user support mode by sender ID."""
-    return handle_incoming_message(message, sender_id, channel)
+    result = handle_incoming_message(message, sender_id, channel)
+    return _public_message_result(result)
+
+
+def _public_message_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Expose only fields safe for a downstream Telegram/WhatsApp reply."""
+    public_fields = (
+        "answer",
+        "route",
+        "intent",
+        "safety_level",
+        "role",
+        "user_id",
+        "linked_user_id",
+        "found",
+        "rag_called",
+        "medication_status",
+    )
+    return {field: result[field] for field in public_fields if field in result}
 
 
 try:
@@ -53,7 +71,6 @@ except ImportError:
 mcp = FastMCP("dementia_rag") if FastMCP is not None else None
 if mcp is not None:
     mcp.tool(name="handle_incoming_message")(handle_incoming_message_tool)
-    mcp.tool(name="handle_dementia_user_message")(handle_dementia_user_message_tool)
 
 
 def main() -> None:
@@ -62,7 +79,7 @@ def main() -> None:
     config = build_default_rag_config("mcp")
     print(f"MCP_STARTUP chroma_dir={config['chroma_dir']}", file=sys.stderr)
     print(f"MCP_STARTUP collection_name={config['collection_name']}", file=sys.stderr)
-    print("MCP_STARTUP enabled_tools=handle_incoming_message,handle_dementia_user_message", file=sys.stderr)
+    print("MCP_STARTUP enabled_tools=handle_incoming_message", file=sys.stderr)
     mcp.run()
 
 

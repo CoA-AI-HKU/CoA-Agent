@@ -83,7 +83,7 @@ def _demo_events() -> list[dict[str, Any]]:
         _event(
             now - timedelta(days=2, hours=2),
             "patient_001",
-            event_type="safety_alert",
+            event_type="wandering_safety",
             intent="safety",
             route="safety",
             risk_level="urgent_boundary",
@@ -91,6 +91,94 @@ def _demo_events() -> list[dict[str, Any]]:
             event_value=True,
             rag_called=False,
         )
+    )
+    events.extend(
+        [
+            _event(
+                now - timedelta(days=6),
+                "patient_001",
+                event_type="cognitive_check_completed",
+                intent="cognitive_activity",
+                route="activity",
+                check_version="simple_cognitive_check_v1",
+                total_score=14,
+                max_score=15,
+                risk_flag="normal",
+                domain_scores={
+                    "orientation": 2,
+                    "immediate_recall": 3,
+                    "attention": 3,
+                    "category_fluency": 3,
+                    "delayed_recall": 2,
+                    "safety_reasoning": 1,
+                },
+                raw_answers_saved=False,
+            ),
+            _event(
+                now - timedelta(days=3),
+                "patient_001",
+                event_type="cognitive_check_completed",
+                intent="cognitive_activity",
+                route="activity",
+                check_version="simple_cognitive_check_v1",
+                total_score=10,
+                max_score=15,
+                risk_flag="monitor",
+                domain_scores={
+                    "orientation": 1,
+                    "immediate_recall": 3,
+                    "attention": 2,
+                    "category_fluency": 2,
+                    "delayed_recall": 1,
+                    "safety_reasoning": 1,
+                },
+                raw_answers_saved=False,
+            ),
+            _event(
+                now - timedelta(days=1),
+                "patient_001",
+                event_type="cognitive_check_completed",
+                intent="cognitive_activity",
+                route="activity",
+                check_version="simple_cognitive_check_v1",
+                total_score=7,
+                max_score=15,
+                risk_flag="follow_up_suggested",
+                domain_scores={
+                    "orientation": 1,
+                    "immediate_recall": 2,
+                    "attention": 1,
+                    "category_fluency": 1,
+                    "delayed_recall": 1,
+                    "safety_reasoning": 1,
+                },
+                raw_answers_saved=False,
+            ),
+            _event(
+                now - timedelta(hours=8),
+                "patient_001",
+                event_type="memory_concern",
+                intent="self_memory_concern",
+                route="memory_concern",
+                event_value=True,
+            ),
+            _event(
+                now - timedelta(days=1, hours=8),
+                "patient_001",
+                event_type="memory_concern",
+                intent="self_memory_concern",
+                route="memory_concern",
+                event_value=True,
+            ),
+            _event(
+                now - timedelta(days=2, hours=8),
+                "patient_001",
+                event_type="orientation_confusion",
+                intent="cognitive_concern_screening",
+                route="screening",
+                event_value=True,
+            ),
+        ]
     )
 
     for day_offset in range(5):
@@ -152,6 +240,12 @@ def _event(
     score: int | float | None = None,
     exercise_type: str | None = None,
     medication_status: str | None = None,
+    check_version: str | None = None,
+    total_score: int | float | None = None,
+    max_score: int | float | None = None,
+    risk_flag: str | None = None,
+    domain_scores: dict[str, int | float] | None = None,
+    raw_answers_saved: bool | None = None,
 ) -> dict[str, Any]:
     event: dict[str, Any] = {
         "timestamp": timestamp.isoformat(),
@@ -173,6 +267,18 @@ def _event(
         event["exercise_type"] = exercise_type
     if medication_status:
         event["medication_status"] = medication_status
+    if check_version:
+        event["check_version"] = check_version
+    if total_score is not None:
+        event["total_score"] = total_score
+    if max_score is not None:
+        event["max_score"] = max_score
+    if risk_flag:
+        event["risk_flag"] = risk_flag
+    if domain_scores is not None:
+        event["domain_scores"] = domain_scores
+    if raw_answers_saved is not None:
+        event["raw_answers_saved"] = raw_answers_saved
     return event
 
 
