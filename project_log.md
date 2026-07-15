@@ -341,7 +341,21 @@ Testing process:
 Diagnosis and resolution:
 
 - Identified that the error was caused by an incorrect `EMBEDDING_DIM` setting in the `.env` file, which did not match the actual dimension of the `all-minilm` embedding model (384, not 1024).
-- Fixed the mismatch by setting `EMBEDDING_DIM=384` in the `.env` file, deleting the `rag_storage` folder, and restarting the server.
+- Fixed the mismatch by setting `EMBEDDING_DIM=384` in the `.env` file, deleting the `rag_storage` folder, and restarting the server.# 1. 进入你的主项目目录
+cd C:\Users\user\Desktop\CoA-Agent-main\CoA-Agent
+
+# 2. 查看更改状态
+git status
+
+# 3. 添加前端文件夹和项目日志（及任何其他修改的文件）
+git add frontend/
+git add project_log.md
+
+# 4. 提交更改
+git commit -m "Add frontend landing page with privacy consent, QR code, and update project log"
+
+# 5. 推送到 GitHub
+git push
 - Re-initiated document processing. The fix is expected to allow LightRAG to complete indexing successfully.
 
 Current status:
