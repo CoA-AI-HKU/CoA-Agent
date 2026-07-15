@@ -296,3 +296,63 @@ Documentation rule for future revisions:
 
 - Record every material code, behavior, safety, privacy, test, or structure change in `project_log.md`.
 - Update `README.md` in the same revision whenever commands, file structure, entrypoints, architecture, capabilities, or setup instructions change.
+
+---
+
+## Frontend, Privacy & QR Code Access (2026-07-15)
+
+Completed the design and implementation of a public-facing frontend entry point for the CoA-Agent system.
+
+Implemented:
+
+- A clean, mobile-friendly landing page (`index.html`) with a prominent "Open in Telegram" button, designed to be accessible for caregivers and older adults.
+- A bilingual (English + Traditional Chinese) Privacy Policy & Consent page (`privacy.html`), which includes:
+  - A clear medical disclaimer (CoA-Agent is not a medical device).
+  - Data collection disclosure (only anonymous metadata is stored; raw conversation text is never saved).
+  - User rights information (withdrawal, deletion, no profiling).
+  - A mandatory 3-checkbox consent form that must be fully ticked before the user can proceed.
+- JavaScript logic that disables the Telegram button until all three consent checkboxes are ticked, enforcing active user agreement.
+- A QR code generation pipeline that directs users to the landing page. The QR code is intended for physical distribution (posters, flyers) to provide a frictionless entry point for users.
+- A local development server setup using `python -m http.server` for testing the full user flow (scan QR → read policy → consent → jump to Telegram).
+
+Testing and validation:
+
+- Validated the complete user journey: scanning a QR code → opening the landing page → reading the privacy policy → ticking the consent boxes → clicking "Open in Telegram" → launching a chat with the `@Ako_saka_Bot` Telegram bot.
+- Successfully tested the QR code flow using a mobile phone connected via Personal Hotspot to bypass the HKU Wi-Fi AP Isolation issue.
+- Identified that HKU Wi-Fi client isolation blocks device-to-device communication, making local `localhost` testing inaccessible from mobile devices. This confirmed that a cloud-based public URL is required for production deployment.
+- Generated and tested both the landing page QR code and a direct Telegram QR code. Concluded that the landing page QR code is the correct choice for ethical user onboarding.
+
+Outcome:
+
+- The frontend now provides a complete, privacy-first, and ethics-compliant onboarding experience for new users.
+- The code has been committed to the project repository under `/frontend`.
+- The flow is ready for deployment to a cloud server (e.g., HKU Linux server) where the QR code will point to a permanent public URL, eliminating the local network dependency.
+
+## LightRAG Integration Testing & Evaluation (2026-07-15)
+
+Conducted further testing of the LightRAG framework (HKU Nanobot team's RAG solution) as a potential upgrade to the existing RAG pipeline.
+
+Testing process:
+
+- Restarted LightRAG from scratch with a clean environment and a fresh copy of the `World-Alzheimer-Report-2023.md` document.
+- Document processing began with chunking and knowledge graph extraction. Observed that LightRAG produces high-quality retrieval, but initial indexing is time-consuming, even for a moderately sized document.
+- Encountered an `Embedding dimension mismatch` error (`total elements 3840 cannot be evenly divided by expected dimension 1024`) during the storage flush phase, which halted processing.
+
+Diagnosis and resolution:
+
+- Identified that the error was caused by an incorrect `EMBEDDING_DIM` setting in the `.env` file, which did not match the actual dimension of the `all-minilm` embedding model (384, not 1024).
+- Fixed the mismatch by setting `EMBEDDING_DIM=384` in the `.env` file, deleting the `rag_storage` folder, and restarting the server.
+- Re-initiated document processing. The fix is expected to allow LightRAG to complete indexing successfully.
+
+Current status:
+
+- LightRAG shows strong retrieval potential but requires careful configuration and a fast indexing strategy for production use.
+- The indexing time remains a concern for document updates in real-world deployment.
+
+Open questions for future work:
+
+- How can indexing be optimized for production? Options include:
+  - Using a faster/cheaper LLM specifically for the entity extraction phase.
+  - Parallelizing the indexing process.
+  - Accepting the time-cost trade-off for improved retrieval accuracy.
+- The choice of embedding model and its dimension must be explicitly documented to avoid configuration errors.
