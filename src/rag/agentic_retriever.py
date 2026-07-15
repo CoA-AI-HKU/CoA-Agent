@@ -8,10 +8,15 @@ from src.meds.medicine_normalizer import normalize_medicine_mentions
 from .retrieval_tools import chunk_read, keyword_search, semantic_search
 
 
-NO_RETRIEVAL_ROUTES = {"unknown", "out_of_scope", "wandering_safety", "safety", "safety_sensitive"}
+NO_RETRIEVAL_ROUTES = {
+    "unknown", "out_of_scope", "wandering_safety", "safety", "safety_sensitive",
+    "caregiver_summary",
+}
 MEMORY_ROUTES = {"memory_concern", "self_memory_concern"}
 MEDICAL_ROUTES = {"medical_boundary", "medication_or_diagnosis"}
-KNOWLEDGE_ROUTES = {"dementia_qa", "knowledge_qa", "rag_qa", "caregiver_guidance"}
+KNOWLEDGE_ROUTES = {
+    "dementia_qa", "knowledge_qa", "rag_qa", "caregiver_guidance", "caregiver_support",
+}
 QUERY_STOPWORDS = {
     "about", "are", "can", "could", "does", "for", "from", "have", "how", "should",
     "that", "the", "this", "what", "when", "where", "which", "with", "would", "you", "your",

@@ -65,6 +65,10 @@ INTERNAL_LEAKAGE_TERMS = [
     "查資料庫",
     "Chroma",
     "chroma",
+    "vector",
+    "source:",
+    "sources:",
+    "/mnt/",
     ".md",
     "來源：",
     "根據資料庫",
@@ -137,9 +141,6 @@ ADDITIONAL_BLOCKED_TERMS = [
     "MCP",
     "RAG_DEBUG",
     "RAG",
-    "你有腦退化症",
-    "你嘅腦退化症",
-    "你的腦退化症",
     "作為腦退化症患者",
     "病情嘅一部分",
     "病情的一部分",
@@ -330,7 +331,11 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
         max_chars = 250
     else:
         max_chars = 120
-    normalized = _remove_excess_numbering(answer)
+    normalized = (
+        answer
+        if safety_level in {"screening_check_in", "caregiver_observation_guidance"}
+        else _remove_excess_numbering(answer)
+    )
     if len(normalized) <= max_chars:
         return normalized
 
@@ -384,6 +389,8 @@ def _contains_user_visible_source_text(answer: str) -> bool:
 
 def _contains_internal_leakage(answer: str) -> bool:
     lowered = answer.lower()
+    if re.search(r"(?<![a-z0-9])[a-z]:[\\/]", answer, flags=re.IGNORECASE):
+        return True
     for term in ADDITIONAL_BLOCKED_TERMS:
         haystack = lowered if term.isascii() else answer
         needle = term.lower() if term.isascii() else term
@@ -410,10 +417,19 @@ def _contains_unsupported_dementia_assumption(answer: str, message: str) -> bool
         "alzheimer",
         "mci",
     )
-    answer_terms = explicit_user_terms
     user_explicitly_raised_topic = any(term in user_text for term in explicit_user_terms)
-    answer_introduces_topic = any(term in answer_text for term in answer_terms)
-    return answer_introduces_topic and not user_explicitly_raised_topic
+    unsupported_assertions = (
+        "你有腦退化",
+        "你有脑退化",
+        "你的腦退化",
+        "你的脑退化",
+        "you have dementia",
+        "your dementia",
+        "腦退化症人士",
+        "脑退化症人士",
+        "person with dementia",
+    )
+    return any(term in answer_text for term in unsupported_assertions) and not user_explicitly_raised_topic
 
 
 def _fallback_for_route(result: dict[str, Any], message: str) -> str:
@@ -430,7 +446,7 @@ def _fallback_for_route(result: dict[str, Any], message: str) -> str:
         safety_level == "medical_boundary"
         or route == "medical_boundary"
         or intent == "medication_or_diagnosis"
-        or _looks_like_medication_question(combined)
+        or _looks_like_medication_question(message)
     ):
         return MEDICATION_FALLBACK
     return KNOWLEDGE_FAILURE_FALLBACK
@@ -485,7 +501,10 @@ def _looks_like_self_memory_concern(text: str) -> bool:
 def _medication_safety_answer_if_needed(answer: str, result: dict[str, Any], debug: dict[str, Any]) -> str:
     if str(result.get("medication_status") or "").strip().lower() == "taken":
         return ""
+    if result.get("safety_level") == "medical_boundary" or result.get("route") == "medical_boundary":
+        return ""
     message = str(debug.get("user_message") or debug.get("message") or "")
+    message_lower = message.lower()
     combined = f"{message}\n{answer}".lower()
     medication_terms = [
         "阿司匹林",
@@ -509,10 +528,14 @@ def _medication_safety_answer_if_needed(answer: str, result: dict[str, Any], deb
         "supplement",
     ]
     decision_terms = ["該吃", "應該", "可唔可以", "可以食", "吃嗎", "食唔食", "take", "should"]
-    if not any(term.lower() in combined for term in medication_terms):
-        return ""
-    if not any(term.lower() in combined for term in decision_terms) and result.get("safety_level") != "medical_boundary":
-        return ""
+    if result.get("safety_level") != "medical_boundary":
+        # Do not combine an unrelated "should" in the question with a generic
+        # mention of medication in a care or memory answer. Both signals must
+        # occur in the user's own message before this guard overrides routing.
+        if not any(term.lower() in message_lower for term in medication_terms):
+            return ""
+        if not any(term.lower() in message_lower for term in decision_terms):
+            return ""
 
     if any(term.lower() in combined for term in ["阿司匹林", "亞士匹靈", "阿士匹靈", "阿斯匹靈", "aspirin"]):
         return (

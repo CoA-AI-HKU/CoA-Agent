@@ -251,6 +251,7 @@ COGNITIVE_CONCERN_SCREENING_TERMS = [
 ]
 
 SELF_MEMORY_CONCERN_TERMS = [
+    "我最近覺得好多事情都記唔住",
     "我最近覺得很多事情記不住",
     "我最近覺得很多事情好像都有點記不住",
     "我成日唔記得嘢",
@@ -294,6 +295,8 @@ SELF_MEMORY_CONCERN_TERMS = [
 ]
 
 CAREGIVER_SUPPORT_TERMS = [
+    "我媽媽",
+    "我媽咪",
     "媽媽記唔住",
     "媽媽記不住",
     "爸爸記唔住",
@@ -478,18 +481,28 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched urgent or current safety-risk terms.",
         )
 
+    caregiver_matches = _matched_terms(normalized, CAREGIVER_SUPPORT_TERMS)
+    screening_matches = _matched_terms(normalized, COGNITIVE_CONCERN_SCREENING_TERMS)
+    if caregiver_matches and screening_matches:
+        return IntentResult(
+            intent="cognitive_concern_screening",
+            confidence=_confidence(0.92, len(screening_matches)),
+            matched_terms=screening_matches,
+            reason="Matched a caregiver-reported screening or diagnosis concern.",
+        )
+
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
-        (
-            "self_memory_concern",
-            SELF_MEMORY_CONCERN_TERMS,
-            0.94,
-            "Matched first-person memory concern terms.",
-        ),
         (
             "caregiver_support",
             CAREGIVER_SUPPORT_TERMS,
             0.9,
             "Matched caregiver observation or support terms.",
+        ),
+        (
+            "self_memory_concern",
+            SELF_MEMORY_CONCERN_TERMS,
+            0.94,
+            "Matched first-person memory concern terms.",
         ),
         (
             "cognitive_concern_screening",

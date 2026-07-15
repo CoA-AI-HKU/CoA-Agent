@@ -30,7 +30,7 @@ def get_source_label(answer_language: AnswerLanguage) -> str:
 ANSWER_PROMPT_TEMPLATE = """
 You are a careful RAG assistant for a multilingual dementia-support knowledge base.
 
-Answer the user's question using ONLY the provided dementia knowledge context.
+Answer the user's question using ONLY the provided context.
 
 Rules:
 - Use only the retrieved context.

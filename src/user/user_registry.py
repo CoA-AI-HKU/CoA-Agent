@@ -116,7 +116,7 @@ def unlink_caregiver(sender_id: str, user_id: str | None = None) -> int:
     existing = record.get("linked_user_ids") or record.get("linked_user_id") or []
     linked_ids = list(existing) if isinstance(existing, list) else [existing]
     target = str(user_id or "").strip()
-    retained = [value for value in linked_ids if value and (not target or str(value) != target)]
+    retained = [value for value in linked_ids if value and target and str(value) != target]
     removed = len([value for value in linked_ids if value]) - len(retained)
     record["linked_user_ids"] = retained
     if retained:

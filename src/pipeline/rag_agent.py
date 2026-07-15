@@ -29,7 +29,7 @@ RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CHROMA_DIR = "/home/aine/.cache/coa-agent/chroma/ling_rag"
+DEFAULT_CHROMA_DIR = (PROJECT_ROOT / "data" / "private" / "chroma" / "ling_rag").as_posix()
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
     "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 )
@@ -873,8 +873,6 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
         answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
     elif intent_result.intent == "self_memory_concern":
         answer = SELF_MEMORY_CONCERN_RESPONSE
-    elif intent_result.intent == "caregiver_support":
-        answer = CAREGIVER_GUIDANCE_RESPONSE
     else:
         return None
 

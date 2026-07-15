@@ -470,7 +470,7 @@ def test_caregiver_memory_risk_question_gets_guidance_not_screening(tmp_path, mo
     assert result["role"] == "caregiver"
     assert result["route"] == "caregiver_guidance"
     assert result["intent"] == "caregiver_guidance"
-    assert result["rag_called"] is False
+    assert result["rag_called"] is True
     assert result["debug"]["caregiver_manager"]["command"] != "screening"
     assert "screening_classification" not in result or result["debug"].get("screening_classification") is None
     assert "家人" in result["answer"]

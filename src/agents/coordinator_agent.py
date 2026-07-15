@@ -94,6 +94,17 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
     intent_result = classify_intent(message)
     user_role = infer_user_role(message)
 
+    if user_role == "self_with_cognitive_concern" and intent_result.intent == "self_memory_concern":
+        return AgentDecision(
+            route="rag_qa",
+            intent="knowledge_qa",
+            confidence=max(intent_result.confidence, 0.9),
+            matched_terms=intent_result.matched_terms,
+            reason="Explicit diagnosis context may use dementia support evidence.",
+            rag_required=True,
+            user_role=user_role,
+        )
+
     if is_medication_decision_question(message):
         return AgentDecision(
             route="medical_boundary",

@@ -1,17 +1,22 @@
-# Dementia Rag
-A RAG agent project for building a Retrieval-Augmented Generation (RAG) assistant.
+# CoA-Agent dementia support system
+
+A safety-aware, privacy-first dementia knowledge and daily-support assistant for general users, people with memory concerns, and caregivers. It combines deterministic routing, bounded agentic retrieval (A-RAG), medication and urgent-safety boundaries, structured event logging, and a caregiver dashboard.
 
 ## Project structure
 
-- `src/`
-  - `pipeline/document.py` — canonical `Document` data model
-  - `pdf_to_markdown.py` — PDF extraction and markdown conversion helpers
-  - `pipeline/chunker.py` — paragraph-aware chunking with overlap
-  - `pipeline/embedder.py` — pluggable embedding interface for local or OpenAI-compatible backends
-  - `intent_router.py` — deterministic intent recognizer for routing user messages
-  - `meds/medicine_normalizer.py` — local medicine alias matching
-  - `agents/` — coordinator, safety, RAG evidence, memory/routine, and response simplifier modules
-  - `orchestrator.py` — main shared entrypoint used by CLI, MCP, Nanobot, Telegram, and WhatsApp
+- `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
+- `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.
+- `src/agents/` — managers, safety, screening, RAG evidence, simplification, and user-facing formatting.
+- `src/rag/` — A-RAG retrieval tools, context tracking, route policy, evidence sufficiency, and internal traces.
+- `src/pipeline/` — documents, chunking, embeddings, vector storage, prompts, language selection, and shared RAG runtime.
+- `src/safety/` and `src/meds/` — medication boundaries, red flags, medicine aliases, and normalization.
+- `src/metrics.py`, `src/insights.py`, and `src/dashboard.py` — privacy-filtered events and caregiver analytics.
+- `src/ingest/` — PDF and website-to-Markdown ingestion.
+- `scripts/` — demo-data and local A-RAG regression evaluation runners.
+- `tests/` — unit, routing, safety, dashboard, leakage, A-RAG policy, evidence, trace, and end-to-end tests.
+- `docs/` — integration and debugging guides, including [A-RAG integration](docs/arag_integration.md).
+- `data/` — source documents, generated corpus, aliases, profiles, and private runtime state.
+- `web/` — caregiver dashboard and screening assets.
 
 
 ## Telegram and WhatsApp internal commands
@@ -51,6 +56,8 @@ The patient generates and shares the pairing code; there is no permanent shared 
 ## Current status
 
 - Local dementia/MCI RAG pipeline is working from Markdown files under `data/mds/`.
+- Dementia QA and caregiver care-advice routes use bounded A-RAG with keyword search, semantic search, selected chunk reads, and evidence sufficiency checks.
+- Safety, wandering, medication, unknown/out-of-scope, and caregiver-summary routes skip or strictly limit retrieval; safety boundaries control the final answer.
 - PDF and website ingestion write Markdown into `data/mds/`, then the CLI/runtime chunks and embeds that corpus into Chroma.
 - `handle_incoming_message(message, sender_id, channel)` is the production entrypoint for Nanobot, Telegram, and WhatsApp. It handles role separation, internal commands, account pairing, structured event logging, and normal RAG routing.
 - Safety and medication/diagnosis boundaries run before normal RAG and do not provide medication advice.
@@ -60,6 +67,16 @@ The patient generates and shares the pairing code; there is no permanent shared 
 - Telegram/WhatsApp routing and the caregiver dashboard use the shared project event store at `data/private/events.jsonl` by default. This avoids Windows and WSL reading different home-directory event files.
 - On first use, an existing legacy Nanobot event file under `~/.nanobot/data/private/events.jsonl` is copied into the shared project store when the shared file does not exist.
 - Citation handling classifies evidence as internal, external, or unknown. Internal Markdown files, local paths, database IDs, and Chroma references remain available in result/debug metadata but are never shown in normal Telegram/WhatsApp answers. Approved public website citations can be displayed compactly when source display is enabled.
+- Retrieval traces remain internal and record the route, tools, queries, chunks read, evidence decision, failure state, and whether RAG supported the answer.
+
+## Verification
+
+```bash
+python -m pytest -q
+python scripts/run_arag_regression_eval.py
+```
+
+The fixed evaluation uses an in-memory corpus and the normal Python message router. It does not require Telegram, WhatsApp, Nanobot, network access, or a persistent vector index.
 
 ## Usage
 
@@ -73,7 +90,7 @@ The patient generates and shares the pairing code; there is no permanent shared 
 Run:
 
 ```bash
-python -m src.pdf_ingest
+python -m src.ingest.pdf_ingest
 ```
 
 This scans `data/pdfs/` recursively and writes `.md` output files into `data/mds/`, preserving subdirectory structure.
@@ -83,7 +100,7 @@ This scans `data/pdfs/` recursively and writes `.md` output files into `data/mds
 Add one URL per line in `data/websites.txt`, then run:
 
 ```bash
-python -m src.web_ingest
+python -m src.ingest.web_ingest
 ```
 
 This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/<host>/...`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
@@ -93,12 +110,12 @@ By default, website ingestion crawls links under the starting URL path prefix. F
 You can also pass URLs directly, use another list file, or disable crawling:
 
 ```bash
-python -m src.web_ingest https://example.org/article
-python -m src.web_ingest --url-file urls.txt --overwrite
-python -m src.web_ingest --no-crawl https://example.org/article
-python -m src.web_ingest --max-pages-per-site 250 --max-depth 6
-python -m src.web_ingest --crawl-scope same-site
-python -m src.web_ingest --delay 0.5 --timeout 30
+python -m src.ingest.web_ingest https://example.org/article
+python -m src.ingest.web_ingest --url-file urls.txt --overwrite
+python -m src.ingest.web_ingest --no-crawl https://example.org/article
+python -m src.ingest.web_ingest --max-pages-per-site 250 --max-depth 6
+python -m src.ingest.web_ingest --crawl-scope same-site
+python -m src.ingest.web_ingest --delay 0.5 --timeout 30
 ```
 
 ## Notes
@@ -173,7 +190,7 @@ Website ingestion may skip pages that do not expose enough useful content after 
 - `medication_or_diagnosis`
 - `unknown`
 
-`src/agents/coordinator_agent.py` maps those intents into the five-agent architecture routes: safety, medical boundary, RAG QA, memory, routine, activity, supportive, or unknown. Safety and medication/diagnosis routes override normal RAG. Unknown messages do not call RAG and do not invent dementia knowledge.
+`src/agents/coordinator_agent.py` maps those intents into safety, medical boundary, screening/memory concern, caregiver guidance, RAG QA, memory, routine, activity, supportive, or unknown routes. Safety and medication/diagnosis routes override A-RAG. Unknown messages do not retrieve dementia documents or invent dementia relevance. See `docs/arag_integration.md` for the complete policy.
 
 ## Medicine Identification
 

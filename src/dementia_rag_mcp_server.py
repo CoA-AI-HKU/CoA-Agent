@@ -29,7 +29,7 @@ def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
 
 def answer_from_dementia_knowledge_tool(question: str) -> dict[str, Any]:
     """Debug only: answer from the local dementia database without Telegram routing."""
-    return shared_answer_question(question, build_default_rag_config("mcp"))
+    return answer_from_dementia_knowledge(question)
 
 
 def handle_dementia_user_message_tool(

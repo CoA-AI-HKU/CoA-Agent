@@ -269,3 +269,30 @@ User expresses memory concern
 → caregiver dashboard shows non-diagnostic alert
 → caregiver chooses to start simple cognitive check
 → result appears in dashboard as follow-up suggestion, not diagnosis
+
+### A-RAG production hardening (2026-07-15)
+
+Completed validation of the lightweight A-RAG layer inside the production message path.
+
+Implemented:
+
+- End-to-end scenarios for dementia QA, caregiver repeated-question guidance, medication decisions, medication uncertainty, wandering, neutral memory concerns, out-of-scope requests, and insufficient evidence.
+- Route-policy, evidence-sufficiency, retrieval-trace, output-leakage, dashboard compatibility, and duplicate-event regression tests.
+- Bounded caregiver-guidance retrieval with practical, non-diagnostic final wording.
+- Safety priority fixes, including medication uncertainty taking precedence over misleading completion substrings.
+- One interaction-event owner in `message_router`; the orchestrator no longer creates duplicate events.
+- Stronger output guards for retrieval tools, source labels, vector/index terms, debug text, and local paths.
+- Privacy validation confirming dashboard events contain allow-listed structured fields and no raw messages, answers, chunks, or traces.
+- Local fixed-scenario runner at `scripts/run_arag_regression_eval.py`.
+- A-RAG documentation at `docs/arag_integration.md` and an updated repository structure in `README.md`.
+- Compatibility repairs for account-command display, caregiver linking, medicine aliases, local Chroma paths, ingestion imports, and language-specific safety responses.
+
+Verification:
+
+- The full `pytest` suite passes.
+- The local A-RAG regression runner passes without Telegram, WhatsApp, Nanobot, network access, or a persistent vector index.
+
+Documentation rule for future revisions:
+
+- Record every material code, behavior, safety, privacy, test, or structure change in `project_log.md`.
+- Update `README.md` in the same revision whenever commands, file structure, entrypoints, architecture, capabilities, or setup instructions change.

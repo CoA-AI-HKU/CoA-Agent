@@ -59,6 +59,7 @@ def filter_user_facing_sources(
 def clean_internal_citations_from_text(answer: str) -> str:
     """Remove internal evidence language and paths while preserving public URLs."""
     cleaned = str(answer or "")
+    had_internal_reference = _text_has_internal_reference(cleaned)
     for phrase in DATABASE_PHRASES:
         cleaned = cleaned.replace(phrase, "")
 
@@ -85,7 +86,8 @@ def clean_internal_citations_from_text(answer: str) -> str:
     cleaned = "\n".join(kept)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
-    return cleaned.strip(" ，,。\n")
+    trim_chars = " ，,。\n" if had_internal_reference else " ，,\n"
+    return cleaned.strip(trim_chars)
 
 
 def finalize_user_facing_result(result: dict[str, Any]) -> dict[str, Any]:
@@ -151,6 +153,16 @@ def _source_value(source: Any) -> str:
 
 
 def _line_has_internal_reference(line: str) -> bool:
+    parts = line.strip().split(maxsplit=1)
+    if not parts:
+        return False
+    command = parts[0].lower()
+    if command in {
+        "/summary", "/alerts", "/set_routine", "/set_reminder", "/help",
+        "\\register", "\\paircode", "\\link", "\\relink", "\\unlink",
+        "\\dashboard", "\\clearhistory", "\\accountcommands", "\\whichroleami",
+    }:
+        return False
     lowered = line.lower().replace("\\", "/")
     reference_text = line
     # Explicit internal markers are never public output, including when

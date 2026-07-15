@@ -27,9 +27,6 @@ from .agents.user_facing_formatter import (
 from .pipeline.language import detect_answer_language
 
 # 🆕 导入日志模块
-from .metrics import log_event, infer_event_type
-
-
 EMOTIONAL_SUPPORT_RESPONSE = (
     "我明白你可能有點不安。你可以慢慢說，我會用簡單的方式陪你整理。"
     "如果這件事和健康或安全有關，請同時告訴照顧者或醫護人員。"
@@ -93,23 +90,9 @@ def handle_dementia_user_message(
         user_facing["debug"] = debug
         user_facing = guard_user_facing_answer(user_facing, message)
     
-    # 🆕 记录事件到 Dashboard（正式生产数据）
-    try:
-        event_type = infer_event_type(user_facing)
-        log_event(
-            user_id or "unknown",
-            {
-                "event_type": event_type,
-                "intent": user_facing.get("intent", "unknown"),
-                "route": user_facing.get("route", "unknown"),
-                "safety_level": user_facing.get("safety_level", "unknown"),
-                "rag_called": user_facing.get("rag_called", False),
-            }
-        )
-    except Exception:
-        # 日志记录失败不影响主流程（Dashboard 没启动或写入失败都不影响 Bot 回答）
-        pass
-    
+    # Interaction events are owned by message_router, where sender role and
+    # transport context are available. The orchestrator intentionally does not
+    # log them, preventing duplicate events for one incoming message.
     _emit_debug(user_id, message, user_facing)
     return user_facing
 
