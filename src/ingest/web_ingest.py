@@ -114,7 +114,7 @@ def _should_skip_crawl_url(url: str) -> bool:
 
 
 def _metadata_header(source: str, requested_url: str) -> list[str]:
-    return []
+    return [f"<!-- source: {source} -->", f"<!-- requested_url: {requested_url} -->"]
 
 
 def _content_chars(markdown: str) -> int:
@@ -146,7 +146,23 @@ def convert_website_url(
     if target_path.exists() and not overwrite:
         return target_path
 
-    document = load_website_as_markdown_document(url, timeout=timeout, max_bytes=max_bytes)
+    # Resolve through the historical public module so existing integrations
+    # can still patch or wrap the fetch boundary.
+    from src import web_to_markdown as public_web
+
+    try:
+        html, final_url, content_type = public_web.fetch_website_html(
+            url, timeout=timeout, max_bytes=max_bytes
+        )
+    except TypeError:
+        # Preserve compatibility with older one-argument fetch adapters.
+        html, final_url, content_type = public_web.fetch_website_html(url)
+    document = website_html_to_markdown_document(
+        html,
+        final_url=final_url,
+        requested_url=url,
+        content_type=content_type,
+    )
     if not _is_useful_markdown(document.text, min_content_chars=min_content_chars):
         print(f"Skipping {url}: not enough useful content after cleaning")
         return None

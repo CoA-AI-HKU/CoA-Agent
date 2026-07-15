@@ -16,7 +16,7 @@ Start the integrated server from the project root:
 python -m src.web_server
 ```
 
-Then open `http://localhost:8080/dashboard.html` or `http://localhost:8080/screening.html`.
+The screening page can be opened at `http://localhost:8080/screening.html`. The caregiver dashboard requires the short-lived private link issued through the paired caregiver's Telegram/WhatsApp conversation; opening `dashboard.html` without a valid link does not expose patient accounts.
 
 The standalone screening exercise keeps answers in page memory only and clears them when the page is closed or refreshed. It does not expose the caregiver dashboard, store typed answers, or identify the participant. The exercise is not a diagnosis.
 

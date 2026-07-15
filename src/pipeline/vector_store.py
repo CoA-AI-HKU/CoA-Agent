@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
@@ -9,6 +10,16 @@ from .document import Document
 
 
 DEFAULT_CHROMA_BATCH_SIZE = 1000
+
+
+def _document_chunk_id(document: Document) -> str:
+    existing = str(document.metadata.get("chunk_id") or "").strip()
+    if existing:
+        return existing
+    source = str(document.metadata.get("source") or document.metadata.get("title") or "document")
+    index = int(document.metadata.get("chunk_index") or 1)
+    source_key = hashlib.sha256(source.encode("utf-8")).hexdigest()[:12]
+    return f"chunk_{source_key}_{index:04d}"
 
 
 class InMemoryVectorStore:
@@ -83,6 +94,20 @@ class InMemoryVectorStore:
         self.items.clear()
         self.metadatas.clear()
         self.embeddings.clear()
+
+    def all_documents(self) -> List[Document]:
+        return [
+            Document(text=text, metadata=dict(metadata))
+            for text, metadata in zip(self.items, self.metadatas)
+        ]
+
+    def get_documents_by_chunk_ids(self, chunk_ids: Iterable[str]) -> List[Document]:
+        requested = set(chunk_ids)
+        return [
+            document
+            for document in self.all_documents()
+            if _document_chunk_id(document) in requested
+        ]
 
 
 class ChromaVectorStore:
@@ -235,6 +260,51 @@ class ChromaVectorStore:
             if not self._is_missing_collection_error(exc):
                 raise
         self._refresh_collection()
+
+    def all_documents(self) -> List[Document]:
+        try:
+            result = self.collection.get(include=["documents", "metadatas"])
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+            self._refresh_collection()
+            result = self.collection.get(include=["documents", "metadatas"])
+        documents = result.get("documents") or []
+        metadatas = result.get("metadatas") or []
+        return [
+            Document(text=str(text or ""), metadata=dict(metadata or {}))
+            for text, metadata in zip(documents, metadatas)
+        ]
+
+    def get_documents_by_chunk_ids(self, chunk_ids: Iterable[str]) -> List[Document]:
+        requested = list(dict.fromkeys(str(chunk_id) for chunk_id in chunk_ids if chunk_id))
+        if not requested:
+            return []
+        try:
+            result = self.collection.get(
+                where={"chunk_id": {"$in": requested}},
+                include=["documents", "metadatas"],
+            )
+        except Exception as exc:
+            if self._is_missing_collection_error(exc):
+                self._refresh_collection()
+                return self.get_documents_by_chunk_ids(requested)
+            # Older indexes may not contain chunk_id metadata. The bounded
+            # full scan preserves compatibility until the manifest reindexes.
+            requested_set = set(requested)
+            return [
+                document
+                for document in self.all_documents()
+                if _document_chunk_id(document) in requested_set
+            ]
+        documents = [
+            Document(text=str(text or ""), metadata=dict(metadata or {}))
+            for text, metadata in zip(result.get("documents") or [], result.get("metadatas") or [])
+        ]
+        if documents:
+            return documents
+        requested_set = set(requested)
+        return [document for document in self.all_documents() if _document_chunk_id(document) in requested_set]
 
 
 def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):

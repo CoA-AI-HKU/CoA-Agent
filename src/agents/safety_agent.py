@@ -154,13 +154,14 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
     detected_medicines = normalize_medicine_mentions(message)
     red_flags = detect_red_flags(message)
     medication_status = "taken" if _is_medication_completion_statement(message) else None
-    if medication_status == "taken":
+    if _is_medication_uncertainty(message):
+        answer = MEDICATION_UNCERTAINTY_RESPONSES[answer_language]
+        medication_status = "unsure"
+    elif medication_status == "taken":
         answer = MEDICATION_COMPLETION_RESPONSES[answer_language]
     elif _is_aspirin_headache_question(message):
         answer = ASPIRIN_HEADACHE_RESPONSES[answer_language]
-    elif _is_medication_uncertainty(message):
-        answer = MEDICATION_UNCERTAINTY_RESPONSES[answer_language]
-    elif detected_medicines or red_flags:
+    elif red_flags:
         answer = build_short_medication_safety_response(
             patient_profile={},
             detected_medicines=detected_medicines,

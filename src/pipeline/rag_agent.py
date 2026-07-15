@@ -29,7 +29,7 @@ RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CHROMA_DIR = "/home/aine/.cache/coa-agent/chroma/ling_rag"
+DEFAULT_CHROMA_DIR = (PROJECT_ROOT / "data" / "private" / "chroma" / "ling_rag").as_posix()
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
     "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 )
@@ -343,7 +343,10 @@ class RagAgent:
         answer_top_k: Optional[int] = None,
         min_relevance_score: Optional[float] = None,
         answer_language: AnswerLanguage | None = None,
+        route: str = "dementia_qa",
     ) -> dict[str, Any]:
+        from src.rag.agentic_retriever import agentic_retrieve
+
         answer_language = answer_language or detect_answer_language(question)
         fallback_answer = get_fallback_answer(answer_language)
         search_query = rewrite_query(question)
@@ -351,15 +354,28 @@ class RagAgent:
         use_k = answer_top_k or self.answer_top_k
         threshold = self.min_relevance_score if min_relevance_score is None else min_relevance_score
 
-        retrieved = self.retrieve(search_query, k=retrieve_k)
-        scored = [
-            doc.copy_with_metadata(relevance_score=_normalized_relevance_score(search_query, doc))
-            for doc in retrieved
-        ]
+        retrieval = agentic_retrieve(
+            search_query,
+            route,
+            max_steps=3,
+            rag_agent=self,
+            answer_top_k=use_k,
+            search_top_k=retrieve_k,
+        )
+        evidence = retrieval.get("evidence", [])
+        scored = []
+        for item in evidence:
+            metadata = dict(item.get("metadata") or {})
+            metadata["chunk_id"] = item.get("chunk_id")
+            document = Document(text=str(item.get("text") or ""), metadata=metadata)
+            evidence_score = float(item.get("score") or 0.0)
+            metadata_score = _normalized_relevance_score(search_query, document)
+            scored.append(document.copy_with_metadata(relevance_score=max(evidence_score, metadata_score)))
         scored.sort(key=lambda doc: doc.metadata.get("relevance_score", 0.0), reverse=True)
         best_score = float(scored[0].metadata.get("relevance_score", 0.0)) if scored else 0.0
+        sufficiency = retrieval.get("sufficiency", {})
 
-        if not scored or best_score < threshold:
+        if not scored or best_score < threshold or not sufficiency.get("sufficient", False):
             return {
                 "found": False,
                 "answer": fallback_answer,
@@ -373,6 +389,8 @@ class RagAgent:
                     "retrieved_count": len(scored),
                     "best_score": best_score,
                     "min_relevance_score": threshold,
+                    "retrieval": retrieval.get("retrieval_log", {}),
+                    "evidence_sufficiency": sufficiency,
                 },
             }
 
@@ -409,6 +427,8 @@ class RagAgent:
                 "best_score": best_score,
                 "min_relevance_score": threshold,
                 "scores": [doc.metadata.get("relevance_score", 0.0) for doc in best_chunks],
+                "retrieval": retrieval.get("retrieval_log", {}),
+                "evidence_sufficiency": sufficiency,
             },
         }
 
@@ -639,6 +659,7 @@ def _index_manifest(docs: List[Document], config: dict[str, Any], embedder_provi
         text_hash = hashlib.sha256(document.text.encode("utf-8")).hexdigest()
         document_entries.append({"source": source, "sha256": text_hash, "chars": len(document.text)})
     return {
+        "schema_version": 2,
         "documents": sorted(document_entries, key=lambda item: item["source"]),
         "chunk_size": config["chunk_size"],
         "chunk_overlap": config["chunk_overlap"],
@@ -852,8 +873,6 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
         answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
     elif intent_result.intent == "self_memory_concern":
         answer = SELF_MEMORY_CONCERN_RESPONSE
-    elif intent_result.intent == "caregiver_support":
-        answer = CAREGIVER_GUIDANCE_RESPONSE
     else:
         return None
 
@@ -1037,11 +1056,21 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     answer_callable = _build_answer_callable(runtime_config)
     fallback_active = answer_callable is None
     try:
-        result = agent.answer_question(question, answer_callable=answer_callable, answer_language=answer_language)
+        result = agent.answer_question(
+            question,
+            answer_callable=answer_callable,
+            answer_language=answer_language,
+            route=intent_result.intent,
+        )
     except Exception as exc:
         runtime_debug["answer_model_error"] = str(exc)
         fallback_active = True
-        result = agent.answer_question(question, answer_callable=None, answer_language=answer_language)
+        result = agent.answer_question(
+            question,
+            answer_callable=None,
+            answer_language=answer_language,
+            route=intent_result.intent,
+        )
 
     result_debug = dict(result.get("debug", {}))
     result_debug.update(runtime_debug)

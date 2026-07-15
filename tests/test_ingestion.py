@@ -19,7 +19,7 @@ def test_pdf_ingest_creates_markdown(tmp_path: Path) -> None:
     if not _has_pdf_extractor():
         pytest.skip("PDF extraction requires PyMuPDF or pypdf")
 
-    pdf_source = Path("data/pdfs/Introducing_computational_linguistics.pdf")
+    pdf_source = Path("data/pdfs/who-eng-risk-dementia.pdf")
     markdown_path = tmp_path / "data" / "mds" / "test.md"
     markdown_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -155,7 +155,7 @@ def test_convert_website_url_writes_markdown(monkeypatch, tmp_path: Path) -> Non
         lambda url: (html, "https://example.org/page", "text/html; charset=utf-8"),
     )
 
-    path = convert_website_url("https://example.org/page", markdown_root=tmp_path)
+    path = convert_website_url("https://example.org/page", markdown_root=tmp_path, min_content_chars=1)
 
     assert path == markdown_path_for_url("https://example.org/page", markdown_root=tmp_path)
     text = path.read_text(encoding="utf-8")
@@ -180,4 +180,3 @@ def test_load_urls_from_file_ignores_comments_and_blank_lines(tmp_path: Path) ->
         "https://example.org/one",
         "https://example.org/two",
     ]
-

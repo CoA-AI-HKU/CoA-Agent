@@ -5,6 +5,7 @@ from typing import Any
 from src.agents.coordinator_agent import infer_user_role
 from src.agents.types import AgentResult
 from src.pipeline.language import detect_answer_language
+from src.pipeline.rag_agent import answer_question, build_default_rag_config
 
 
 URGENT_RED_FLAGS = [
@@ -117,19 +118,44 @@ def handle_self_memory_concern(message: str, user_id: str | None = None) -> dict
 
 def handle_caregiver_observation_guidance(message: str, user_id: str | None = None) -> dict[str, Any]:
     answer_language = detect_answer_language(message)
+    retrieval_debug: dict[str, Any] = {}
+    sources: list[Any] = []
+    found = False
+    try:
+        raw = answer_question(message, build_default_rag_config("mcp"))
+        if isinstance(raw, dict):
+            raw_debug = raw.get("debug") if isinstance(raw.get("debug"), dict) else {}
+            retrieval_debug = dict(raw_debug.get("retrieval") or {})
+            sources = list(raw.get("sources") or [])
+            found = bool(raw.get("found"))
+    except Exception as exc:  # pragma: no cover - care guidance remains available if retrieval fails.
+        retrieval_debug = {
+            "route": "caregiver_guidance",
+            "tools_used": [],
+            "keyword_queries": [],
+            "semantic_queries": [],
+            "chunks_read": [],
+            "evidence_sufficient": False,
+            "retrieval_failed": True,
+            "answer_used_rag": False,
+            "error_type": type(exc).__name__,
+        }
     result = AgentResult(
+        # Retrieved evidence validates the route internally; the stable care
+        # wording remains practical, non-diagnostic, and non-shaming.
         answer=CAREGIVER_OBSERVATION_GUIDANCE_RESPONSE,
         intent="caregiver_guidance",
         safety_level="caregiver_observation_guidance",
-        found=False,
-        sources=[],
-        rag_called=False,
+        found=found,
+        sources=sources,
+        rag_called=True,
         route="caregiver_guidance",
         debug={
             "agent": "caregiver_guidance",
             "answer_language": answer_language,
             "screening_classification": None,
             "diagnosis_provided": False,
+            "retrieval": retrieval_debug,
         },
     ).to_dict()
     result["answer_language"] = answer_language

@@ -4,6 +4,14 @@ import logging
 import re
 from typing import Any
 
+from src.citations import (
+    classify_source,
+    clean_internal_citations_from_text,
+    finalize_user_facing_result,
+    filter_user_facing_sources,
+    source_display_value,
+)
+
 
 SOURCE_INTRO_PATTERNS = [
     r"根據資料庫(?:嘅資料|的資料)?[，,:：\s…]*",
@@ -39,6 +47,10 @@ SOURCE_MARKER_PATTERNS = [
     r"\(Sources?:[^)]*\)",
 ]
 INTERNAL_LEAKAGE_TERMS = [
+    "keyword_search",
+    "semantic_search",
+    "chunk_read",
+    "agentic_retrieve",
     "handle_dementia_user_message",
     "search_dementia_knowledge",
     "answer_from_dementia_knowledge",
@@ -53,6 +65,10 @@ INTERNAL_LEAKAGE_TERMS = [
     "查資料庫",
     "Chroma",
     "chroma",
+    "vector",
+    "source:",
+    "sources:",
+    "/mnt/",
     ".md",
     "來源：",
     "根據資料庫",
@@ -108,6 +124,10 @@ SELF_MEMORY_CONCERN_FALLBACK = (
     "你也可以告訴我有什麼事情想記住，我可以幫你整理成簡單提醒。"
 )
 ADDITIONAL_BLOCKED_TERMS = [
+    "keyword_search",
+    "semantic_search",
+    "chunk_read",
+    "agentic_retrieve",
     "來源",
     ".md",
     "資料庫",
@@ -121,9 +141,6 @@ ADDITIONAL_BLOCKED_TERMS = [
     "MCP",
     "RAG_DEBUG",
     "RAG",
-    "你有腦退化症",
-    "你嘅腦退化症",
-    "你的腦退化症",
     "作為腦退化症患者",
     "病情嘅一部分",
     "病情的一部分",
@@ -135,7 +152,15 @@ ADDITIONAL_BLOCKED_TERMS = [
 ]
 
 
-def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False) -> dict[str, Any]:
+def format_user_facing_answer(
+    result: dict[str, Any],
+    show_sources: bool = False,
+    *,
+    allow_external_citations: bool = True,
+    allow_internal_citations: bool = False,
+    show_unknown_sources: bool = False,
+    debug_mode: bool = False,
+) -> dict[str, Any]:
     """Return a messaging-friendly result while preserving internal evidence fields."""
     output = dict(result)
     answer = str(output.get("answer") or "").strip()
@@ -150,6 +175,17 @@ def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False
     else:
         effective_safety_level = output.get("safety_level")
 
+    all_sources = list(output.get("sources") or [])
+    internal_sources = [source for source in all_sources if classify_source(source) == "internal"]
+    external_sources = [source for source in all_sources if classify_source(source) == "external"]
+    user_facing_sources = filter_user_facing_sources(
+        all_sources,
+        allow_external_citations=allow_external_citations,
+        allow_internal_citations=allow_internal_citations and debug_mode,
+        show_unknown_sources=show_unknown_sources,
+    )
+
+    answer = clean_internal_citations_from_text(answer)
     answer = _clean_source_text(answer)
     answer = _compact_answer(answer, effective_safety_level)
     if not show_sources and _contains_user_visible_source_text(answer):
@@ -157,18 +193,28 @@ def format_user_facing_answer(result: dict[str, Any], show_sources: bool = False
         answer = _clean_source_text(answer)
         answer = _compact_answer(answer, effective_safety_level)
 
+    if show_sources and user_facing_sources:
+        labels = list(dict.fromkeys(filter(None, (source_display_value(source) for source in user_facing_sources))))[:3]
+        if labels:
+            reference_label = "References" if str(output.get("answer_language") or "").startswith("en") else "參考"
+            answer = f"{answer}\n\n{reference_label}：{' / '.join(labels)}"
+
     output["answer"] = answer
     output["answer_with_sources"] = answer
     output["user_facing_answer"] = answer
     output["show_sources"] = show_sources
     output["source_count"] = len(output.get("sources") or [])
     output["sources_available"] = bool(output.get("sources"))
+    output["user_facing_sources"] = user_facing_sources
+    output["internal_sources_hidden"] = bool(internal_sources) and not (allow_internal_citations and debug_mode)
     debug["user_facing_formatter_applied"] = True
     debug["show_sources"] = show_sources
     debug["source_count"] = output["source_count"]
+    debug["internal_sources"] = internal_sources
+    debug["external_sources"] = external_sources
     debug["source_text_removed"] = debug["raw_answer_before_formatting"] != answer
     output["debug"] = debug
-    return output
+    return finalize_user_facing_result(output)
 
 
 def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[str, Any]:
@@ -203,7 +249,7 @@ def answer_has_user_visible_source_text(answer: str) -> bool:
 
 
 def _clean_source_text(answer: str) -> str:
-    cleaned = answer.strip()
+    cleaned = clean_internal_citations_from_text(answer).strip()
     cleaned = _remove_cited_quote_blocks(cleaned)
     for pattern in SOURCE_INTRO_PATTERNS:
         cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
@@ -285,7 +331,11 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
         max_chars = 250
     else:
         max_chars = 120
-    normalized = _remove_excess_numbering(answer)
+    normalized = (
+        answer
+        if safety_level in {"screening_check_in", "caregiver_observation_guidance"}
+        else _remove_excess_numbering(answer)
+    )
     if len(normalized) <= max_chars:
         return normalized
 
@@ -339,6 +389,8 @@ def _contains_user_visible_source_text(answer: str) -> bool:
 
 def _contains_internal_leakage(answer: str) -> bool:
     lowered = answer.lower()
+    if re.search(r"(?<![a-z0-9])[a-z]:[\\/]", answer, flags=re.IGNORECASE):
+        return True
     for term in ADDITIONAL_BLOCKED_TERMS:
         haystack = lowered if term.isascii() else answer
         needle = term.lower() if term.isascii() else term
@@ -365,10 +417,19 @@ def _contains_unsupported_dementia_assumption(answer: str, message: str) -> bool
         "alzheimer",
         "mci",
     )
-    answer_terms = explicit_user_terms
     user_explicitly_raised_topic = any(term in user_text for term in explicit_user_terms)
-    answer_introduces_topic = any(term in answer_text for term in answer_terms)
-    return answer_introduces_topic and not user_explicitly_raised_topic
+    unsupported_assertions = (
+        "你有腦退化",
+        "你有脑退化",
+        "你的腦退化",
+        "你的脑退化",
+        "you have dementia",
+        "your dementia",
+        "腦退化症人士",
+        "脑退化症人士",
+        "person with dementia",
+    )
+    return any(term in answer_text for term in unsupported_assertions) and not user_explicitly_raised_topic
 
 
 def _fallback_for_route(result: dict[str, Any], message: str) -> str:
@@ -385,7 +446,7 @@ def _fallback_for_route(result: dict[str, Any], message: str) -> str:
         safety_level == "medical_boundary"
         or route == "medical_boundary"
         or intent == "medication_or_diagnosis"
-        or _looks_like_medication_question(combined)
+        or _looks_like_medication_question(message)
     ):
         return MEDICATION_FALLBACK
     return KNOWLEDGE_FAILURE_FALLBACK
@@ -440,7 +501,10 @@ def _looks_like_self_memory_concern(text: str) -> bool:
 def _medication_safety_answer_if_needed(answer: str, result: dict[str, Any], debug: dict[str, Any]) -> str:
     if str(result.get("medication_status") or "").strip().lower() == "taken":
         return ""
+    if result.get("safety_level") == "medical_boundary" or result.get("route") == "medical_boundary":
+        return ""
     message = str(debug.get("user_message") or debug.get("message") or "")
+    message_lower = message.lower()
     combined = f"{message}\n{answer}".lower()
     medication_terms = [
         "阿司匹林",
@@ -464,10 +528,14 @@ def _medication_safety_answer_if_needed(answer: str, result: dict[str, Any], deb
         "supplement",
     ]
     decision_terms = ["該吃", "應該", "可唔可以", "可以食", "吃嗎", "食唔食", "take", "should"]
-    if not any(term.lower() in combined for term in medication_terms):
-        return ""
-    if not any(term.lower() in combined for term in decision_terms) and result.get("safety_level") != "medical_boundary":
-        return ""
+    if result.get("safety_level") != "medical_boundary":
+        # Do not combine an unrelated "should" in the question with a generic
+        # mention of medication in a care or memory answer. Both signals must
+        # occur in the user's own message before this guard overrides routing.
+        if not any(term.lower() in message_lower for term in medication_terms):
+            return ""
+        if not any(term.lower() in message_lower for term in decision_terms):
+            return ""
 
     if any(term.lower() in combined for term in ["阿司匹林", "亞士匹靈", "阿士匹靈", "阿斯匹靈", "aspirin"]):
         return (

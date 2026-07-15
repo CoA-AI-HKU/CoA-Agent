@@ -17,6 +17,7 @@
       "paracetamol",
       "acetaminophen",
       "Panadol",
+      "必理痛",
       "撲熱息痛",
       "扑热息痛",
       "對乙醯氨基酚",
@@ -25,6 +26,11 @@
     ],
     "category": "medicine",
     "type": "止痛退燒藥"
+  },
+  "donepezil": {
+    "aliases": ["donepezil", "Aricept", "多奈哌齊", "多奈哌齐"],
+    "category": "medicine",
+    "type": "anti-dementia medicine"
   },
   "ibuprofen": {
     "aliases": [

@@ -116,7 +116,7 @@ def unlink_caregiver(sender_id: str, user_id: str | None = None) -> int:
     existing = record.get("linked_user_ids") or record.get("linked_user_id") or []
     linked_ids = list(existing) if isinstance(existing, list) else [existing]
     target = str(user_id or "").strip()
-    retained = [value for value in linked_ids if value and (not target or str(value) != target)]
+    retained = [value for value in linked_ids if value and target and str(value) != target]
     removed = len([value for value in linked_ids if value]) - len(retained)
     record["linked_user_ids"] = retained
     if retained:
@@ -154,6 +154,44 @@ def revoke_caregivers_for_user(sender_id: str) -> int:
         changed += 1
     save_user_registry(registry)
     return changed
+
+
+def create_dashboard_access_token(sender_id: str, lifetime_minutes: int = 30) -> str:
+    caregiver_id = normalize_sender_id(sender_id)
+    record = get_user_record(caregiver_id)
+    if str(record.get("role") or "").lower() != "caregiver":
+        raise ValueError("only a registered caregiver can open the caregiver dashboard")
+    if not get_linked_user_ids(caregiver_id):
+        raise ValueError("pair with a patient before opening the caregiver dashboard")
+    token = secrets.token_urlsafe(24)
+    registry = load_user_registry()
+    tokens = registry.setdefault("dashboard_tokens", {})
+    tokens[token] = {
+        "caregiver_sender_id": caregiver_id,
+        "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=lifetime_minutes)).isoformat(),
+    }
+    save_user_registry(registry)
+    return token
+
+
+def get_dashboard_patient_accounts(access_token: str) -> list[dict[str, str]]:
+    token = str(access_token or "").strip()
+    registry = load_user_registry()
+    tokens = registry.get("dashboard_tokens", {})
+    entry = tokens.get(token) if isinstance(tokens, dict) else None
+    if not isinstance(entry, dict):
+        return []
+    try:
+        expires_at = datetime.fromisoformat(str(entry.get("expires_at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        return []
+    if expires_at.astimezone(timezone.utc) < datetime.now(timezone.utc):
+        tokens.pop(token, None)
+        save_user_registry(registry)
+        return []
+    caregiver_id = str(entry.get("caregiver_sender_id") or "")
+    allowed = set(get_linked_user_ids(caregiver_id))
+    return [account for account in get_registered_patient_accounts() if account["user_id"] in allowed]
 
 
 def load_user_registry() -> dict[str, Any]:

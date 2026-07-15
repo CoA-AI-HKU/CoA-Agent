@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import re
 from typing import Iterable, List
 
@@ -146,6 +147,13 @@ def _extract_heading(text: str) -> str | None:
     return None
 
 
+def _chunk_id(document: Document, index: int) -> str:
+    """Build a stable, non-path chunk identifier for hierarchical retrieval."""
+    source = str(document.metadata.get("source") or document.metadata.get("title") or "document")
+    source_key = hashlib.sha256(source.encode("utf-8")).hexdigest()[:12]
+    return f"chunk_{source_key}_{index:04d}"
+
+
 def chunk_text(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, chunk_overlap: int = DEFAULT_CHUNK_OVERLAP) -> List[str]:
     if chunk_size <= 0:
         raise ValueError("chunk_size must be positive")
@@ -199,6 +207,7 @@ def chunk_document(document: Document, chunk_size: int = DEFAULT_CHUNK_SIZE, chu
             current_heading = heading
         metadata = {
             **document.metadata,
+            "chunk_id": _chunk_id(document, index),
             "chunk_index": index,
             "chunk_size": len(chunk),
         }

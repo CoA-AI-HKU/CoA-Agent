@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 try:
+    from .citations import finalize_user_facing_result
     from .dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
     from .user.message_router import handle_incoming_message
     from .orchestrator import handle_dementia_user_message
@@ -14,6 +15,7 @@ except ImportError:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
+    from src.citations import finalize_user_facing_result
     from src.dementia_rag import answer_from_dementia_knowledge, search_dementia_knowledge
     from src.user.message_router import handle_incoming_message
     from src.orchestrator import handle_dementia_user_message
@@ -27,7 +29,7 @@ def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
 
 def answer_from_dementia_knowledge_tool(question: str) -> dict[str, Any]:
     """Debug only: answer from the local dementia database without Telegram routing."""
-    return shared_answer_question(question, build_default_rag_config("mcp"))
+    return answer_from_dementia_knowledge(question)
 
 
 def handle_dementia_user_message_tool(
@@ -47,6 +49,7 @@ def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str
 
 def _public_message_result(result: dict[str, Any]) -> dict[str, Any]:
     """Expose only fields safe for a downstream Telegram/WhatsApp reply."""
+    result = finalize_user_facing_result(result)
     public_fields = (
         "answer",
         "route",

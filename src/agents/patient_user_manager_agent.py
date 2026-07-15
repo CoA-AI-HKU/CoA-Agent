@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from src.citations import finalize_user_facing_result
 from src.orchestrator import handle_dementia_user_message
 from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
@@ -32,4 +33,4 @@ def handle_patient_user_message(
         "memory_loaded": True,
     }
     output["debug"] = debug
-    return output
+    return finalize_user_facing_result(output)
