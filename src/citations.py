@@ -68,21 +68,53 @@ def clean_internal_citations_from_text(answer: str) -> str:
         if not stripped:
             kept.append("")
             continue
+
+        # Preserve useful prose when a model appends an internal citation on
+        # the same line, then reject the line if any unsafe reference remains.
+        stripped = re.sub(
+            r"[（(](?:來源|来源|資料來源|资料来源|source)s?\s*[:：][^）)]*?\.md[^）)]*[）)]",
+            "",
+            stripped,
+            flags=re.IGNORECASE,
+        ).strip()
+        if not stripped:
+            continue
         if _line_has_internal_reference(stripped):
-            without_parenthetical = re.sub(
-                r"[（(](?:來源|来源|資料來源|资料来源|source)s?\s*[:：][^）)]*(?:\.md|data/mds|\.chroma|/mnt/|/home/)[^）)]*[）)]",
-                "",
-                stripped,
-                flags=re.IGNORECASE,
-            ).strip()
-            if without_parenthetical and not _line_has_internal_reference(without_parenthetical):
-                kept.append(without_parenthetical)
             continue
         kept.append(stripped)
     cleaned = "\n".join(kept)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
     return cleaned.strip(" ，,。\n")
+
+
+def finalize_user_facing_result(result: dict[str, Any]) -> dict[str, Any]:
+    """Enforce the final citation boundary while retaining internal evidence."""
+    output = dict(result)
+    all_sources = list(output.get("sources") or [])
+    internal_sources = [source for source in all_sources if classify_source(source) == "internal"]
+    external_sources = [source for source in all_sources if classify_source(source) == "external"]
+    removed_internal_text = False
+
+    for field in ("answer", "answer_with_sources", "user_facing_answer"):
+        if field not in output:
+            continue
+        original = str(output.get(field) or "")
+        cleaned = clean_internal_citations_from_text(original)
+        if cleaned != original.strip() and _text_has_internal_reference(original):
+            removed_internal_text = True
+        output[field] = cleaned
+
+    # Public aliases must never retain a stale, pre-cleaning source-appended
+    # answer. The full source list and debug payload remain unchanged.
+    if "answer" in output:
+        answer = str(output.get("answer") or "")
+        output["answer_with_sources"] = answer
+        output["user_facing_answer"] = answer
+
+    output["user_facing_sources"] = external_sources
+    output["internal_sources_hidden"] = bool(internal_sources or removed_internal_text)
+    return output
 
 
 def source_display_value(source: Any) -> str:
@@ -120,18 +152,23 @@ def _source_value(source: Any) -> str:
 
 def _line_has_internal_reference(line: str) -> bool:
     lowered = line.lower().replace("\\", "/")
+    reference_text = line
+    # Explicit internal markers are never public output, including when
+    # embedded in an otherwise URL-shaped string.
+    if any(marker in lowered for marker in (".md", "data/mds", ".chroma", "/mnt/", "/home/", "file://")):
+        return True
     if "http://" in lowered or "https://" in lowered:
         urls = re.findall(r"https?://\S+", line, flags=re.IGNORECASE)
         remainder = line
         for url in urls:
             remainder = remainder.replace(url, "")
         lowered = remainder.lower().replace("\\", "/")
+        reference_text = remainder
     return (
-        ".md" in lowered
-        or "data/mds" in lowered
-        or ".chroma" in lowered
-        or "/mnt/" in lowered
-        or "/home/" in lowered
-        or lowered.strip().startswith(("/", "file://"))
-        or bool(re.search(r"[a-z]:[/\\]", line, flags=re.IGNORECASE))
+        lowered.strip().startswith("/")
+        or bool(re.search(r"(?<![a-z0-9])[a-z]:[/\\]", reference_text, flags=re.IGNORECASE))
     )
+
+
+def _text_has_internal_reference(text: str) -> bool:
+    return any(_line_has_internal_reference(line) for line in str(text or "").splitlines())

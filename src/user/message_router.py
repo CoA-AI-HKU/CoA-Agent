@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from src.citations import finalize_user_facing_result
 from src.agents.caregiver_manager_agent import handle_caregiver_manager_message
 from src.agents.patient_user_manager_agent import handle_patient_user_message
 from src.agents.user_facing_formatter import (
@@ -234,4 +235,6 @@ def _finalize_user_output(result: dict[str, Any], message: str) -> dict[str, Any
         debug["router_final_guard_retry"] = True
         output["debug"] = debug
         output = guard_user_facing_answer(output, message)
-    return output
+    # This is deliberately unconditional and last: screening text and any
+    # source-appending logic above have already completed.
+    return finalize_user_facing_result(output)

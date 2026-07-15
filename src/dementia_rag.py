@@ -220,6 +220,7 @@ def _runtime_index_manifest(docs: List[Document], agent: RagAgent, embedder_mode
         text_hash = hashlib.sha256(document.text.encode("utf-8")).hexdigest()
         document_entries.append({"source": source, "sha256": text_hash, "chars": len(document.text)})
     return {
+        "schema_version": 2,
         "documents": sorted(document_entries, key=lambda item: item["source"]),
         "chunk_size": agent.chunk_size,
         "chunk_overlap": agent.chunk_overlap,

@@ -7,6 +7,7 @@ from typing import Any
 from src.citations import (
     classify_source,
     clean_internal_citations_from_text,
+    finalize_user_facing_result,
     filter_user_facing_sources,
     source_display_value,
 )
@@ -46,6 +47,10 @@ SOURCE_MARKER_PATTERNS = [
     r"\(Sources?:[^)]*\)",
 ]
 INTERNAL_LEAKAGE_TERMS = [
+    "keyword_search",
+    "semantic_search",
+    "chunk_read",
+    "agentic_retrieve",
     "handle_dementia_user_message",
     "search_dementia_knowledge",
     "answer_from_dementia_knowledge",
@@ -115,6 +120,10 @@ SELF_MEMORY_CONCERN_FALLBACK = (
     "你也可以告訴我有什麼事情想記住，我可以幫你整理成簡單提醒。"
 )
 ADDITIONAL_BLOCKED_TERMS = [
+    "keyword_search",
+    "semantic_search",
+    "chunk_read",
+    "agentic_retrieve",
     "來源",
     ".md",
     "資料庫",
@@ -204,7 +213,7 @@ def format_user_facing_answer(
     debug["external_sources"] = external_sources
     debug["source_text_removed"] = debug["raw_answer_before_formatting"] != answer
     output["debug"] = debug
-    return output
+    return finalize_user_facing_result(output)
 
 
 def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[str, Any]:

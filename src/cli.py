@@ -32,6 +32,7 @@ def _document_signature(
         document_entries.append({"source": source, "sha256": text_hash, "chars": len(document.text)})
 
     return {
+        "schema_version": 2,
         "documents": sorted(document_entries, key=lambda item: item["source"]),
         "chunk_size": chunk_size,
         "chunk_overlap": chunk_overlap,

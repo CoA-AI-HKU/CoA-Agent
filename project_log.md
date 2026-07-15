@@ -58,6 +58,8 @@ Human-like emotional support is still limited.
 Cannot yet save conversations, personal memory, or long-term user context.
 No caregiver/user role separation yet.
 No dashboard or structured monitoring yet.
+
+
 To do
 Consider cloud implementation.
 Improve answer quality.
@@ -213,6 +215,8 @@ Dashboard integration exists.
 Passive cognitive concern monitoring works.
 Structured event logging can support caregiver alerts.
 The system has moved toward a privacy-first caregiver support model.
+
+
 Limitations
 User-facing answer quality still needs regular testing.
 The system may still occasionally leak sources, tool names, or internal implementation details unless final output guards fully enforce cleanup.
@@ -224,6 +228,8 @@ There is no full authentication, HTTPS, caregiver access control, or consent flo
 The caregiver-triggered cognitive check is designed but not fully implemented.
 Personal memory and reminders are still limited or placeholder-level.
 No formal user or expert evaluation has been completed yet.
+
+
 To do
 Stabilize the full end-to-end system.
 Build and run a 20-question test set.
