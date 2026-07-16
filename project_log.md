@@ -341,22 +341,7 @@ Testing process:
 Diagnosis and resolution:
 
 - Identified that the error was caused by an incorrect `EMBEDDING_DIM` setting in the `.env` file, which did not match the actual dimension of the `all-minilm` embedding model (384, not 1024).
-- Fixed the mismatch by setting `EMBEDDING_DIM=384` in the `.env` file, deleting the `rag_storage` folder, and restarting the server.# 1. 进入你的主项目目录
-cd C:\Users\user\Desktop\CoA-Agent-main\CoA-Agent
-
-# 2. 查看更改状态
-git status
-
-# 3. 添加前端文件夹和项目日志（及任何其他修改的文件）
-git add frontend/
-git add project_log.md
-
-# 4. 提交更改
-git commit -m "Add frontend landing page with privacy consent, QR code, and update project log"
-
-# 5. 推送到 GitHub
-git push
-- Re-initiated document processing. The fix is expected to allow LightRAG to complete indexing successfully.
+- Fixed the mismatch by setting `EMBEDDING_DIM=384` in the `.env` file, deleting the `rag_storage` folder, and restarting the server.
 
 Current status:
 
@@ -370,3 +355,22 @@ Open questions for future work:
   - Parallelizing the indexing process.
   - Accepting the time-cost trade-off for improved retrieval accuracy.
 - The choice of embedding model and its dimension must be explicitly documented to avoid configuration errors.
+
+### Dashboard, LightRAG & Frontend Debugging (2026-07-16)
+
+#### Dashboard & Logging Fixes
+- Resolved Dashboard `0` interaction count. Root cause: Streamlit was loading an outdated `metrics.py` from `C:\Users\user\.nanobot\` instead of the project `src/` folder.
+- Fixed by copying the updated `metrics.py` and `insights.py` to the `.nanobot` folder. Interaction count immediately updated to `22`.
+- Added `log_event` calls to `memory_routine_agent.py` to ensure all test interactions write to `events.jsonl`.
+- Added a **Cognitive Signals Traffic Light** (🟢/🟡/🔴) to the Dashboard based on concern signal counts.
+
+#### LightRAG Fixes
+- Fixed `Embedding dimension mismatch` error (`3840 / 1024`). Corrected `EMBEDDING_DIM=384` in `.env` to match the `all-minilm` model used by Ollama.
+- Confirmed that switching LLM models (Ollama ↔ DeepSeek) does not require re-indexing as long as the embedding model remains unchanged.
+
+#### Frontend & Network
+- Validated QR code flow successfully via Personal Hotspot.
+- Confirmed HKU Wi-Fi AP Isolation blocks local device-to-device access, reinforcing the need for cloud deployment to provide permanent public access.
+
+#### Key Takeaway
+- Verified the importance of path resolution (`.nanobot` vs `src/`) and embedding model consistency for stable system operation.
