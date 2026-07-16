@@ -8,6 +8,10 @@ from typing import Any
 from src.agents.types import AgentResult
 from src.pipeline.language import AnswerLanguage, detect_answer_language
 
+# ===== ADD THIS IMPORT FOR DASHBOARD LOGGING =====
+from src.metrics import log_event
+# =================================================
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 USER_DATA_ROOT = PROJECT_ROOT / "data" / "users"
 
@@ -105,6 +109,7 @@ def handle_personal_memory(message: str, user_id: str | None = None) -> dict[str
             safety_level="safe",
             answer_language=answer_language,
             debug={"agent": "memory_routine", "profile_loaded": bool(profile)},
+            user_id=user_id,
         )
 
     return _placeholder_result(
@@ -114,6 +119,7 @@ def handle_personal_memory(message: str, user_id: str | None = None) -> dict[str
         safety_level="personal_memory_placeholder",
         answer_language=answer_language,
         debug={"agent": "memory_routine", "profile_loaded": bool(profile)},
+        user_id=user_id,
     )
 
 
@@ -130,6 +136,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             safety_level="diagnosis_refusal",
             answer_language=answer_language,
             debug={"agent": "memory_routine", "action": "diagnosis_refusal"},
+            user_id=user_id,
         )
 
     if "頭暈" in message or "唔舒服" in message or "痛" in message:
@@ -141,6 +148,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             safety_level="symptom_referral",
             answer_language=answer_language,
             debug={"agent": "memory_routine", "action": "symptom_referral"},
+            user_id=user_id,
         )
 
     # --- MEDICATION (DYNAMIC) ---
@@ -154,6 +162,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
                 safety_level="medication_refusal",
                 answer_language=answer_language,
                 debug={"agent": "memory_routine", "action": "medication_refusal"},
+                user_id=user_id,
             )
         else:
             meds = profile.get("medical", {}).get("medications", {})
@@ -167,6 +176,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
                     safety_level="safe",
                     answer_language=answer_language,
                     debug={"agent": "memory_routine", "meds": meds},
+                    user_id=user_id,
                 )
             else:
                 return _placeholder_result(
@@ -176,6 +186,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
                     safety_level="safe",
                     answer_language=answer_language,
                     debug={"agent": "memory_routine"},
+                    user_id=user_id,
                 )
 
     # --- COOKING / DAILY ROUTINE ---
@@ -188,6 +199,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             safety_level="safe",
             answer_language=answer_language,
             debug={"agent": "memory_routine"},
+            user_id=user_id,
         )
 
     return _placeholder_result(
@@ -197,6 +209,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
         safety_level="reminder_placeholder",
         answer_language=answer_language,
         debug={"agent": "memory_routine"},
+        user_id=user_id,
     )
 
 
@@ -216,6 +229,7 @@ def handle_activity_request(message: str, user_id: str | None = None) -> dict[st
                 safety_level="safe",
                 answer_language=answer_language,
                 debug={"agent": "memory_routine"},
+                user_id=user_id,
             )
         else:
             return _placeholder_result(
@@ -225,6 +239,7 @@ def handle_activity_request(message: str, user_id: str | None = None) -> dict[st
                 safety_level="safe",
                 answer_language=answer_language,
                 debug={"agent": "memory_routine"},
+                user_id=user_id,
             )
 
     # --- PHOTOS / REMINISCENCE ---
@@ -236,6 +251,7 @@ def handle_activity_request(message: str, user_id: str | None = None) -> dict[st
             safety_level="safe",
             answer_language=answer_language,
             debug={"agent": "memory_routine"},
+            user_id=user_id,
         )
 
     # --- MEMORY EXERCISE ---
@@ -247,6 +263,7 @@ def handle_activity_request(message: str, user_id: str | None = None) -> dict[st
             safety_level="safe",
             answer_language=answer_language,
             debug={"agent": "memory_routine"},
+            user_id=user_id,
         )
 
     return _placeholder_result(
@@ -256,6 +273,7 @@ def handle_activity_request(message: str, user_id: str | None = None) -> dict[st
         safety_level="activity_placeholder",
         answer_language=answer_language,
         debug={"agent": "memory_routine"},
+        user_id=user_id,
     )
 
 
@@ -350,6 +368,7 @@ def _placeholder_result(
     safety_level: str,
     answer_language: AnswerLanguage,
     debug: dict[str, Any],
+    user_id: str | None = None,  # <-- NEW PARAMETER
 ) -> dict[str, Any]:
     result = AgentResult(
         answer=answer,
@@ -362,4 +381,37 @@ def _placeholder_result(
         debug=debug,
     ).to_dict()
     result["answer_language"] = answer_language
+
+    # ============================================================
+    # 📊 LOG EVENT TO DASHBOARD (AUTOMATIC FOR EVERY INTERACTION)
+    # ============================================================
+    if user_id:
+        try:
+            # Map route to event_type
+            if route == "memory":
+                event_type = "personal_memory"
+            elif route == "routine":
+                event_type = "routine_request"
+            elif route == "activity":
+                event_type = "activity_request"
+            elif route == "safety":
+                event_type = "safety_boundary"
+            else:
+                event_type = "interaction"
+
+            log_event(
+                user_id,
+                {
+                    "event_type": event_type,
+                    "intent": intent,
+                    "route": route,
+                    "safety_level": safety_level,
+                    "rag_called": False,
+                }
+            )
+        except Exception:
+            # Silently fail - logging shouldn't break the chat experience
+            pass
+    # ============================================================
+
     return result

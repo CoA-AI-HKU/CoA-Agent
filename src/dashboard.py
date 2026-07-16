@@ -17,6 +17,11 @@ sys.path.insert(0, str(Path.home() / ".nanobot"))
 
 from metrics import MetricsCollector
 from insights import InsightGenerator
+
+# ===== TEMPORARY: TEST USER BYPASS =====
+# Comment out the registry import and use collector.get_all_users() instead
+# This allows test profiles (眉眉婆婆, 陳亞明) to appear in the dropdown
+# REVERT THIS BEFORE DEPLOYMENT!
 try:
     from user.user_registry import get_registered_patient_accounts
 except ImportError:  # pragma: no cover - package import path.
@@ -52,20 +57,39 @@ with st.sidebar:
     st.image("https://placehold.co/60x60/4A90D9/white?text=小安", width=60)
     st.title("👤 患者選擇")
     
-    registered_accounts = get_registered_patient_accounts()
-    if registered_accounts:
-        account_labels = {
-            account["user_id"]: f'{account["display_name"]} ({account["user_id"]})'
-            for account in registered_accounts
-        }
-        selected_user = st.selectbox(
-            "選擇患者",
-            list(account_labels),
-            format_func=account_labels.__getitem__,
-        )
+    # ===== TEMPORARY: TEST USER BYPASS =====
+    # Force test profiles to appear in the dropdown
+    # REVERT THIS BEFORE DEPLOYMENT!
+    all_users = collector.get_all_users()
+    
+    # Ensure test profiles appear even if they don't exist in events.jsonl yet
+    test_profiles = ["test_meimei", "test_ah_ming"]
+    for profile in test_profiles:
+        if profile not in all_users:
+            all_users.append(profile)
+    
+    if all_users:
+        selected_user = st.selectbox("選擇患者", all_users)
     else:
-        st.info("📭 暫無已登記的使用者帳戶。")
-        selected_user = None
+        # Fallback: try registry if no users found
+        try:
+            registered_accounts = get_registered_patient_accounts()
+            if registered_accounts:
+                account_labels = {
+                    account["user_id"]: f'{account["display_name"]} ({account["user_id"]})'
+                    for account in registered_accounts
+                }
+                selected_user = st.selectbox(
+                    "選擇患者",
+                    list(account_labels),
+                    format_func=account_labels.__getitem__,
+                )
+            else:
+                st.info("📭 暫無數據。請先與小安對話收集數據。")
+                selected_user = None
+        except Exception:
+            st.info("📭 暫無數據。請先與小安對話收集數據。")
+            selected_user = None
     
     st.divider()
     
@@ -195,7 +219,83 @@ with col2:
         st.info("📭 暫無對話數據")
 
 # ============================================================
-# Row 4: Alerts & Recommendations
+# Row 4: Cognitive Concern Signals (Traffic Light System)
+# ============================================================
+st.subheader("🧠 認知關注訊號")
+
+concern_counts = metrics.get("concern_signal_counts", {})
+total_signals = sum(concern_counts.values())
+
+# Determine traffic light status
+if total_signals == 0:
+    status = "🟢"
+    status_text = "目前沒有檢測到關注訊號"
+    status_text_en = "No concerning signals detected"
+    bg_color = "#d4edda"
+    text_color = "#155724"
+elif total_signals <= 2:
+    status = "🟡"
+    status_text = "檢測到少量訊號 — 建議定期關注"
+    status_text_en = "Minor signals detected — monitor regularly"
+    bg_color = "#fff3cd"
+    text_color = "#856404"
+else:
+    status = "🔴"
+    status_text = "檢測到多個訊號 — 建議照護者跟進"
+    status_text_en = "Multiple signals detected — consider caregiver follow-up"
+    bg_color = "#f8d7da"
+    text_color = "#721c24"
+
+# Display the traffic light card
+st.markdown(f"""
+<div style="background-color: {bg_color}; padding: 20px; border-radius: 12px; margin: 10px 0; border-left: 6px solid {text_color};">
+    <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="font-size: 48px; line-height: 1;">{status}</div>
+        <div>
+            <p style="margin: 0; font-size: 20px; font-weight: 600; color: {text_color};">{status_text}</p>
+            <p style="margin: 0; font-size: 14px; color: {text_color}; opacity: 0.8;">{status_text_en}</p>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: {text_color}; opacity: 0.7;">
+                訊號總數: <strong>{total_signals}</strong>
+            </p>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Show detailed breakdown (if signals exist)
+if total_signals > 0:
+    st.write("**訊號詳細分類：**")
+    cols = st.columns(min(len(concern_counts), 4))
+    
+    # Map signal types to readable Chinese labels
+    signal_labels = {
+        "memory_concern": "🧠 記憶關注",
+        "orientation_confusion": "🗺️ 定向混亂",
+        "medication_uncertainty": "💊 用藥不確定",
+        "wandering_safety": "🚶 遊走風險",
+        "cognitive_check_requested": "📋 認知檢查請求",
+        "cognitive_check_started": "🔄 認知檢查開始",
+        "cognitive_check_completed": "✅ 認知檢查完成",
+        "cognitive_check_followup_suggested": "📌 建議跟進",
+        "repeated_question": "🔄 重複提問",
+        "caregiver_reported_worsening": "📉 照護者回報惡化",
+        "emotional_support_signal": "❤️ 情緒支持需求",
+        "safety_alert": "⚠️ 安全警報",
+    }
+    
+    for idx, (signal_type, count) in enumerate(concern_counts.items()):
+        label = signal_labels.get(signal_type, signal_type.replace("_", " ").title())
+        with cols[idx % len(concern_counts)]:
+            st.metric(
+                label=label,
+                value=count,
+                delta=None
+            )
+else:
+    st.info("✅ 此用戶目前沒有檢測到任何認知關注訊號。")
+
+# ============================================================
+# Row 5: Alerts & Recommendations
 # ============================================================
 st.subheader("⚠️ 提醒與建議")
 
@@ -217,7 +317,7 @@ else:
     st.success("✅ 一切良好！繼續保持！")
 
 # ============================================================
-# Row 5: Patient Profile
+# Row 6: Patient Profile
 # ============================================================
 with st.expander("👤 患者檔案", expanded=False):
     col1, col2 = st.columns(2)

@@ -9,7 +9,7 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_EVENTS_PATH = PROJECT_ROOT / "data" / "private" / "events.jsonl"
+DEFAULT_EVENTS_PATH = Path("C:/Users/user/Desktop/CoA-Agent-main/CoA-Agent/data/private/events.jsonl")
 LEGACY_EVENTS_PATH = Path.home() / ".nanobot" / "data" / "private" / "events.jsonl"
 ALLOWED_EVENT_FIELDS = {
     "timestamp",
@@ -63,8 +63,10 @@ class MetricsCollector:
 
     def get_user_metrics(self, user_id: str, days: int = 7) -> dict[str, Any]:
         events = load_events(user_id=user_id, days=days)
-        interaction_events = [event for event in events if event.get("event_type") == "interaction"]
-        count_base = interaction_events if interaction_events else events
+
+        # Count ALL events as interactions (for testing purposes)
+        count_base = events
+
         mood_history = [
             {"timestamp": event.get("timestamp"), "score": _to_float(event.get("score"))}
             for event in events

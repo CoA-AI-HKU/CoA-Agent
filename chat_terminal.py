@@ -1,6 +1,7 @@
 ﻿# Terminal: python chat_terminal.py
 
 import sys
+import os
 from pathlib import Path
 
 # Add project root to path
@@ -13,10 +14,19 @@ from src.experimental.memory_routine_agent import (
     load_user_profile
 )
 
+# ===== IMPORT FOR DASHBOARD LOGGING =====
+from src.metrics import log_event, infer_event_type
+
+# ===== FORCE THE CORRECT EVENTS PATH =====
+# Make sure events are written to the project's data folder,
+# which is where the Dashboard reads from.
+PROJECT_ROOT = Path(__file__).resolve().parent
+EVENTS_PATH = PROJECT_ROOT / "data" / "private" / "events.jsonl"
+os.environ["EVENTS_LOG_PATH"] = str(EVENTS_PATH)
+# =========================================
+
 # ============================================
 # 🎯 FOOLPROOF USER SELECTION
-# The script asks you which profile to load EVERY TIME you run it.
-# No more editing the file!
 # ============================================
 print("=" * 60)
 print("👤 Which user do you want to test?")
@@ -44,8 +54,15 @@ print(f"   User ID: {USER_ID}")
 print(f"   Loaded Profile Name: {profile.get('name', '⚠️ NOT FOUND!')}")
 print(f"   Family: {profile.get('family', {})}")
 print("=" * 60)
+print(f"📁 Events will be written to: {EVENTS_PATH}")
+print("=" * 60)
 print("   Type 'exit' or 'quit' to stop.")
 print("=" * 60)
+
+# ============================================
+# Ensure the directory exists
+# ============================================
+EVENTS_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 while True:
     try:
@@ -71,6 +88,39 @@ while True:
         
         answer = result.get("answer", "[No reply]")
         print(f"Bot: {answer}")
+        
+        # ============================================================
+        # 📊 LOG EVENT TO DASHBOARD (FOR TESTING)
+        # ============================================================
+        try:
+            route = result.get("route", "unknown")
+            
+            # Map route to event_type
+            if route == "memory":
+                event_type = "personal_memory"
+            elif route == "routine":
+                event_type = "routine_request"
+            elif route == "activity":
+                event_type = "activity_request"
+            else:
+                event_type = "interaction"
+            
+            # Prepare the event data
+            event_data = {
+                "event_type": event_type,
+                "intent": result.get("intent", "unknown"),
+                "route": route,
+                "safety_level": result.get("safety_level", "normal"),
+                "rag_called": result.get("rag_called", False),
+            }
+            
+            # Actually log the event
+            log_event(USER_ID, event_data)
+            
+        except Exception as e:
+            # Silently fail - logging shouldn't break the chat experience
+            print(f"⚠️ Dashboard log failed: {e}")
+        # ============================================================
         
     except KeyboardInterrupt:
         print("\nGoodbye!")
