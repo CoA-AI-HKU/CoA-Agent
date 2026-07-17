@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CoA-Agent - Dementia Support</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Add this small extra style for the consent checkbox */
+        .consent-checkbox {
+            background: #f5f8fe;
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin: 15px 0 15px 0;
+            text-align: left;
+            border: 1px solid #e0e8f5;
+        }
+        .consent-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            accent-color: #2a8cff;
+            cursor: pointer;
+            vertical-align: middle;
+        }
+        .consent-checkbox label {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #1a2a4a;
+            cursor: pointer;
+        }
+        .consent-checkbox label a {
+            color: #2a8cff;
+            text-decoration: underline;
+        }
+        .consent-checkbox label .zh {
+            font-weight: 400;
+            color: #3a4a6a;
+            display: block;
+            font-size: 14px;
+        }
+        /* Disabled button state (applied by JavaScript) */
+        .btn-disabled {
+            pointer-events: none;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-enabled {
+            pointer-events: auto;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <!-- Logo Section -->
+            <div class="logo">🧠</div>
+            <h1>CoA-Agent</h1>
+            <p class="subtitle">AI Support for Dementia Care &amp; Caregiving</p>
+            
+            <hr>
+
+            <h2>💬 Start Chatting Now</h2>
+            <p class="hint">Click the button below to open Telegram and talk to our assistant.</p>
+
+            <!-- ============================================ -->
+            <!-- MANDATORY CONSENT CHECKBOX                   -->
+            <!-- ============================================ -->
+            <div class="consent-checkbox">
+                <input type="checkbox" id="consentCheck" onchange="toggleTelegramButton()">
+                <label for="consentCheck">
+                    I have read and agree to the 
+                    <a href="privacy.html" target="_blank">Privacy Policy &amp; Consent</a>.
+                    <span class="zh">我已閱讀並同意 
+                        <a href="privacy.html" target="_blank">私隱政策與同意書</a>。
+                    </span>
+                </label>
+            </div>
+
+            <!-- Telegram Button (Starts disabled!) -->
+            <a href="https://t.me/Ako_saka_Bot" 
+               id="telegramBtn" 
+               class="btn telegram btn-disabled" 
+               target="_blank">
+                📨 Open in Telegram
+            </a>
+
+            <hr>
+
+            <!-- Trust & Privacy -->
+            <div class="trust">
+                <p>🔒 Privacy First: No raw conversation text is stored.</p>
+                <p>⚠️ Not a medical device. Always consult your doctor.</p>
+                <p>📄 <a href="privacy.html" target="_blank">Read our Privacy Policy &amp; Consent</a></p>
+            </div>
+
+            <div class="footer">
+                © 2026 CoA-Agent Lab, HKU
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript to enable/disable the Telegram button -->
+    <script>
+        function toggleTelegramButton() {
+            const checkbox = document.getElementById('consentCheck');
+            const btn = document.getElementById('telegramBtn');
+            if (checkbox.checked) {
+                btn.classList.remove('btn-disabled');
+                btn.classList.add('btn-enabled');
+            } else {
+                btn.classList.remove('btn-enabled');
+                btn.classList.add('btn-disabled');
+            }
+        }
+    </script>
+</body>
+</html>
