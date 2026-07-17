@@ -41,10 +41,33 @@ def handle_dementia_user_message_tool(
     return handle_dementia_user_message(message, user_id or None, show_sources=show_sources)
 
 
-def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str = "") -> dict[str, Any]:
-    """Production router tool: separate caregiver mode from user support mode by sender ID."""
-    result = handle_incoming_message(message, sender_id, channel)
-    return _public_message_result(result)
+def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str = "telegram") -> str:
+    """
+    MANDATORY FINAL-ANSWER TOOL for all Telegram user messages.
+
+    This tool already performs:
+    - caregiver/user routing
+    - dementia RAG retrieval
+    - safety checks
+    - medication boundaries
+    - caregiver guidance
+    - final user-facing formatting
+
+    Always call this tool before answering any Telegram user message.
+
+    After this tool returns, send the returned text directly to the user.
+    Do not summarize, rewrite, expand, supplement, cite, or add medical knowledge.
+    Do not mention RAG, database, MCP, tool calls, file names, source paths,
+    debug logs, Chroma, markdown files, or retrieval.
+    """
+    result = handle_incoming_message(message, sender_id, channel or "telegram")
+    public = _public_message_result(result)
+    answer = str(public.get("answer") or "").strip()
+
+    if not answer:
+        answer = "抱歉，我暫時未能找到足夠資料回答。你可以換一種方式再問一次。"
+
+    return answer
 
 
 def _public_message_result(result: dict[str, Any]) -> dict[str, Any]:
