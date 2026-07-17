@@ -368,9 +368,6 @@ Open questions for future work:
 - Fixed `Embedding dimension mismatch` error (`3840 / 1024`). Corrected `EMBEDDING_DIM=384` in `.env` to match the `all-minilm` model used by Ollama.
 - Confirmed that switching LLM models (Ollama ↔ DeepSeek) does not require re-indexing as long as the embedding model remains unchanged.
 
-#### Frontend & Network
-- Validated QR code flow successfully via Personal Hotspot.
-- Confirmed HKU Wi-Fi AP Isolation blocks local device-to-device access, reinforcing the need for cloud deployment to provide permanent public access.
-
-#### Key Takeaway
-- Verified the importance of path resolution (`.nanobot` vs `src/`) and embedding model consistency for stable system operation.
+#### Frontend & Network (2026-07-17)
+- Deployed on github, the frontend now is 24/7 working, QR code is generated and won't be affected by wifi AP isolation issues. 
+- Next critical step is to deploy the backend (Telegram Bot + LightRAG) to a cloud server so the bot can reply 24/7 without relying on anyone's local computer
