@@ -6,6 +6,7 @@ __pycache__/
 *.tmp
 *.env
 data/private/
+data/chroma/
 .nanobot/data/private/
 *.db
 *.sqlite
