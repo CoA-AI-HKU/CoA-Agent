@@ -16,7 +16,8 @@ from src.metrics import clear_user_events, detect_concern_signal, infer_event_ty
 from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
-from src.user.security import is_admin_sender, unsafe_control_request
+from src.user.security import is_admin_sender
+from src.user.session_preferences import set_avoid_patient_framing
 from src.user.user_registry import (
     create_pairing_code,
     create_dashboard_access_token,
@@ -47,8 +48,6 @@ def handle_incoming_message(
     account_result = _handle_account_command(message, normalized_sender_id, role, admin)
     if account_result is not None:
         return _finalize_user_output(account_result, message)
-    if unsafe_control_request(message) and not admin:
-        return _finalize_user_output(_security_refusal(), message)
     onboarding_result = _handle_onboarding_reply(message, normalized_sender_id)
     if onboarding_result is not None:
         return _finalize_user_output(onboarding_result, message)
@@ -84,6 +83,8 @@ def handle_incoming_message(
             str(result.get("answer") or ""),
             "three comma-separated item names",
         )
+    if result.get("intent") == "role_correction":
+        set_avoid_patient_framing(normalized_sender_id)
 
     output = dict(result)
     output["role"] = role

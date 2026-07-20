@@ -32,6 +32,10 @@ EMOTIONAL_SUPPORT_RESPONSE = (
     "如果這件事和健康或安全有關，請同時告訴照顧者或醫護人員。"
 )
 UNKNOWN_RESPONSE = "我未能清楚理解你的意思。你可以用簡單一句再問一次嗎？"
+ROLE_CORRECTION_RESPONSE = "明白，我不會把你當成腦退化症患者。之後我會用中立方式回應你；除非你自己提到相關情況，我不會假設你有腦退化症或需要照顧者。"
+ROLE_CORRECTION_CANTONESE_RESPONSE = "明白，我唔會當你係腦退化症患者。之後我會用中立方式回應；除非你自己提到相關情況，否則我唔會假設你有腦退化症或者需要照顧者。"
+PROMPT_INJECTION_RESPONSE = "我不能更改安全規則或透露內部設定。不過，我可以繼續用安全、簡單的方式幫你。"
+DIAGNOSIS_FORCING_RESPONSE = "我不能作診斷或提供風險分數。如果你擔心記憶或思考上的改變，我可以幫你整理情況，並建議是否需要找醫生或記憶診所評估。"
 
 
 def handle_dementia_user_message(
@@ -46,6 +50,10 @@ def handle_dementia_user_message(
         result = handle_safety(message, decision)
     elif decision.route == "medical_boundary":
         result = handle_medical_boundary(message, decision)
+    elif decision.route == "role_correction":
+        result = _role_correction_response(message, decision)
+    elif decision.route == "prompt_injection":
+        result = _prompt_injection_response(message, decision)
     elif decision.route == "screening":
         result = handle_cognitive_concern_screening(message, user_id)
     elif decision.route in {"memory_concern", "self_memory_concern"}:
@@ -106,6 +114,34 @@ def _supportive_response(decision: AgentDecision) -> dict[str, Any]:
         "sources": [],
         "rag_called": False,
         "route": "supportive",
+        "debug": {"agent": "coordinator"},
+    }
+
+
+def _role_correction_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    cantonese = any(term in message for term in ("唔", "冇", "係"))
+    return {
+        "answer": ROLE_CORRECTION_CANTONESE_RESPONSE if cantonese else ROLE_CORRECTION_RESPONSE,
+        "intent": decision.intent,
+        "safety_level": "role_correction",
+        "found": False,
+        "sources": [],
+        "rag_called": False,
+        "route": "role_correction",
+        "debug": {"agent": "coordinator"},
+    }
+
+
+def _prompt_injection_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    diagnosis_terms = ("診斷", "风险分数", "風險分數", "risk score", "dementia diagnosis", "pretend you are a doctor")
+    return {
+        "answer": DIAGNOSIS_FORCING_RESPONSE if any(term in message.lower() for term in diagnosis_terms) else PROMPT_INJECTION_RESPONSE,
+        "intent": decision.intent,
+        "safety_level": "prompt_injection_boundary",
+        "found": False,
+        "sources": [],
+        "rag_called": False,
+        "route": "prompt_injection",
         "debug": {"agent": "coordinator"},
     }
 

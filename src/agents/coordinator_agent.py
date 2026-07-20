@@ -119,6 +119,8 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
     route_map = {
         "safety_sensitive": ("safety", False, True),
         "medication_or_diagnosis": ("medical_boundary", False, True),
+        "role_correction": ("role_correction", False, False),
+        "prompt_injection": ("prompt_injection", False, True),
         "self_memory_concern": ("memory_concern", False, False),
         "caregiver_support": ("caregiver_guidance", False, False),
         "cognitive_concern_screening": ("screening", False, False),

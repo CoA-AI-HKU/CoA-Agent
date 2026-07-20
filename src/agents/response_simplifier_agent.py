@@ -25,6 +25,7 @@ UNSUPPORTED_DEMENTIA_ASSUMPTION_REPLACEMENTS = {
     "你的腦退化症": "相關的腦退化症情況",
     "作為腦退化症患者": "如果這是關於腦退化症照顧",
     "作為一名腦退化症患者": "如果這是關於腦退化症照顧",
+    "腦退化症人士都會遇到": "有些人可能會遇到",
     "因為你記性不好": "如果近期較難記住",
     "你的記憶力不好": "如果近期較難記住",
     "你有記憶力問題": "如果近期較難記住",
@@ -95,7 +96,10 @@ def simplify_response(result: dict[str, Any], message: str, user_id: str | None 
         for source, replacement in OBVIOUS_TRADITIONAL_REPLACEMENTS.items():
             answer = answer.replace(source, replacement)
 
-    answer, bias_guard_applied = remove_unsupported_dementia_assumptions(answer, message)
+    if output.get("intent") == "role_correction":
+        bias_guard_applied = False
+    else:
+        answer, bias_guard_applied = remove_unsupported_dementia_assumptions(answer, message)
 
     if len(answer) > 220 and output.get("safety_level") not in {
         "urgent_boundary",
