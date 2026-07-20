@@ -14,6 +14,7 @@ from src.agents.user_facing_formatter import (
 )
 from src.metrics import clear_user_events, detect_concern_signal, infer_event_type, log_event
 from src.user.mode_info import format_mode_info
+from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
 from src.user.user_registry import (
     create_pairing_code,
     create_dashboard_access_token,
@@ -38,13 +39,18 @@ def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> 
     account_result = _handle_account_command(message, normalized_sender_id, role)
     if account_result is not None:
         return _finalize_user_output(account_result, message)
+    registry_user_id = get_registry_user_id(normalized_sender_id) if role == "user" else None
+    session_user_id = registry_user_id or normalized_sender_id
+    pending_activity_result = consume_pending_activity_response(normalized_sender_id, message)
     sender_memory = build_user_memory(normalized_sender_id)
     linked_user_id = get_linked_user_id(normalized_sender_id) if role == "caregiver" else None
     linked_user_memory = build_memory_for_user_id(linked_user_id) if linked_user_id else None
 
     event_user_id = linked_user_id or get_registry_user_id(normalized_sender_id) or normalized_sender_id
-    consent = consent_reply(message, event_user_id) if role == "user" else None
-    if consent is not None:
+    consent = consent_reply(message, event_user_id) if role == "user" and pending_activity_result is None else None
+    if pending_activity_result is not None:
+        result = pending_activity_result
+    elif consent is not None:
         result = _simple_result(consent_answer(message, consent), "screening_consent")
         result["screening_consent"] = consent
     elif _is_mode_info_command(message):
@@ -53,10 +59,18 @@ def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> 
         result = handle_caregiver_manager_message(message, normalized_sender_id, linked_user_id, channel)
         event_user_id = linked_user_id or normalized_sender_id
     else:
-        registry_user_id = get_registry_user_id(normalized_sender_id) if role == "user" else None
         user_id = registry_user_id or normalized_sender_id
         result = handle_patient_user_message(message, normalized_sender_id, user_id, channel)
         event_user_id = user_id
+
+    if result.get("route") == "activity" and "三種水果" in str(result.get("answer") or ""):
+        store_pending_activity(
+            normalized_sender_id,
+            str(event_user_id or session_user_id),
+            "name_three_items",
+            str(result.get("answer") or ""),
+            "three comma-separated item names",
+        )
 
     output = dict(result)
     output["role"] = role
