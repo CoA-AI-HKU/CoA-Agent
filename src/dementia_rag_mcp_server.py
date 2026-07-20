@@ -41,7 +41,12 @@ def handle_dementia_user_message_tool(
     return handle_dementia_user_message(message, user_id or None, show_sources=show_sources)
 
 
-def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str = "telegram") -> str:
+def handle_incoming_message_tool(
+    message: str,
+    sender_id: str = "",
+    channel: str = "telegram",
+    telegram_username: str = "",
+) -> str:
     """
     MANDATORY FINAL-ANSWER TOOL for all Telegram user messages.
 
@@ -60,7 +65,7 @@ def handle_incoming_message_tool(message: str, sender_id: str = "", channel: str
     Do not mention RAG, database, MCP, tool calls, file names, source paths,
     debug logs, Chroma, markdown files, or retrieval.
     """
-    result = handle_incoming_message(message, sender_id, channel or "telegram")
+    result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)
     public = _public_message_result(result)
     answer = str(public.get("answer") or "").strip()
 

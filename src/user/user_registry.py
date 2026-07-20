@@ -45,6 +45,9 @@ def register_account(sender_id: str, role: str, display_name: str = "") -> dict[
     existing = users.get(normalized, {}) if isinstance(users.get(normalized), dict) else {}
     record = dict(existing)
     record["role"] = normalized_role
+    now = datetime.now(timezone.utc).isoformat()
+    record["created_at"] = str(record.get("created_at") or now)
+    record["updated_at"] = now
     if display_name.strip():
         record["display_name"] = display_name.strip()[:80]
     if normalized_role == "user":
@@ -53,7 +56,10 @@ def register_account(sender_id: str, role: str, display_name: str = "") -> dict[
         record.pop("linked_user_ids", None)
     users[normalized] = record
     save_user_registry(registry)
-    return record
+    saved = get_user_record(normalized)
+    if str(saved.get("role") or "").strip().lower() != normalized_role:
+        raise OSError("account registration could not be verified in persistent storage")
+    return saved
 
 
 def create_pairing_code(sender_id: str, lifetime_minutes: int = 15) -> str:

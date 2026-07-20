@@ -21,6 +21,13 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 
 ## Telegram and WhatsApp internal commands
 
+Telegram `/start` returns the normal self-introduction and registration prompt.
+The undocumented `\initiate` alias invokes the same response for developer testing.
+Administrative security-layer bypass should be configured with the immutable numeric
+Telegram ID in `ADMIN_TELEGRAM_SENDER_IDS`. The optional
+`ADMIN_TELEGRAM_USERNAMES=ainezhang` compatibility setting requires the gateway to
+pass Telegram's verified username to the message handler.
+
 These commands are handled inside the RAG message router when sent through Telegram or WhatsApp. They intentionally begin with a backslash so Telegram does not treat them as native bot-menu commands. Nanobot must pass the complete message and platform sender ID to `handle_incoming_message`.
 
 ```text

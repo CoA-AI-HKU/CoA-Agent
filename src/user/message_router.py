@@ -14,7 +14,9 @@ from src.agents.user_facing_formatter import (
 )
 from src.metrics import clear_user_events, detect_concern_signal, infer_event_type, log_event
 from src.user.mode_info import format_mode_info
+from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
+from src.user.security import is_admin_sender, unsafe_control_request
 from src.user.user_registry import (
     create_pairing_code,
     create_dashboard_access_token,
@@ -32,13 +34,24 @@ from src.user.screening_offer import consent_answer, consent_reply, offer_answer
 from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
-def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> dict[str, Any]:
+def handle_incoming_message(
+    message: str,
+    sender_id: str,
+    channel: str = "",
+    telegram_username: str = "",
+) -> dict[str, Any]:
     normalized_sender_id = normalize_sender_id(sender_id)
     role = get_user_role(normalized_sender_id)
     record = get_user_record(normalized_sender_id)
-    account_result = _handle_account_command(message, normalized_sender_id, role)
+    admin = is_admin_sender(normalized_sender_id, telegram_username)
+    account_result = _handle_account_command(message, normalized_sender_id, role, admin)
     if account_result is not None:
         return _finalize_user_output(account_result, message)
+    if unsafe_control_request(message) and not admin:
+        return _finalize_user_output(_security_refusal(), message)
+    onboarding_result = _handle_onboarding_reply(message, normalized_sender_id)
+    if onboarding_result is not None:
+        return _finalize_user_output(onboarding_result, message)
     registry_user_id = get_registry_user_id(normalized_sender_id) if role == "user" else None
     session_user_id = registry_user_id or normalized_sender_id
     pending_activity_result = consume_pending_activity_response(normalized_sender_id, message)
@@ -132,11 +145,20 @@ def handle_incoming_message(message: str, sender_id: str, channel: str = "") -> 
     return output
 
 
-def _handle_account_command(message: str, sender_id: str, role: str) -> dict[str, Any] | None:
+def _handle_account_command(message: str, sender_id: str, role: str, admin: bool = False) -> dict[str, Any] | None:
     text = str(message or "").strip()
     parts = text.split(maxsplit=2)
     command = _normalize_command(parts[0]) if parts else ""
     try:
+        if command == "\\initiate":
+            if not admin:
+                return _security_refusal()
+            begin_onboarding(sender_id)
+            return _onboarding_result(sender_id, "unknown", {})
+        if command == "\\start":
+            if role == "unknown":
+                begin_onboarding(sender_id)
+            return _onboarding_result(sender_id, role, get_user_record(sender_id))
         if command == "\\register":
             if len(parts) < 2:
                 return _simple_result("Usage: \\register patient NAME or \\register caregiver NAME", "account_help")
@@ -195,6 +217,83 @@ def _handle_account_command(message: str, sender_id: str, role: str) -> dict[str
     return None
 
 
+def _onboarding_result(sender_id: str, role: str, record: dict[str, Any]) -> dict[str, Any]:
+    display_name = str(record.get("display_name") or "").strip()
+    if role == "caregiver":
+        greeting = f"你好，{display_name}。" if display_name else "你好。"
+        answer = (
+            f"{greeting}我是小安，一個提供日常照護資訊和簡單支援的聊天助手。"
+            "我不會作出診斷，也不能代替醫護人員或緊急服務。\n\n"
+            "你已登記為照顧者。你可以輸入 \\paircode 相關指令與使用者配對，"
+            "或輸入 \\whichroleami 查看目前身份。"
+        )
+    elif role == "user":
+        greeting = f"你好，{display_name}。" if display_name else "你好。"
+        answer = (
+            f"{greeting}我是小安。我可以用簡單、清楚的方式提供日常支援，"
+            "也可以陪你做輕鬆的小活動。你可以按自己的步調慢慢說。\n\n"
+            "我不會作出診斷，也不能代替醫護人員或緊急服務。"
+            "你已完成使用者登記；輸入 \\whichroleami 可以查看目前身份。"
+        )
+    else:
+        answer = (
+            "你好，我是小安。我可以提供簡單的記憶與日常生活支援，也可以陪你做一些輕鬆的小活動。\n"
+            "我不會作出診斷，也不能代替醫生或緊急服務。\n"
+            "在開始之前，請問你希望以哪個身份使用？\n"
+            "使用者\n"
+            "照顧者\n"
+            "請回覆「使用者」或「照顧者」。"
+        )
+    return {
+        "answer": answer,
+        "route": "onboarding",
+        "sources": [],
+        "found": False,
+        "rag_called": False,
+        "intent": "onboarding",
+        "safety_level": "normal",
+        "sender_id": sender_id,
+        "debug": {"agent": "message_router", "onboarding": True},
+    }
+
+
+def _handle_onboarding_reply(message: str, sender_id: str) -> dict[str, Any] | None:
+    reply = consume_onboarding_reply(sender_id, message)
+    if reply is None:
+        return None
+    if reply["action"] == "ask_name":
+        return _onboarding_message("謝謝。請問我可以怎樣稱呼你？", "onboarding_name")
+    record = register_account(sender_id, reply["role"], reply["display_name"])
+    role_label = "使用者" if record["role"] == "user" else "照顧者"
+    return _onboarding_message(f"謝謝，登記完成。你目前以{role_label}身份使用。", "account_registration")
+
+
+def _onboarding_message(answer: str, intent: str) -> dict[str, Any]:
+    return {
+        "answer": answer,
+        "route": "onboarding",
+        "sources": [],
+        "found": False,
+        "rag_called": False,
+        "intent": intent,
+        "safety_level": "normal",
+        "debug": {"agent": "message_router", "onboarding": True},
+    }
+
+
+def _security_refusal() -> dict[str, Any]:
+    return {
+        "answer": "為了保護帳戶和資料安全，我不能執行更改系統規則、刪除資料或繞過安全限制的要求。",
+        "route": "security_boundary",
+        "sources": [],
+        "found": False,
+        "rag_called": False,
+        "intent": "security_sensitive",
+        "safety_level": "security_boundary",
+        "debug": {"agent": "message_router", "security_blocked": True},
+    }
+
+
 def _normalize_command(token: str) -> str:
     """Use backslash commands while accepting slash-form transport compatibility."""
     value = str(token or "").strip().lower()
@@ -219,8 +318,14 @@ def _simple_result(answer: str, intent: str) -> dict[str, Any]:
 
 
 def _is_mode_info_command(message: str) -> bool:
-    parts = str(message or "").strip().split(maxsplit=1)
-    return bool(parts) and _normalize_command(parts[0]) == "\\whichroleami"
+    parts = str(message or "").strip().split()
+    if not parts:
+        return False
+    command = _normalize_command(parts[0])
+    if command == "\\whichroleami":
+        return True
+    # Recover the common accidental split: "\\whichroleam i".
+    return len(parts) == 2 and _normalize_command(f"{parts[0]}{parts[1]}") == "\\whichroleami"
 
 
 def _mode_info_result(sender_id: str, role: str, record: dict[str, Any]) -> dict[str, Any]:
