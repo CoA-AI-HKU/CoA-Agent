@@ -13,6 +13,7 @@ from src.agents.user_facing_formatter import (
     guard_user_facing_answer,
 )
 from src.metrics import clear_user_events, detect_concern_signal, infer_event_type, log_event
+from src.screening.outbox import queue_screening_message
 from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
@@ -22,16 +23,18 @@ from src.user.user_registry import (
     create_pairing_code,
     create_dashboard_access_token,
     get_linked_user_id,
+    get_linked_user_ids,
     get_registry_user_id,
     get_user_record,
     get_user_role,
+    get_user_record_by_user_id,
     normalize_sender_id,
     redeem_pairing_code,
     register_account,
     revoke_caregivers_for_user,
     unlink_caregiver,
 )
-from src.user.screening_offer import consent_answer, consent_reply, offer_answer, should_offer_screening
+from src.user.screening_offer import consent_answer, consent_reply, latest_offer_context, offer_answer, screening_offer_decision
 from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
@@ -48,6 +51,9 @@ def handle_incoming_message(
     account_result = _handle_account_command(message, normalized_sender_id, role, admin)
     if account_result is not None:
         return _finalize_user_output(account_result, message)
+    caregiver_screening = _handle_caregiver_screening_command(message, normalized_sender_id, role, channel)
+    if caregiver_screening is not None:
+        return _finalize_user_output(caregiver_screening, message)
     onboarding_result = _handle_onboarding_reply(message, normalized_sender_id)
     if onboarding_result is not None:
         return _finalize_user_output(onboarding_result, message)
@@ -62,9 +68,23 @@ def handle_incoming_message(
     consent = consent_reply(message, event_user_id) if role == "user" and pending_activity_result is None else None
     if pending_activity_result is not None:
         result = pending_activity_result
+    elif consent is not None and _is_group_channel(channel):
+        result = _screening_privacy_result()
+        consent = None
     elif consent is not None:
-        result = _simple_result(consent_answer(message, consent), "screening_consent")
+        context = latest_offer_context(event_user_id)
+        result = _simple_result(
+            consent_answer(
+                message,
+                consent,
+                event_user_id,
+                created_by=str(context.get("created_by") or "self"),
+                caregiver_id=str(context.get("caregiver_id") or ""),
+            ),
+            "screening_consent",
+        )
         result["screening_consent"] = consent
+        result["screening_version"] = "cognitive_concern_screening_v1"
     elif _is_mode_info_command(message):
         result = _mode_info_result(normalized_sender_id, role, record)
     elif role == "caregiver":
@@ -125,10 +145,38 @@ def handle_incoming_message(
             event.update(concern_signal)
         elif output.get("intent") == "screening_consent":
             event["event_type"] = "screening_accepted" if output.get("screening_consent") else "screening_declined"
+            event["screening_version"] = "cognitive_concern_screening_v1"
+            event["raw_text_saved"] = False
         else:
             event["event_type"] = infer_event_type(output)
         log_event(event_user_id, event)
-        if role == "user" and should_offer_screening(event_user_id, concern_signal):
+        policy_signal = dict(concern_signal or {})
+        policy_signal["route"] = str(output.get("route") or "")
+        policy_signal["explicit_request"] = output.get("intent") == "cognitive_concern_screening"
+        decision = screening_offer_decision(event_user_id, role, policy_signal)
+        if role == "caregiver" and decision["offer"] and linked_user_id and not _is_group_channel(channel):
+            patient_sender_id, _ = get_user_record_by_user_id(linked_user_id)
+            if patient_sender_id:
+                queued = queue_screening_message(
+                    patient_sender_id,
+                    linked_user_id,
+                    offer_answer(message, caregiver_requested=True),
+                )
+                output.setdefault("outbound_messages", []).append(queued)
+                output["answer"] = (
+                    f'{str(output.get("answer") or "").rstrip()}\n\n'
+                    "我會先向使用者發送一段簡短說明，並在對方同意後提供小檢查連結。"
+                )
+                log_event(linked_user_id, {
+                    "event_type": "screening_offered",
+                    "caregiver_id": normalized_sender_id,
+                    "created_by": "caregiver",
+                    "reason": decision["reason"],
+                    "urgency": decision["urgency"],
+                    "screening_version": "cognitive_concern_screening_v1",
+                    "raw_text_saved": False,
+                })
+        elif role != "caregiver" and decision["offer"]:
             output["answer"] = f'{str(output.get("answer") or "").rstrip()}\n\n{offer_answer(message)}'
             log_event(event_user_id, {
                 "sender_id": normalized_sender_id,
@@ -136,7 +184,12 @@ def handle_incoming_message(
                 "role": role,
                 "intent": "cognitive_concern_screening",
                 "route": "screening",
-                "event_type": "screening_offer",
+                "event_type": "screening_offered",
+                "reason": decision["reason"],
+                "urgency": decision["urgency"],
+                "created_by": "self" if decision["reason"].startswith("user explicitly") else "system",
+                "screening_version": "cognitive_concern_screening_v1",
+                "raw_text_saved": False,
             })
     except Exception as exc:  # pragma: no cover - defensive; user response must continue.
         debug["metrics_warning"] = str(exc)
@@ -216,6 +269,69 @@ def _handle_account_command(message: str, sender_id: str, role: str, admin: bool
     except ValueError as exc:
         return _simple_result(str(exc), "account_pairing")
     return None
+
+
+def _handle_caregiver_screening_command(
+    message: str, sender_id: str, role: str, channel: str
+) -> dict[str, Any] | None:
+    parts = str(message or "").strip().split(maxsplit=1)
+    command = _normalize_command(parts[0]) if parts else ""
+    if command not in {"\\send_screening", "\\start_check"}:
+        return None
+    if role != "caregiver":
+        return _simple_result("只有已登記並完成配對的照顧者可以提出小檢查邀請。", "screening_caregiver_request")
+    if _is_group_channel(channel):
+        return _screening_privacy_result()
+    linked_ids = get_linked_user_ids(sender_id)
+    if not linked_ids:
+        return _simple_result("請先與使用者完成配對，才可以提出小檢查邀請。", "screening_caregiver_request")
+    requested_id = parts[1].strip() if len(parts) == 2 else ""
+    if len(linked_ids) > 1 and not requested_id:
+        choices = "\n".join(f"\\send_screening {user_id}" for user_id in linked_ids)
+        return _simple_result(f"你已連結多位使用者。請選擇一位：\n{choices}", "screening_caregiver_request")
+    user_id = requested_id or linked_ids[0]
+    if user_id not in linked_ids:
+        return _simple_result("你只能為已配對的使用者提出小檢查邀請。", "screening_caregiver_request")
+    patient_sender_id, _ = get_user_record_by_user_id(user_id)
+    if not patient_sender_id:
+        return _simple_result("暫時找不到已配對使用者的私人聊天帳戶。", "screening_caregiver_request")
+    patient_message = offer_answer(message, caregiver_requested=True)
+    queued = queue_screening_message(patient_sender_id, user_id, patient_message)
+    common = {
+        "user_id": user_id,
+        "caregiver_id": sender_id,
+        "created_by": "caregiver",
+        "screening_version": "cognitive_concern_screening_v1",
+        "raw_text_saved": False,
+    }
+    log_event(user_id, {**common, "event_type": "screening_requested_by_caregiver"})
+    log_event(user_id, {
+        **common,
+        "event_type": "screening_offered",
+        "reason": "caregiver requested non-diagnostic check-in",
+        "urgency": "suggested",
+    })
+    result = _simple_result(
+        "我會先向使用者發送一段簡短說明，並在對方同意後提供小檢查連結。",
+        "screening_caregiver_request",
+    )
+    result["outbound_messages"] = [queued]
+    return result
+
+
+def _is_group_channel(channel: str) -> bool:
+    return str(channel or "").strip().lower() in {
+        "group", "supergroup", "telegram_group", "telegram_supergroup"
+    }
+
+
+def _screening_privacy_result() -> dict[str, Any]:
+    result = _simple_result(
+        "為了保護私隱，小檢查連結只會在私人聊天中發送。請先私訊我。",
+        "screening_privacy",
+    )
+    result["route"] = "screening_privacy"
+    return result
 
 
 def _onboarding_result(sender_id: str, role: str, record: dict[str, Any]) -> dict[str, Any]:

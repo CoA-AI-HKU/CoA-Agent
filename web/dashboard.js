@@ -35,6 +35,11 @@ function render(payload) {
   document.querySelector('[data-metric="total_interactions"]').textContent = m.total_interactions ?? 0;
   document.querySelector('[data-metric="medication_adherence"]').textContent = m.medication_adherence == null ? 'N/A' : `${Math.round(m.medication_adherence * 100)}%`;
   document.querySelectorAll('[data-summary]').forEach(el => { el.textContent = s[el.dataset.summary] || ''; });
+  document.querySelectorAll('[data-screening]').forEach(el => {
+    const value=m[el.dataset.screening];
+    const labels={normal:'未見即時關注',monitor:'建議留意',follow_up_suggested:'建議跟進',urgent_safety:'安全問題需即時處理'};
+    el.textContent=el.dataset.screening==='latest_risk_flag'?(labels[value]||'—'):(value||'—');
+  });
   renderBars(document.querySelector('#activity-bars'), payload.daily_activity.slice(-7), 'count', 'date');
   renderHistory('#mood-chart', m.mood_history); renderHistory('#cognitive-chart', m.cognitive_history);
   const alerts = document.querySelector('#alert-list'); alerts.replaceChildren();

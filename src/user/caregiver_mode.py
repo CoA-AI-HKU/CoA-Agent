@@ -6,15 +6,16 @@ from src.metrics import load_events
 
 
 HELP_RESPONSE = """照顧者模式指令：
-/summary 查看今日摘要
-/alerts 查看近期安全提醒
-/set_routine 設定日常安排
-/set_reminder 設定提醒"""
+\\summary 查看今日摘要
+\\alerts 查看近期安全提醒
+\\set_routine 設定日常安排
+\\set_reminder 設定提醒
+\\send_screening 建議已配對使用者進行非診斷小檢查"""
 SUMMARY_EMPTY_RESPONSE = "今日暫時沒有足夠記錄生成摘要。"
 ALERTS_EMPTY_RESPONSE = "暫時沒有安全提醒。"
 SET_ROUTINE_RESPONSE = "日常安排功能正在開發中。之後可以由照顧者加入覆診、飲水、活動和休息安排。"
 SET_REMINDER_RESPONSE = "提醒功能正在開發中。之後可以由照顧者加入提醒文字。系統只會提醒，不會決定藥物劑量或更改醫囑。"
-UNKNOWN_COMMAND_RESPONSE = "我未能理解這個照顧者指令。你可以輸入 /help 查看可用指令。"
+UNKNOWN_COMMAND_RESPONSE = "我未能理解這個照顧者指令。你可以輸入 \\help 查看可用指令。"
 
 
 def handle_caregiver_message(
@@ -23,17 +24,19 @@ def handle_caregiver_message(
     linked_user_id: str | None = None,
 ) -> dict[str, Any]:
     command = (message or "").strip().split(maxsplit=1)[0].lower()
-    if command in {"", "/help", "help"}:
+    if command.startswith("/"):
+        command = f"\\{command[1:]}"
+    if command in {"", "\\help", "help"}:
         answer = HELP_RESPONSE
         event_counts: dict[str, int] = {}
-    elif command == "/summary":
+    elif command == "\\summary":
         answer, event_counts = _summary_answer(linked_user_id)
-    elif command == "/alerts":
+    elif command == "\\alerts":
         answer, event_counts = _alerts_answer(linked_user_id)
-    elif command == "/set_routine":
+    elif command == "\\set_routine":
         answer = SET_ROUTINE_RESPONSE
         event_counts = {}
-    elif command == "/set_reminder":
+    elif command == "\\set_reminder":
         answer = SET_REMINDER_RESPONSE
         event_counts = {}
     else:
@@ -53,7 +56,7 @@ def handle_caregiver_message(
         "debug": {
             "agent": "caregiver_mode",
             "sender_id": sender_id,
-            "command": command or "/help",
+            "command": command or "\\help",
             "event_counts": event_counts,
         },
     }

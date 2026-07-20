@@ -43,6 +43,8 @@ These commands are handled inside the RAG message router when sent through Teleg
 \clearhistory
 \clearhistory confirm
 \accountcommands
+\send_screening
+\start_check
 ```
 
 - `\register patient DISPLAY_NAME` registers the sender as a patient account.
@@ -57,6 +59,7 @@ These commands are handled inside the RAG message router when sent through Teleg
 - `\clearhistory` displays a deletion warning.
 - `\clearhistory confirm` lets a patient delete their structured chat-derived event history. Caregivers cannot delete patient history.
 - `\accountcommands` displays the internal command list in chat.
+- `\send_screening` and `\start_check` let a paired caregiver send a consent-first, non-diagnostic check-in invitation. Links are issued only after the user agrees and only in private chat.
 
 The patient generates and shares the pairing code; there is no permanent shared password. Pairing and history management are private chat functions and are not exposed in the screening website or caregiver dashboard. Forward-slash variants remain parser-compatible for existing integrations but are not the documented interface.
 

@@ -48,8 +48,8 @@ def test_whichroleami_for_caregiver(tmp_path, monkeypatch) -> None:
     assert result["role"] == "caregiver"
     assert result["route"] == "mode_info"
     assert "照顧者模式" in result["answer"]
-    assert "/summary" in result["answer"]
-    assert "/alerts" in result["answer"]
+    assert "\\summary" in result["answer"]
+    assert "\\alerts" in result["answer"]
     assert "linked_user_id：patient_001" in result["answer"]
 
 
@@ -62,8 +62,8 @@ def test_whichroleami_for_user(tmp_path, monkeypatch) -> None:
     assert "使用者模式" in result["answer"]
     assert "日常支援" in result["answer"]
     assert "user_id：patient_001" in result["answer"]
-    assert "/summary" not in result["answer"]
-    assert "/alerts" not in result["answer"]
+    assert "\\summary" not in result["answer"]
+    assert "\\alerts" not in result["answer"]
 
 
 def test_whichroleami_for_unknown(tmp_path, monkeypatch) -> None:
@@ -234,8 +234,8 @@ def test_unknown_sender_defaults_to_neutral_user_mode(tmp_path, monkeypatch) -> 
     assert result["role"] == "unknown"
     assert result["sender_id"] == "999"
     assert "腦退化" not in result["answer"]
-    assert "/summary" not in result["answer"]
-    assert "/alerts" not in result["answer"]
+    assert "\\summary" not in result["answer"]
+    assert "\\alerts" not in result["answer"]
 
 
 def test_caregiver_summary_does_not_include_raw_conversation_text(tmp_path, monkeypatch) -> None:

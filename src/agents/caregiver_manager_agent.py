@@ -8,7 +8,7 @@ from src.orchestrator import handle_dementia_user_message
 from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
-CAREGIVER_COMMANDS = {"/help", "help", "/summary", "/alerts", "/set_routine", "/set_reminder"}
+CAREGIVER_COMMANDS = {"\\help", "help", "\\summary", "\\alerts", "\\set_routine", "\\set_reminder"}
 
 
 def handle_caregiver_manager_message(
@@ -20,9 +20,11 @@ def handle_caregiver_manager_message(
     caregiver_memory = build_user_memory(sender_id)
     linked_user_memory = build_memory_for_user_id(linked_user_id) if linked_user_id else None
     command = (message or "").strip().split(maxsplit=1)[0].lower()
+    if command.startswith("/"):
+        command = f"\\{command[1:]}"
     if command in CAREGIVER_COMMANDS or command == "":
         result = handle_caregiver_message(message, sender_id, linked_user_id)
-    elif command.startswith("/"):
+    elif command.startswith("\\"):
         result = handle_caregiver_message(message, sender_id, linked_user_id)
     else:
         result = handle_dementia_user_message(message, user_id=linked_user_id or sender_id)

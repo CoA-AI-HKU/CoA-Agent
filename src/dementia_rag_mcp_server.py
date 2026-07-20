@@ -4,6 +4,7 @@ import os
 import sys
 from pathlib import Path
 from typing import Any
+from urllib import parse, request
 
 try:
     from .citations import finalize_user_facing_result
@@ -11,6 +12,7 @@ try:
     from .user.message_router import handle_incoming_message
     from .orchestrator import handle_dementia_user_message
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
+    from .screening.outbox import mark_screening_message_delivered
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
@@ -20,6 +22,7 @@ except ImportError:
     from src.user.message_router import handle_incoming_message
     from src.orchestrator import handle_dementia_user_message
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
+    from src.screening.outbox import mark_screening_message_delivered
 
 
 def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
@@ -66,6 +69,8 @@ def handle_incoming_message_tool(
     debug logs, Chroma, markdown files, or retrieval.
     """
     result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)
+    if str(channel or "telegram").lower() == "telegram":
+        _deliver_telegram_outbound(result.get("outbound_messages"))
     public = _public_message_result(result)
     answer = str(public.get("answer") or "").strip()
 
@@ -73,6 +78,27 @@ def handle_incoming_message_tool(
         answer = "抱歉，我暫時未能找到足夠資料回答。你可以換一種方式再問一次。"
 
     return answer
+
+
+def _deliver_telegram_outbound(messages: object) -> None:
+    bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+    if not bot_token or not isinstance(messages, list):
+        return
+    endpoint = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    for item in messages:
+        if not isinstance(item, dict):
+            continue
+        chat_id = str(item.get("recipient_sender_id") or "").strip()
+        text = str(item.get("message") or "").strip()
+        if not chat_id or not text:
+            continue
+        payload = parse.urlencode({"chat_id": chat_id, "text": text}).encode("utf-8")
+        try:
+            with request.urlopen(request.Request(endpoint, data=payload, method="POST"), timeout=8) as response:
+                if 200 <= response.status < 300:
+                    mark_screening_message_delivered(str(item.get("delivery_id") or ""))
+        except (OSError, ValueError):
+            continue
 
 
 def _public_message_result(result: dict[str, Any]) -> dict[str, Any]:

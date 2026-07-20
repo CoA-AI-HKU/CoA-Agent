@@ -12,6 +12,8 @@ from urllib.parse import parse_qs, urlparse
 from src.insights import InsightGenerator
 from src.metrics import MetricsCollector, load_events
 from src.user.user_registry import get_dashboard_patient_accounts
+from src.metrics import log_event
+from src.screening.tokens import get_screening_token, mark_screening_token_used
 
 
 WEB_ROOT = Path(__file__).resolve().parents[1] / "web"
@@ -77,7 +79,50 @@ class CoARequestHandler(SimpleHTTPRequestHandler):
                 days = 7
             self._json(build_dashboard_payload(user_id, days))
             return
+        if parsed.path == "/api/screening-token":
+            token = str(query.get("token", [""])[0]).strip()
+            entry = get_screening_token(token)
+            if entry is None:
+                self._json({"valid": False}, HTTPStatus.UNAUTHORIZED)
+                return
+            self._json({"valid": True, "screening_version": entry["screening_version"]})
+            return
         super().do_GET()
+
+    def do_POST(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        if parsed.path != "/api/screening-complete":
+            self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
+            return
+        try:
+            length = min(int(self.headers.get("Content-Length", "0")), 4096)
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+        except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
+            self._json({"error": "invalid request"}, HTTPStatus.BAD_REQUEST)
+            return
+        token = str(payload.get("token") or "") if isinstance(payload, dict) else ""
+        entry = mark_screening_token_used(token)
+        if entry is None:
+            self._json({"error": "invalid or expired token"}, HTTPStatus.UNAUTHORIZED)
+            return
+        try:
+            total_score = max(0, min(int(payload.get("total_score", 0)), 5))
+        except (TypeError, ValueError):
+            self._json({"error": "invalid score"}, HTTPStatus.BAD_REQUEST)
+            return
+        risk_flag = "normal" if total_score >= 4 else "monitor" if total_score >= 3 else "follow_up_suggested"
+        log_event(entry["user_id"], {
+            "event_type": "cognitive_check_completed",
+            "check_version": entry["screening_version"],
+            "screening_version": entry["screening_version"],
+            "total_score": total_score,
+            "max_score": 5,
+            "risk_flag": risk_flag,
+            "follow_up_status": "suggested" if risk_flag == "follow_up_suggested" else "monitor",
+            "raw_answers_saved": False,
+            "raw_text_saved": False,
+        })
+        self._json({"completed": True, "risk_flag": risk_flag})
 
     def _json(self, payload: dict[str, Any], status: HTTPStatus = HTTPStatus.OK) -> None:
         body = json.dumps(payload, ensure_ascii=False).encode("utf-8")

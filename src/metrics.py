@@ -34,6 +34,12 @@ ALLOWED_EVENT_FIELDS = {
     "follow_up_status",
     "domain_scores",
     "raw_answers_saved",
+    "raw_text_saved",
+    "reason",
+    "urgency",
+    "created_by",
+    "caregiver_id",
+    "screening_version",
 }
 
 CONCERN_SIGNAL_EVENT_TYPES = {
@@ -104,6 +110,12 @@ class MetricsCollector:
                 concern_signal_counts[event_type] = concern_signal_counts.get(event_type, 0) + 1
 
         latest_cognitive_check = _latest_event(cognitive_check_events)
+        latest_screening_offered = _latest_event([
+            event for event in events if event.get("event_type") in {"screening_offered", "screening_offer"}
+        ])
+        latest_screening_completed = _latest_event([
+            event for event in events if event.get("event_type") == "cognitive_check_completed"
+        ])
         intent_counts: dict[str, int] = {}
         for event in events:
             intent = str(event.get("intent") or "unknown").strip() or "unknown"
@@ -137,6 +149,9 @@ class MetricsCollector:
             if latest_cognitive_check
             else None,
             "concern_signal_counts": concern_signal_counts,
+            "latest_screening_offered": latest_screening_offered.get("timestamp") if latest_screening_offered else None,
+            "latest_screening_completed": latest_screening_completed.get("timestamp") if latest_screening_completed else None,
+            "follow_up_suggestion": _screening_follow_up_label(latest_cognitive_check),
         }
 
 
@@ -493,6 +508,16 @@ def _format_cognitive_check(event: dict[str, Any]) -> dict[str, Any] | None:
     return formatted
 
 
+def _screening_follow_up_label(event: dict[str, Any]) -> str:
+    flag = str(event.get("risk_flag") or "") if event else ""
+    return {
+        "normal": "未見即時關注",
+        "monitor": "建議留意",
+        "follow_up_suggested": "建議跟進",
+        "urgent_safety": "安全問題需即時處理",
+    }.get(flag, "尚無小檢查記錄")
+
+
 def _to_float(value: Any) -> float | None:
     try:
         return float(value)
@@ -535,6 +560,8 @@ def _sanitize_event_field(key: str, value: Any) -> Any:
         return value if isinstance(value, (int, float, bool)) else _DROP
     if key == "domain_scores":
         return _sanitize_domain_scores(value)
+    if key == "reason" and isinstance(value, str):
+        return value.strip()[:160]
     if isinstance(value, str):
         text = value.strip()
         if not text:
@@ -554,6 +581,11 @@ def _sanitize_event_field(key: str, value: Any) -> Any:
             "check_version",
             "risk_flag",
             "follow_up_status",
+            "reason",
+            "urgency",
+            "created_by",
+            "caregiver_id",
+            "screening_version",
         }:
             return text[:64] if _looks_like_structured_token(text) else _DROP
         return _DROP

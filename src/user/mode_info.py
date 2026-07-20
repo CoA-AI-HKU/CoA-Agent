@@ -11,11 +11,11 @@ def format_mode_info(sender_id: str, role: str, record: dict[str, Any] | None = 
         return (
             "你目前是：照顧者模式\n\n"
             "你可以使用：\n"
-            "/summary 查看今日摘要\n"
-            "/alerts 查看近期安全提醒\n"
-            "/set_routine 設定日常安排\n"
-            "/set_reminder 設定提醒\n"
-            "/help 查看指令"
+            "\\summary 查看今日摘要\n"
+            "\\alerts 查看近期安全提醒\n"
+            "\\set_routine 設定日常安排\n"
+            "\\set_reminder 設定提醒\n"
+            "\\help 查看指令"
             f"{suffix}"
         )
     if role == "user":

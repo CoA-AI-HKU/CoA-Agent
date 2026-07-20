@@ -158,10 +158,11 @@ def _line_has_internal_reference(line: str) -> bool:
         return False
     command = parts[0].lower()
     if command in {
-        "/summary", "/alerts", "/set_routine", "/set_reminder", "/help",
+        "\\summary", "\\alerts", "\\set_routine", "\\set_reminder", "\\help",
         "\\register", "\\paircode", "\\link", "\\relink", "\\unlink",
         "\\dashboard", "\\clearhistory", "\\accountcommands", "\\whichroleami",
         "/start", "\\initiate",
+        "\\send_screening", "\\start_check",
     }:
         return False
     lowered = line.lower().replace("\\", "/")

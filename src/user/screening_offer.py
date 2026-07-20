@@ -1,40 +1,49 @@
 from __future__ import annotations
 
-import os
-from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from src.metrics import load_events
 from src.pipeline.language import detect_answer_language
+from src.screening.screening_offer_policy import should_offer_screening as evaluate_offer_policy
+from src.screening.tokens import SCREENING_VERSION, create_screening_token, screening_url
 
 
-CONCERN_TYPES = {"memory_concern", "orientation_confusion", "caregiver_reported_worsening"}
-YES = {"yes", "y", "好", "可以", "同意", "願意", "愿意", "開始", "开始"}
-NO = {"no", "n", "不用", "唔使", "不要", "暫時不要", "暂时不要"}
+YES = {"yes", "y", "好", "可以", "開始", "开始", "想", "ok", "okay"}
+NO = {"no", "n", "唔使", "不用", "暫時不用", "暂时不用", "遲啲", "迟点", "later"}
+OFFER_EVENT_TYPES = {"screening_offered", "screening_offer"}
 
 
-def should_offer_screening(user_id: str, current_signal: dict[str, str] | None) -> bool:
-    if not current_signal or current_signal.get("event_type") not in CONCERN_TYPES:
+def should_offer_screening(
+    user_id: str,
+    current_signal: dict[str, Any] | None,
+    role_context: str = "user",
+) -> bool:
+    recent_events = load_events(user_id=user_id, days=7)
+    if _has_resolved_recent_offer(recent_events):
         return False
-    events = load_events(user_id=user_id, days=14)
-    if any(event.get("event_type") == "screening_offer" for event in events):
-        return False
-    today = datetime.now(timezone.utc).date()
-    current_type = current_signal["event_type"]
-    prior = [event for event in events if event.get("event_type") in CONCERN_TYPES]
-    separate_day_memory = any(
-        event.get("event_type") == "memory_concern"
-        and _event_date(event) is not None
-        and _event_date(event) != today
-        for event in prior
-    )
-    different_related_signal = any(event.get("event_type") != current_type for event in prior)
-    return (current_type == "memory_concern" and separate_day_memory) or different_related_signal
+    policy_events = list(recent_events)
+    if current_signal and current_signal.get("event_type"):
+        policy_events.append(dict(current_signal))
+    return bool(evaluate_offer_policy(user_id, role_context, current_signal, policy_events)["offer"])
+
+
+def screening_offer_decision(
+    user_id: str,
+    role_context: str,
+    current_signal: dict[str, Any] | None,
+) -> dict[str, Any]:
+    events = load_events(user_id=user_id, days=7)
+    decision = evaluate_offer_policy(user_id, role_context, current_signal, events)
+    if decision["offer"] and _has_unanswered_offer(events):
+        return {**decision, "offer": False, "reason": "screening consent is already pending"}
+    if decision["offer"] and _has_resolved_recent_offer(events):
+        return {**decision, "offer": False, "reason": "recent screening offer already resolved"}
+    return decision
 
 
 def consent_reply(message: str, user_id: str) -> bool | None:
     events = load_events(user_id=user_id, days=2)
-    offer_indexes = [index for index, event in enumerate(events) if event.get("event_type") == "screening_offer"]
+    offer_indexes = [index for index, event in enumerate(events) if event.get("event_type") in OFFER_EVENT_TYPES]
     if not offer_indexes:
         return None
     latest_offer = offer_indexes[-1]
@@ -48,25 +57,48 @@ def consent_reply(message: str, user_id: str) -> bool | None:
     return None
 
 
-def offer_answer(message: str) -> str:
+def latest_offer_context(user_id: str) -> dict[str, Any]:
+    events = load_events(user_id=user_id, days=2)
+    for event in reversed(events):
+        if event.get("event_type") in OFFER_EVENT_TYPES:
+            return event
+    return {}
+
+
+def offer_answer(message: str, *, caregiver_requested: bool = False) -> str:
+    if caregiver_requested:
+        return "你的照顧者建議你做一個簡短的記憶與日常狀況小檢查。這不是診斷，也不能判斷是否有腦退化症。如果你願意，可以開始；你也可以選擇不做。"
     language = detect_answer_language(message)
     if language == "en":
-        return "You have mentioned some memory-related concerns on separate occasions. Would you like to try a short optional exercise? It is not a diagnosis. Reply Yes or No."
+        return "I noticed you mentioned some difficulty with memory or daily routines. This is not a diagnosis. If you wish, you can do a short memory and daily-functioning check-in. Would you like to start now?"
     if language == "zh-Hans":
-        return "你在不同时间提到过一些记忆方面的担心。你愿意做一个简短、可选的练习吗？这不是诊断。请回复“愿意”或“不要”。"
-    return "你在不同時間提到過一些記憶方面的擔心。你願意做一個簡短、可選的練習嗎？這不是診斷。請回覆「願意」或「不要」。"
+        return "我留意到你提到一些记忆或日常安排上的困扰。这不代表诊断，也不能判断是否有脑退化症。如果你愿意，可以做一个简短的记忆与日常状况小检查，帮助决定是否需要进一步跟进。你想现在开始吗？"
+    return "我留意到你提到一些記憶或日常安排上的困擾。這不代表診斷，也不能判斷是否有腦退化症。如果你願意，可以做一個簡短的記憶與日常狀況小檢查，幫助你和照顧者決定是否需要進一步跟進。你想現在開始嗎？"
 
 
-def consent_answer(message: str, accepted: bool) -> str:
-    language = detect_answer_language(message)
+def consent_answer(
+    message: str,
+    accepted: bool,
+    user_id: str = "",
+    *,
+    created_by: str = "self",
+    caregiver_id: str = "",
+    group_chat: bool = False,
+) -> str:
     if not accepted:
-        return {"en": "No problem. You can ask for the optional exercise at any time.", "zh-Hans": "没问题。你之后随时可以主动提出进行这个可选练习。"}.get(language, "沒問題。你之後隨時可以主動提出進行這個可選練習。")
-    url = os.getenv("SCREENING_PUBLIC_URL", "http://localhost:8080/screening.html")
-    return {"en": f"You can open the optional exercise here: {url}\n\nIt is not a diagnosis, and you may stop at any time.", "zh-Hans": f"你可以在这里打开可选练习：{url}\n\n这不是诊断，你可以随时停止。"}.get(language, f"你可以在這裡打開可選練習：{url}\n\n這不是診斷，你可以隨時停止。")
+        return "沒問題，我不會繼續推送。之後如果你想做這個非診斷小檢查，可以再告訴我。"
+    if group_chat:
+        return "為了保護私隱，小檢查連結只會在私人聊天中發送。請先私訊我。"
+    entry = create_screening_token(user_id, created_by, caregiver_id or None)
+    return f"你可以在這裡開始簡短的記憶與日常狀況小檢查：{screening_url(entry['token'])}\n\n這不是診斷，你可以隨時停止。"
 
 
-def _event_date(event: dict[str, Any]):
-    try:
-        return datetime.fromisoformat(str(event.get("timestamp") or "").replace("Z", "+00:00")).date()
-    except ValueError:
-        return None
+def _has_unanswered_offer(events: list[dict[str, Any]]) -> bool:
+    latest_offer = max((index for index, event in enumerate(events) if event.get("event_type") in OFFER_EVENT_TYPES), default=-1)
+    if latest_offer < 0:
+        return False
+    return not any(event.get("event_type") in {"screening_accepted", "screening_declined"} for event in events[latest_offer + 1:])
+
+
+def _has_resolved_recent_offer(events: list[dict[str, Any]]) -> bool:
+    return any(event.get("event_type") in {"screening_accepted", "screening_declined"} for event in events)
