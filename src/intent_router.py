@@ -39,15 +39,19 @@ PROMPT_INJECTION_TERMS = [
     "give me a dementia diagnosis", "give me a risk score",
 ]
 
+# ============================================================
+# 🆕 问候语支持 (Greeting support)
+# ============================================================
+GREETING_TERMS = [
+    "hi", "hello", "hey", "hihi", "hi hi",
+    "早晨", "你好", "午安", "晚安",
+    "good morning", "good afternoon", "good evening",
+    "嗨", "哈囉", "hello there",
+]
 
-@dataclass
-class IntentResult:
-    intent: Intent
-    confidence: float
-    matched_terms: list[str]
-    reason: str
-
-
+# ============================================================
+# 安全相关 (Safety)
+# ============================================================
 SAFETY_TERMS = [
     "走失",
     "不見",
@@ -460,6 +464,9 @@ EMOTIONAL_TERMS = [
     "frustrated",
 ]
 
+# ============================================================
+# 🆕 知识问答关键词（增加了英文疑问词）
+# ============================================================
 KNOWLEDGE_TERMS = [
     "腦退化",
     "認知障礙",
@@ -498,7 +505,36 @@ KNOWLEDGE_TERMS = [
     "alzheimer",
     "alzheimers",
     "alzheimer's",
+    # 🆕 英文疑问词
+    "what is",
+    "what are",
+    "how to",
+    "how do",
+    "why is",
+    "why do",
+    "tell me about",
+    "what's",
+    "whats",
+    "define",
+    "explain",
+    "is dementia",
+    "dementia risk",
+    "dementia cause",
+    "dementia symptom",
+    "dementia treatment",
+    "what does",
+    "how does",
+    "can dementia",
+    "does dementia",
 ]
+
+
+@dataclass
+class IntentResult:
+    intent: Intent
+    confidence: float
+    matched_terms: list[str]
+    reason: str
 
 
 def classify_intent(message: str) -> IntentResult:
@@ -548,7 +584,13 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched a caregiver-reported screening or diagnosis concern.",
         )
 
+    # ============================================================
+    # 🆕 priority_rules 现在包含问候语，放在第一位
+    # ============================================================
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
+        # 问候语优先（最高优先级）
+        ("emotional_support", GREETING_TERMS, 0.99, "Matched greeting terms."),
+        # 原有的规则
         (
             "caregiver_support",
             CAREGIVER_SUPPORT_TERMS,
@@ -589,6 +631,20 @@ def classify_intent(message: str) -> IntentResult:
                 matched_terms=matched_terms,
                 reason=reason,
             )
+
+    # ============================================================
+    # 🆕 Fallback: 检测英文疑问句，防止 "what is dementia" 变成 unknown
+    # ============================================================
+    if any(k in normalized for k in [
+        "what is", "what are", "how to", "how do",
+        "why is", "why do", "tell me about", "define", "explain"
+    ]):
+        return IntentResult(
+            intent="knowledge_qa",
+            confidence=0.7,
+            matched_terms=[],
+            reason="Fallback: message contains English question pattern.",
+        )
 
     return IntentResult(
         intent="unknown",
