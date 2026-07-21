@@ -1,0 +1,31 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/usr/lib/python3.12/http/server.py", line 1314, in <module>
+    test(
+  File "/usr/lib/python3.12/http/server.py", line 1261, in test
+    with ServerClass(addr, HandlerClass) as httpd:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/socketserver.py", line 457, in __init__
+    self.server_bind()
+  118.140.62.196 - - [21/Jul/2026 04:56:25] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:25] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:26] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:26] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:27] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:27] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:27] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:27] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:27] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:27] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:28] code 404, message File not found
+118.140.62.196 - - [21/Jul/2026 04:56:28] "GET /web/screening.html HTTP/1.1" 404 -
+118.140.62.196 - - [21/Jul/2026 04:56:39] "GET /screening.html HTTP/1.1" 200 -
+118.140.62.196 - - [21/Jul/2026 04:56:39] "GET /styles.css HTTP/1.1" 200 -
+118.140.62.196 - - [21/Jul/2026 04:56:39] "GET /i18n.js HTTP/1.1" 200 -
+118.140.62.196 - - [21/Jul/2026 04:56:39] "GET /screening.js HTTP/1.1" 200 -
+118.140.62.196 - - [21/Jul/2026 04:58:39] "GET /screening.html HTTP/1.1" 200 -
+134.122.43.61 - - [21/Jul/2026 06:07:24] "GET / HTTP/1.1" 200 -
+134.122.43.61 - - [21/Jul/2026 06:07:24] code 404, message File not found
+134.122.43.61 - - [21/Jul/2026 06:07:24] "GET /favicon.ico HTTP/1.1" 404 -
