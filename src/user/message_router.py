@@ -177,7 +177,13 @@ def handle_incoming_message(
                     "raw_text_saved": False,
                 })
         elif role != "caregiver" and decision["offer"]:
-            output["answer"] = f'{str(output.get("answer") or "").rstrip()}\n\n{offer_answer(message)}'
+            if _is_group_channel(channel):
+                output["answer"] = (
+                    f'{str(output.get("answer") or "").rstrip()}\n\n'
+                    "為了保護私隱，小檢查連結只會在私人聊天中發送。請先私訊我。"
+                )
+            else:
+                output["answer"] = f'{str(output.get("answer") or "").rstrip()}\n\n{offer_answer(message)}'
             log_event(event_user_id, {
                 "sender_id": normalized_sender_id,
                 "channel": channel,

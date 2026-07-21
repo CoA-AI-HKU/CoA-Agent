@@ -37,7 +37,7 @@ function render(payload) {
   document.querySelectorAll('[data-summary]').forEach(el => { el.textContent = s[el.dataset.summary] || ''; });
   document.querySelectorAll('[data-screening]').forEach(el => {
     const value=m[el.dataset.screening];
-    const labels={normal:'未見即時關注',monitor:'建議留意',follow_up_suggested:'建議跟進',urgent_safety:'安全問題需即時處理'};
+    const labels={normal:'未見即時關注',no_immediate_concern:'未見即時關注',monitor:'建議留意',follow_up_suggested:'建議跟進',urgent_safety:'安全問題需即時處理'};
     el.textContent=el.dataset.screening==='latest_risk_flag'?(labels[value]||'—'):(value||'—');
   });
   renderBars(document.querySelector('#activity-bars'), payload.daily_activity.slice(-7), 'count', 'date');

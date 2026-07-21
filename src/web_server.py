@@ -91,7 +91,7 @@ class CoARequestHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
-        if parsed.path != "/api/screening-complete":
+        if parsed.path not in {"/api/screening-complete", "/api/screening/submit"}:
             self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
             return
         try:
@@ -100,15 +100,62 @@ class CoARequestHandler(SimpleHTTPRequestHandler):
         except (ValueError, json.JSONDecodeError, UnicodeDecodeError):
             self._json({"error": "invalid request"}, HTTPStatus.BAD_REQUEST)
             return
-        token = str(payload.get("token") or "") if isinstance(payload, dict) else ""
-        entry = mark_screening_token_used(token)
+        if not isinstance(payload, dict):
+            self._json({"error": "invalid request"}, HTTPStatus.BAD_REQUEST)
+            return
+        token = str(payload.get("token") or "")
+        entry = get_screening_token(token)
         if entry is None:
             self._json({"error": "invalid or expired token"}, HTTPStatus.UNAUTHORIZED)
             return
+        if parsed.path == "/api/screening/submit":
+            self._submit_screening(payload, token, entry)
+            return
+        self._submit_legacy_screening(payload, token, entry)
+
+    def _submit_screening(self, payload: dict[str, Any], token: str, entry: dict[str, Any]) -> None:
+        version = str(payload.get("screening_version") or "")
+        result = payload.get("result")
+        if version != entry.get("screening_version") or not isinstance(result, dict):
+            self._json({"error": "invalid screening version or result"}, HTTPStatus.BAD_REQUEST)
+            return
+        allowed_flags = {"no_immediate_concern", "monitor", "follow_up_suggested", "urgent_safety"}
+        try:
+            risk_flag = str(result.get("risk_flag") or "")
+            total_score = int(result.get("total_score"))
+            max_score = int(result.get("max_score"))
+        except (TypeError, ValueError):
+            self._json({"error": "invalid result"}, HTTPStatus.BAD_REQUEST)
+            return
+        if risk_flag not in allowed_flags or max_score != 12 or not 0 <= total_score <= max_score:
+            self._json({"error": "invalid result"}, HTTPStatus.BAD_REQUEST)
+            return
+        if mark_screening_token_used(token) is None:
+            self._json({"error": "invalid or expired token"}, HTTPStatus.UNAUTHORIZED)
+            return
+        log_event(entry["user_id"], {
+            "event_type": "screening_completed",
+            "check_version": entry["screening_version"],
+            "screening_version": entry["screening_version"],
+            "total_score": total_score,
+            "max_score": max_score,
+            "risk_flag": risk_flag,
+            "follow_up_status": risk_flag,
+            "raw_answers_saved": False,
+            "raw_text_saved": False,
+        })
+        self._json({"success": True, "risk_flag": risk_flag})
+
+    def _submit_legacy_screening(
+        self, payload: dict[str, Any], token: str, entry: dict[str, Any]
+    ) -> None:
         try:
             total_score = max(0, min(int(payload.get("total_score", 0)), 5))
         except (TypeError, ValueError):
             self._json({"error": "invalid score"}, HTTPStatus.BAD_REQUEST)
+            return
+        if mark_screening_token_used(token) is None:
+            self._json({"error": "invalid or expired token"}, HTTPStatus.UNAUTHORIZED)
             return
         risk_flag = "normal" if total_score >= 4 else "monitor" if total_score >= 3 else "follow_up_suggested"
         log_event(entry["user_id"], {

@@ -1,0 +1,20 @@
+:root { font-family: system-ui, "Noto Sans TC", sans-serif; color: #20332e; background: #f2f4ef; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+.shell { display: grid; min-height: 100vh; padding: 1rem; place-items: center; }
+.card { width: min(720px, 100%); padding: clamp(1.25rem, 4vw, 2.5rem); border-radius: 24px; background: white; box-shadow: 0 18px 55px #173b3020; }
+.eyebrow { color: #286a58; font-size: .8rem; font-weight: 800; letter-spacing: .12em; }
+h1 { margin: .25rem 0 1rem; font-size: clamp(1.8rem, 6vw, 2.7rem); }
+.disclaimer { display: grid; gap: .35rem; padding: 1rem; border-left: 4px solid #ad641e; border-radius: 0 12px 12px 0; background: #fff1dd; line-height: 1.5; }
+.disclaimer span, .small { color: #5e6b67; font-size: .88rem; }
+form { display: grid; gap: 1rem; margin-top: 1.5rem; }
+fieldset { display: grid; gap: .65rem; padding: 1rem; border: 1px solid #d5dfda; border-radius: 14px; }
+legend { padding: 0 .35rem; font-weight: 750; line-height: 1.45; }
+label { display: flex; gap: .65rem; align-items: center; min-height: 44px; padding: .45rem .6rem; border-radius: 10px; }
+label:has(input:checked) { background: #e2f0ea; }
+input { width: 20px; height: 20px; accent-color: #23604f; }
+button { min-height: 52px; border: 0; border-radius: 13px; color: white; background: #23604f; font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer; }
+.result { margin-top: 1.4rem; padding: 1.2rem; border-radius: 14px; background: #e2f0ea; line-height: 1.65; }
+.result.urgent { color: #762f2f; background: #fbe6e2; }
+.result h2 { margin-top: 0; }
+@media (max-width: 520px) { .card { border-radius: 16px; } fieldset { padding: .85rem; } }

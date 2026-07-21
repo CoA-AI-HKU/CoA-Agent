@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>記憶與日常狀況小檢查</title>
+  <link rel="stylesheet" href="screening.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="card" aria-labelledby="title">
+      <p class="eyebrow">非診斷小檢查</p>
+      <h1 id="title">記憶與日常狀況小檢查</h1>
+      <div class="disclaimer" role="note">
+        <strong>這不是診斷，也不能判斷一個人是否有腦退化症。</strong>
+        <span lang="en">This is not a diagnosis and cannot determine whether someone has dementia.</span>
+      </div>
+      <p>請按最近一至兩星期的情況回答。你可以隨時停止，答案只會在這個頁面暫時使用。</p>
+
+      <form id="screening-form">
+        <fieldset>
+          <legend>1. 最近是否較常忘記事情或約定？</legend>
+          <label><input required type="radio" name="memory" value="0"> 沒有</label>
+          <label><input type="radio" name="memory" value="1"> 間中</label>
+          <label><input type="radio" name="memory" value="2"> 經常</label>
+        </fieldset>
+        <fieldset>
+          <legend>2. 最近是否會弄不清日期、時間或身處地方？</legend>
+          <label><input required type="radio" name="orientation" value="0"> 沒有</label>
+          <label><input type="radio" name="orientation" value="1"> 間中</label>
+          <label><input type="radio" name="orientation" value="2"> 經常</label>
+        </fieldset>
+        <fieldset>
+          <legend>3. 最近處理熟悉的日常事情是否較困難？</legend>
+          <label><input required type="radio" name="daily_tasks" value="0"> 沒有</label>
+          <label><input type="radio" name="daily_tasks" value="1"> 有少許</label>
+          <label><input type="radio" name="daily_tasks" value="2"> 明顯困難</label>
+        </fieldset>
+        <fieldset>
+          <legend>4. 最近是否不確定自己有沒有按指示用藥？</legend>
+          <label><input required type="radio" name="medication" value="0"> 沒有</label>
+          <label><input type="radio" name="medication" value="1"> 間中</label>
+          <label><input type="radio" name="medication" value="2"> 經常</label>
+        </fieldset>
+        <fieldset>
+          <legend>5. 照顧者或家人最近是否對記憶或日常能力感到擔心？</legend>
+          <label><input required type="radio" name="caregiver" value="0"> 沒有</label>
+          <label><input type="radio" name="caregiver" value="1"> 有少許</label>
+          <label><input type="radio" name="caregiver" value="2"> 明顯擔心</label>
+        </fieldset>
+        <fieldset>
+          <legend>6. 最近是否有走失、遊走或其他即時安全問題？</legend>
+          <label><input required type="radio" name="safety" value="0"> 沒有</label>
+          <label><input type="radio" name="safety" value="1"> 曾經擔心</label>
+          <label><input type="radio" name="safety" value="2"> 現在有安全問題</label>
+        </fieldset>
+        <button type="submit">查看結果</button>
+      </form>
+
+      <section id="result" class="result" hidden aria-live="polite">
+        <h2>小檢查結果</h2>
+        <p id="result-text"></p>
+        <p id="submission-note" class="small"></p>
+      </section>
+    </section>
+  </main>
+  <script src="screening.js"></script>
+</body>
+</html>

@@ -29,8 +29,9 @@ def should_offer_screening(
         return {**result, "reason": "medical boundary takes priority"}
     if explicit_request:
         return {**result, "offer": True, "reason": "user explicitly requested a check-in", "urgency": "suggested"}
-    if event_type == "caregiver_reported_worsening" or any(
-        event.get("event_type") == "caregiver_reported_worsening" for event in recent_events
+    caregiver_events = {"caregiver_reported_worsening", "caregiver_worsening_report"}
+    if event_type in caregiver_events or any(
+        event.get("event_type") in caregiver_events for event in recent_events
     ):
         return {**result, "offer": True, "reason": "caregiver worsening report", "urgency": "suggested"}
     if event_type == "medication_uncertainty":

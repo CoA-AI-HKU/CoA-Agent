@@ -90,7 +90,7 @@ class MetricsCollector:
         cognitive_check_events = [
             event
             for event in events
-            if event.get("event_type") == "cognitive_check_completed"
+            if event.get("event_type") in {"cognitive_check_completed", "screening_completed"}
             and _to_float(event.get("total_score")) is not None
         ]
         cognitive_history.extend(
@@ -114,7 +114,7 @@ class MetricsCollector:
             event for event in events if event.get("event_type") in {"screening_offered", "screening_offer"}
         ])
         latest_screening_completed = _latest_event([
-            event for event in events if event.get("event_type") == "cognitive_check_completed"
+            event for event in events if event.get("event_type") in {"cognitive_check_completed", "screening_completed"}
         ])
         intent_counts: dict[str, int] = {}
         for event in events:
@@ -512,6 +512,7 @@ def _screening_follow_up_label(event: dict[str, Any]) -> str:
     flag = str(event.get("risk_flag") or "") if event else ""
     return {
         "normal": "未見即時關注",
+        "no_immediate_concern": "未見即時關注",
         "monitor": "建議留意",
         "follow_up_suggested": "建議跟進",
         "urgent_safety": "安全問題需即時處理",
