@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>照顧者儀表板 - CoA-Agent</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f4fa; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 24px; padding: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        h1 { font-size: 28px; color: #1a2a4a; margin-bottom: 4px; }
+        .sub { color: #6a7a8a; margin-bottom: 20px; }
+        .section { margin-top: 24px; }
+        .section h2 { font-size: 20px; color: #1a2a4a; margin-bottom: 12px; }
+        input, select, textarea { width: 100%; padding: 14px; border: 1px solid #dce0e8; border-radius: 12px; font-size: 16px; margin-bottom: 10px; }
+        button { padding: 14px 24px; background: #4A90D9; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        button:hover { background: #357ABD; }
+        button.danger { background: #E74C3C; }
+        button.danger:hover { background: #C0392B; }
+        .reminder-item { background: #f5f8fe; padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .reminder-item .text { font-size: 18px; }
+        .reminder-item .time { color: #6a7a8a; font-size: 14px; }
+        .patient-item { background: #f5f8fe; padding: 14px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .hidden { display: none; }
+        .tab { display: inline-block; padding: 10px 20px; background: #eef2f7; border-radius: 12px; margin-right: 8px; cursor: pointer; }
+        .tab.active { background: #4A90D9; color: white; }
+    </style>
+</head>
+<body>
+<div class="container" id="app">
+    <!-- Login/Register -->
+    <div id="authSection">
+        <h1>👤 登入</h1>
+        <p class="sub">照顧者登入以管理提醒</p>
+        <input id="loginUsername" placeholder="用戶名" value="caregiver1">
+        <input id="loginPassword" type="password" placeholder="密碼" value="123456">
+        <button onclick="login()">登入</button>
+        <hr style="margin: 16px 0;">
+        <p style="font-size:14px; color:#8a9aaa;">未註冊？</p>
+        <input id="registerUsername" placeholder="用戶名" value="caregiver1">
+        <input id="registerPassword" type="password" placeholder="密碼" value="123456">
+        <input id="registerDisplayName" placeholder="顯示名稱" value="陳照顧者">
+        <button onclick="register()">註冊</button>
+    </div>
+
+    <!-- Dashboard (hidden until login) -->
+    <div id="dashboardSection" class="hidden">
+        <h1>📋 照顧者儀表板</h1>
+        <p class="sub" id="greeting">歡迎, </p>
+
+        <!-- Tabs -->
+        <div>
+            <span class="tab active" onclick="showTab('patients')">👤 患者</span>
+            <span class="tab" onclick="showTab('reminders')">⏰ 提醒</span>
+            <span class="tab" onclick="showTab('emergency')">🆘 緊急聯絡</span>
+        </div>
+
+        <!-- Patients Tab -->
+        <div id="tabPatients" class="section">
+            <h2>我的患者</h2>
+            <div id="patientList"></div>
+            <input id="patientName" placeholder="患者姓名" value="眉眉婆婆">
+            <button onclick="addPatient()">➕ 新增患者</button>
+        </div>
+
+        <!-- Reminders Tab -->
+        <div id="tabReminders" class="section hidden">
+            <h2>提醒設定</h2>
+            <div id="reminderList"></div>
+            <div style="margin-top:12px; background:#f5f8fe; padding:16px; border-radius:12px;">
+                <select id="reminderPatient"><option>請選擇患者</option></select>
+                <input id="reminderText" placeholder="提醒內容" value="食藥">
+                <input id="reminderTime" type="time" value="08:00">
+                <select id="reminderDays">
+                    <option value="mon,tue,wed,thu,fri,sat,sun">每日</option>
+                    <option value="mon,tue,wed,thu,fri">平日</option>
+                    <option value="sat,sun">週末</option>
+                    <option value="mon,wed,fri">一三五</option>
+                </select>
+                <button onclick="addReminder()">➕ 新增提醒</button>
+            </div>
+        </div>
+
+        <!-- Emergency Tab -->
+        <div id="tabEmergency" class="section hidden">
+            <h2>緊急聯絡人</h2>
+            <div id="emergencyList"></div>
+            <div style="margin-top:12px; background:#f5f8fe; padding:16px; border-radius:12px;">
+                <select id="emergencyPatient"><option>請選擇患者</option></select>
+                <input id="emergencyName" placeholder="聯絡人姓名" value="陳嘉欣">
+                <input id="emergencyPhone" placeholder="電話" value="91234567">
+                <input id="emergencyRelation" placeholder="關係" value="女兒">
+                <button onclick="addEmergency()">➕ 新增緊急聯絡人</button>
+            </div>
+        </div>
+
+        <div style="margin-top:24px; padding-top:16px; border-top:1px solid #eef2f7;">
+            <button class="danger" onclick="logout()">🚪 登出</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const API = 'http://localhost:8001';
+let token = localStorage.getItem('token');
+let currentUser = null;
+
+// ===== Auth =====
+async function register() {
+    const username = document.getElementById('registerUsername').value;
+    const password = document.getElementById('registerPassword').value;
+    const display_name = document.getElementById('registerDisplayName').value;
+    
+    const res = await fetch(`${API}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, display_name })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        token = data.access_token;
+        localStorage.setItem('token', token);
+        currentUser = data;
+        showDashboard();
+    } else {
+        alert('註冊失敗: ' + data.detail);
+    }
+}
+
+async function login() {
+    const username = document.getElementById('loginUsername').value;
+    const password = document.getElementById('loginPassword').value;
+    
+    const res = await fetch(`${API}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (res.ok) {
+        token = data.access_token;
+        localStorage.setItem('token', token);
+        currentUser = data;
+        showDashboard();
+    } else {
+        alert('登入失敗: ' + data.detail);
+    }
+}
+
+function logout() {
+    localStorage.removeItem('token');
+    location.reload();
+}
+
+function showDashboard() {
+    document.getElementById('authSection').classList.add('hidden');
+    document.getElementById('dashboardSection').classList.remove('hidden');
+    document.getElementById('greeting').textContent = `歡迎, ${currentUser.display_name}`;
+    loadPatients();
+    loadReminders();
+    loadEmergency();
+    loadPatientDropdowns();
+}
+
+// ===== Patients =====
+async function loadPatients() {
+    const res = await fetch(`${API}/api/patients`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const patients = await res.json();
+    const container = document.getElementById('patientList');
+    container.innerHTML = patients.map(p => `
+        <div class="patient-item">
+            <span><strong>${p.name}</strong> ${p.phone ? '📱 '+p.phone : ''}</span>
+            <button class="danger" onclick="deletePatient(${p.id})">🗑️</button>
+        </div>
+    `).join('');
+}
+
+async function addPatient() {
+    const name = document.getElementById('patientName').value;
+    await fetch(`${API}/api/patients`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ name })
+    });
+    loadPatients();
+    loadPatientDropdowns();
+}
+
+async function deletePatient(id) {
+    if (!confirm('確定刪除？')) return;
+    await fetch(`${API}/api/patients/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadPatients();
+    loadPatientDropdowns();
+}
+
+// ===== Reminders =====
+async function loadReminders() {
+    const res = await fetch(`${API}/api/reminders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const reminders = await res.json();
+    const container = document.getElementById('reminderList');
+    if (reminders.length === 0) {
+        container.innerHTML = '<p style="color:#8a9aaa;">暫無提醒</p>';
+        return;
+    }
+    container.innerHTML = reminders.map(r => `
+        <div class="reminder-item">
+            <div>
+                <span class="text">${r.text}</span>
+                <span class="time">🕐 ${r.time} · ${r.days}</span>
+                <span style="margin-left:8px; font-size:12px; color:${r.active ? '#22c55e' : '#e74c3c'};">${r.active ? '🟢 啟用' : '🔴 停用'}</span>
+            </div>
+            <div>
+                <button onclick="toggleReminder(${r.id}, ${!r.active})" style="padding:6px 12px; font-size:14px; background:${r.active ? '#f39c12' : '#22c55e'}">
+                    ${r.active ? '⏸️' : '▶️'}
+                </button>
+                <button class="danger" onclick="deleteReminder(${r.id})" style="padding:6px 12px; font-size:14px;">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+async function addReminder() {
+    const patient_id = parseInt(document.getElementById('reminderPatient').value);
+    const text = document.getElementById('reminderText').value;
+    const time = document.getElementById('reminderTime').value;
+    const days = document.getElementById('reminderDays').value;
+    
+    await fetch(`${API}/api/reminders`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ patient_id, text, time, days })
+    });
+    loadReminders();
+}
+
+async function toggleReminder(id, active) {
+    await fetch(`${API}/api/reminders/${id}?active=${active}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadReminders();
+}
+
+async function deleteReminder(id) {
+    if (!confirm('確定刪除？')) return;
+    await fetch(`${API}/api/reminders/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    loadReminders();
+}
+
+// ===== Emergency =====
+async function loadEmergency() {
+    // Simplified - loads emergency contacts for first patient
+    const container = document.getElementById('emergencyList');
+    container.innerHTML = '<p style="color:#8a9aaa;">請先新增患者，然後在下方新增緊急聯絡人</p>';
+}
+
+async function addEmergency() {
+    // Implementation similar to above
+    alert('功能開發中');
+}
+
+// ===== Dropdowns =====
+async function loadPatientDropdowns() {
+    const res = await fetch(`${API}/api/patients`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const patients = await res.json();
+    const html = patients.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    document.getElementById('reminderPatient').innerHTML = html;
+    document.getElementById('emergencyPatient').innerHTML = html;
+}
+
+// ===== Tabs =====
+function showTab(tab) {
+    ['patients','reminders','emergency'].forEach(t => {
+        document.getElementById(`tab${t.charAt(0).toUpperCase()+t.slice(1)}`).classList.toggle('hidden', t !== tab);
+    });
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+}
+
+// ===== Auto-login =====
+if (token) {
+    fetch(`${API}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+    }).then(res => {
+        if (res.ok) {
+            res.json().then(user => {
+                currentUser = user;
+                showDashboard();
+            });
+        } else {
+            localStorage.removeItem('token');
+        }
+    });
+}
+</script>
+</body>
+</html>

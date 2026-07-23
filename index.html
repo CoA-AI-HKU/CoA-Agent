@@ -1,119 +1,364 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CoA-Agent - Dementia Support</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Add this small extra style for the consent checkbox */
-        .consent-checkbox {
-            background: #f5f8fe;
-            border-radius: 12px;
-            padding: 16px 18px;
-            margin: 15px 0 15px 0;
-            text-align: left;
-            border: 1px solid #e0e8f5;
-        }
-        .consent-checkbox input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 10px;
-            accent-color: #2a8cff;
-            cursor: pointer;
-            vertical-align: middle;
-        }
-        .consent-checkbox label {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #1a2a4a;
-            cursor: pointer;
-        }
-        .consent-checkbox label a {
-            color: #2a8cff;
-            text-decoration: underline;
-        }
-        .consent-checkbox label .zh {
-            font-weight: 400;
-            color: #3a4a6a;
-            display: block;
-            font-size: 14px;
-        }
-        /* Disabled button state (applied by JavaScript) */
-        .btn-disabled {
-            pointer-events: none;
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        .btn-enabled {
-            pointer-events: auto;
-            opacity: 1;
-        }
-    </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CoA 智能助理</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, "Noto Sans HK", "PingFang HK", sans-serif;
+      font-size: 20px;
+      color: #16324f;
+      background: #eef6f7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-width: 280px;
+      min-height: 100vh;
+      margin: 0;
+      background: linear-gradient(180deg, #e8f4f5 0%, #f8fbfb 100%);
+    }
+
+    main {
+      width: min(100% - 2rem, 760px);
+      margin: 0 auto;
+      padding: 2rem 0 3rem;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 .75rem;
+      font-size: clamp(2rem, 8vw, 3rem);
+      line-height: 1.15;
+      color: #103b4a;
+    }
+
+    .intro {
+      max-width: 30rem;
+      margin: 0 auto 1.5rem;
+      font-size: clamp(1.15rem, 4vw, 1.4rem);
+      line-height: 1.6;
+    }
+
+    .microphone-button {
+      display: flex;
+      width: 176px;
+      height: 176px;
+      margin: 0 auto 1.25rem;
+      padding: 1rem;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: .45rem;
+      border: 5px solid #fff;
+      border-radius: 50%;
+      color: #fff;
+      background: #076b75;
+      box-shadow: 0 8px 22px rgba(11, 67, 77, .25);
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .microphone-button:hover { background: #055862; }
+    .microphone-button:disabled { cursor: wait; opacity: 1; }
+    .microphone-button.listening {
+      background: #b42318;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .microphone-button svg {
+      width: 58px;
+      height: 58px;
+      fill: currentColor;
+    }
+
+    @keyframes pulse {
+      50% { box-shadow: 0 0 0 15px rgba(180, 35, 24, .18); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .microphone-button.listening { animation: none; }
+    }
+
+    button:focus-visible,
+    textarea:focus-visible {
+      outline: 4px solid #f2a900;
+      outline-offset: 4px;
+    }
+
+    .status {
+      min-height: 3.4rem;
+      margin: 0 auto 1.25rem;
+      font-weight: 700;
+      line-height: 1.5;
+      color: #16324f;
+    }
+
+    .status.error { color: #9b1c1c; }
+
+    .text-entry {
+      padding: 1.25rem;
+      border: 1px solid #b7cfd2;
+      border-radius: 18px;
+      text-align: left;
+      background: #fff;
+      box-shadow: 0 5px 16px rgba(34, 77, 83, .1);
+    }
+
+    label {
+      display: block;
+      margin-bottom: .6rem;
+      font-size: 1.2rem;
+      font-weight: 750;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 190px;
+      resize: vertical;
+      padding: .9rem;
+      border: 2px solid #789da2;
+      border-radius: 10px;
+      color: #102f3d;
+      background: #fff;
+      font: inherit;
+      font-size: 1.1rem;
+      line-height: 1.55;
+    }
+
+    textarea::placeholder { color: #61767b; opacity: 1; }
+
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: .75rem;
+      margin-top: 1rem;
+    }
+
+    .action-button {
+      min-height: 58px;
+      padding: .7rem 1rem;
+      border: 2px solid #076b75;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .send-button { color: #fff; background: #076b75; }
+    .send-button:hover { background: #055862; }
+    .secondary-button { color: #075b64; background: #fff; }
+    .secondary-button:hover { background: #e6f3f4; }
+
+    .privacy-note {
+      margin: 1.25rem 0 0;
+      font-size: .9rem;
+      line-height: 1.55;
+      color: #425f66;
+    }
+
+    @media (min-width: 560px) {
+      main { padding-top: 3rem; }
+      .actions { grid-template-columns: 1.4fr 1fr 1fr; }
+      .microphone-button { width: 190px; height: 190px; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <!-- Logo Section -->
-            <div class="logo">🧠</div>
-            <h1>CoA-Agent</h1>
-            <p class="subtitle">AI Support for Dementia Care &amp; Caregiving</p>
-            
-            <hr>
+  <main>
+    <h1>CoA 智能助理</h1>
+    <p class="intro">按下咪高峰，然後慢慢說出你想問的事情。</p>
 
-            <h2>💬 Start Chatting Now</h2>
-            <p class="hint">Click the button below to open Telegram and talk to our assistant.</p>
+    <button id="microphoneButton" class="microphone-button" type="button" aria-label="按下說話">
+      <svg aria-hidden="true" viewBox="0 0 24 24">
+        <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm-1 3.93V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.07A7 7 0 0 0 19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93Z"/>
+      </svg>
+      <span id="microphoneLabel">按下說話</span>
+    </button>
 
-            <!-- ============================================ -->
-            <!-- MANDATORY CONSENT CHECKBOX                   -->
-            <!-- ============================================ -->
-            <div class="consent-checkbox">
-                <input type="checkbox" id="consentCheck" onchange="toggleTelegramButton()">
-                <label for="consentCheck">
-                    I have read and agree to the 
-                    <a href="privacy.html" target="_blank">Privacy Policy &amp; Consent</a>.
-                    <span class="zh">我已閱讀並同意 
-                        <a href="privacy.html" target="_blank">私隱政策與同意書</a>。
-                    </span>
-                </label>
-            </div>
+    <p id="status" class="status" aria-live="polite">準備好後，請按下咪高峰。</p>
 
-            <!-- Telegram Button (Starts disabled!) -->
-            <a href="https://t.me/Ako_saka_Bot" 
-               id="telegramBtn" 
-               class="btn telegram btn-disabled" 
-               target="_blank">
-                📨 Open in Telegram
-            </a>
+    <section class="text-entry" aria-labelledby="transcriptLabel">
+      <label id="transcriptLabel" for="transcript">你說的內容</label>
+      <textarea id="transcript" placeholder="辨識出的文字會顯示在這裡"></textarea>
 
-            <hr>
+      <div class="actions">
+        <button id="sendButton" class="action-button send-button" type="button">傳送</button>
+        <button id="retryButton" class="action-button secondary-button" type="button">重新說話</button>
+        <button id="clearButton" class="action-button secondary-button" type="button">清除</button>
+      </div>
+    </section>
 
-            <!-- Trust & Privacy -->
-            <div class="trust">
-                <p>🔒 Privacy First: No raw conversation text is stored.</p>
-                <p>⚠️ Not a medical device. Always consult your doctor.</p>
-                <p>📄 <a href="privacy.html" target="_blank">Read our Privacy Policy &amp; Consent</a></p>
-            </div>
+    <p class="privacy-note">語音辨識可能由瀏覽器或裝置提供的服務處理。請避免說出密碼、身份證號碼或其他敏感資料。</p>
+  </main>
 
-            <div class="footer">
-                © 2026 CoA-Agent Lab, HKU
-            </div>
-        </div>
-    </div>
+  <script>
+    "use strict";
 
-    <!-- JavaScript to enable/disable the Telegram button -->
-    <script>
-        function toggleTelegramButton() {
-            const checkbox = document.getElementById('consentCheck');
-            const btn = document.getElementById('telegramBtn');
-            if (checkbox.checked) {
-                btn.classList.remove('btn-disabled');
-                btn.classList.add('btn-enabled');
-            } else {
-                btn.classList.remove('btn-enabled');
-                btn.classList.add('btn-disabled');
-            }
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const microphoneButton = document.getElementById("microphoneButton");
+    const microphoneLabel = document.getElementById("microphoneLabel");
+    const statusRegion = document.getElementById("status");
+    const transcriptTextarea = document.getElementById("transcript");
+    const sendButton = document.getElementById("sendButton");
+    const retryButton = document.getElementById("retryButton");
+    const clearButton = document.getElementById("clearButton");
+
+    const messages = {
+      idle: "準備好後，請按下咪高峰。",
+      listening: "正在聆聽，請慢慢說話……",
+      processing: "正在整理文字……",
+      transcript_ready: "已完成。請先確認下面的文字。",
+      unsupported: "這個瀏覽器暫時不支援語音輸入。你仍然可以在下面輸入文字。"
+    };
+
+    let recognition = null;
+    let recognitionActive = false;
+    let finalTranscript = "";
+    let ignoreAbortError = false;
+
+    function setUiState(state, message = messages[state]) {
+      statusRegion.textContent = message;
+      statusRegion.classList.toggle("error", state === "error");
+      microphoneButton.classList.toggle("listening", state === "listening");
+      microphoneButton.disabled = recognitionActive || !SpeechRecognition;
+      microphoneButton.setAttribute("aria-label", state === "listening" ? "正在聆聽" : "按下說話");
+      microphoneLabel.textContent = state === "listening" ? "正在聆聽" : "按下說話";
+    }
+
+    function startRecognition(clearExisting = false) {
+      if (!recognition || recognitionActive) return;
+
+      if (clearExisting) transcriptTextarea.value = "";
+      finalTranscript = transcriptTextarea.value.trim();
+      if (finalTranscript) finalTranscript += " ";
+      ignoreAbortError = false;
+      recognitionActive = true;
+      setUiState("listening");
+
+      try {
+        recognition.start();
+      } catch (error) {
+        recognitionActive = false;
+        setUiState("error", "無法開始語音辨識，請再試一次。");
+      }
+    }
+
+    function stopRecognition() {
+      if (!recognition || !recognitionActive) return;
+      ignoreAbortError = true;
+      recognitionActive = false;
+      try { recognition.abort(); } catch (error) { /* Recognition may already have ended. */ }
+    }
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = "zh-HK";
+      recognition.interimResults = true;
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      recognition.onstart = function () {
+        recognitionActive = true;
+        setUiState("listening");
+      };
+
+      recognition.onresult = function (event) {
+        let interimTranscript = "";
+
+        for (let index = event.resultIndex; index < event.results.length; index += 1) {
+          const recognizedText = event.results[index][0].transcript;
+          if (event.results[index].isFinal) {
+            finalTranscript += recognizedText;
+          } else {
+            interimTranscript += recognizedText;
+          }
         }
-    </script>
+
+        transcriptTextarea.value = finalTranscript + interimTranscript;
+        if (finalTranscript.trim()) setUiState("transcript_ready");
+      };
+
+      recognition.onspeechend = function () {
+        if (recognitionActive) setUiState("processing");
+      };
+
+      recognition.onerror = function (event) {
+        recognitionActive = false;
+        if (event.error === "aborted" && ignoreAbortError) return;
+
+        const errorMessages = {
+          "not-allowed": "請允許瀏覽器使用咪高峰。",
+          "service-not-allowed": "請允許瀏覽器使用咪高峰。",
+          "no-speech": "沒有聽到說話，請再試一次。",
+          "audio-capture": "找不到可用的咪高峰。",
+          "network": "語音辨識服務暫時無法連線，請稍後再試。",
+          "aborted": "語音辨識已停止，請再試一次。"
+        };
+        setUiState("error", errorMessages[event.error] || "語音辨識未能完成，請再試一次。");
+      };
+
+      recognition.onend = function () {
+        recognitionActive = false;
+        ignoreAbortError = false;
+        if (transcriptTextarea.value.trim()) {
+          setUiState("transcript_ready");
+        } else if (!statusRegion.classList.contains("error")) {
+          setUiState("idle");
+        } else {
+          microphoneButton.disabled = false;
+        }
+      };
+
+      setUiState("idle");
+    } else {
+      setUiState("unsupported");
+    }
+
+    microphoneButton.addEventListener("click", function () {
+      startRecognition(false);
+    });
+
+    retryButton.addEventListener("click", function () {
+      if (!SpeechRecognition) {
+        setUiState("unsupported");
+        transcriptTextarea.focus();
+        return;
+      }
+      startRecognition(true);
+    });
+
+    clearButton.addEventListener("click", function () {
+      stopRecognition();
+      transcriptTextarea.value = "";
+      finalTranscript = "";
+      setUiState(SpeechRecognition ? "idle" : "unsupported");
+      transcriptTextarea.focus();
+    });
+
+    transcriptTextarea.addEventListener("input", function () {
+      if (!recognitionActive && transcriptTextarea.value.trim()) setUiState("transcript_ready");
+    });
+
+    sendButton.addEventListener("click", function () {
+      const confirmedTranscript = transcriptTextarea.value.trim();
+      if (!confirmedTranscript) {
+        setUiState("error", "請先說話或輸入文字。");
+        transcriptTextarea.focus();
+        return;
+      }
+
+      // TODO: In the next integration stage, POST the confirmed transcript
+      // to the CoA-Agent web API, for example POST /api/chat.
+      // Never place API keys or bot tokens in frontend JavaScript.
+      setUiState("transcript_ready", "訊息已準備好，稍後會連接至 CoA-Agent。");
+    });
+  </script>
 </body>
 </html>

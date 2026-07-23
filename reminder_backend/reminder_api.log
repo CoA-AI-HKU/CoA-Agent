@@ -1,0 +1,10 @@
+nohup: ignoring input
+Traceback (most recent call last):
+  File "/opt/coa/CoA-Agent/reminder_backend/app.py", line 9, in <module>
+    from database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
+  File "/opt/coa/CoA-Agent/reminder_backend/database.py", line 45, in <module>
+    class EmergencyContact(Base):
+  File "/opt/coa/CoA-Agent/reminder_backend/database.py", line 54, in EmergencyContact
+    patient = relationship("Patient", backref="emergency_contacts")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: 'Column' object is not callable
