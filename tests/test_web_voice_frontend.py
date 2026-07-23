@@ -9,7 +9,7 @@ def test_confirmed_editable_transcript_is_posted_and_send_waits():
     assert "confirmedTranscript = transcriptTextarea.value.trim()" in INDEX
     assert "sendButton.disabled = true" in INDEX
     assert "sendButton.disabled = false" in INDEX
-    assert ('`${API_BASE_URL}/api/chat`' in INDEX or 'API_BASE_URL + "/api/chat"' in INDEX)
+    assert 'fetch("/api/chat"' in INDEX
     assert "message: confirmedTranscript" in INDEX
 
 

@@ -578,6 +578,18 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched urgent or current safety-risk terms.",
         )
 
+    # Medication decisions are a safety boundary and must be classified before
+    # memory, caregiver, knowledge, or general-conversation terms that may also
+    # occur in the same message.
+    medication_matches = _matched_terms(normalized, MEDICATION_DIAGNOSIS_TERMS)
+    if medication_matches:
+        return IntentResult(
+            intent="medication_or_diagnosis",
+            confidence=_confidence(0.95, len(medication_matches)),
+            matched_terms=medication_matches,
+            reason="Matched medication or diagnosis boundary terms.",
+        )
+
     role_correction_matches = _matched_terms(normalized, ROLE_CORRECTION_TERMS)
     if role_correction_matches:
         return IntentResult(
@@ -647,12 +659,6 @@ def classify_intent(message: str) -> IntentResult:
             COGNITIVE_CONCERN_SCREENING_TERMS,
             0.92,
             "Matched cognitive concern screening terms.",
-        ),
-        (
-            "medication_or_diagnosis",
-            MEDICATION_DIAGNOSIS_TERMS,
-            0.95,
-            "Matched medication or diagnosis boundary terms.",
         ),
         ("reminder_request", REMINDER_TERMS, 0.85, "Matched reminder or schedule terms."),
         ("personal_memory", PERSONAL_MEMORY_TERMS, 0.8, "Matched personal memory terms."),

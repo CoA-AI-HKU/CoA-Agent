@@ -105,7 +105,9 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
             user_role=user_role,
         )
 
-    if is_medication_decision_question(message):
+    # An active emergency always wins, even when the same message also asks
+    # what to do with medication.
+    if intent_result.intent != "safety_sensitive" and is_medication_decision_question(message):
         return AgentDecision(
             route="medical_boundary",
             intent="medication_or_diagnosis",
