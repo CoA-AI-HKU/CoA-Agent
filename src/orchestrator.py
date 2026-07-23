@@ -73,7 +73,7 @@ def handle_dementia_user_message(
     elif decision.route == "general":
         result = _general_response(message, decision)
     else:
-        result = _unknown_response(decision)
+        result = _unknown_response(message, decision)
 
     result.setdefault("intent", decision.intent)
     result.setdefault("found", False)
@@ -177,9 +177,16 @@ def _prompt_injection_response(message: str, decision: AgentDecision) -> dict[st
     }
 
 
-def _unknown_response(decision: AgentDecision) -> dict[str, Any]:
+def _unknown_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    cjk_count = sum("\u3400" <= char <= "\u9fff" for char in str(message or ""))
+    latin_words = [word for word in str(message or "").split() if word.isalpha()]
+    intelligible = cjk_count >= 3 or len(latin_words) >= 2
     return {
-        "answer": UNKNOWN_RESPONSE,
+        "answer": (
+            "我明白你的要求，但這個功能暫時未能處理。你可以問我記憶支援、腦退化症資訊或日常生活問題。"
+            if intelligible
+            else UNKNOWN_RESPONSE
+        ),
         "intent": decision.intent,
         "safety_level": "normal",
         "found": False,

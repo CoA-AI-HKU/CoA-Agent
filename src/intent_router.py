@@ -606,6 +606,15 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched a caregiver-reported screening or diagnosis concern.",
         )
 
+    low_context_memory_terms = ("壓力", "压力", "睡眠不足", "瞓得唔好", "疲倦", "偶爾", "偶尔", "stress")
+    if screening_matches and any(term in normalized for term in low_context_memory_terms):
+        return IntentResult(
+            intent="cognitive_concern_screening",
+            confidence=0.92,
+            matched_terms=screening_matches,
+            reason="Matched a memory concern with stress, fatigue, or occasional context.",
+        )
+
     if _is_dementia_definition_question(normalized):
         return IntentResult(
             intent="knowledge_qa",
@@ -677,15 +686,8 @@ def classify_intent(message: str) -> IntentResult:
             reason="Fallback: message contains English question pattern.",
         )
 
-    if _looks_like_natural_message(normalized):
-        return IntentResult(
-            intent="general_conversation",
-            confidence=0.5,
-            matched_terms=[],
-            reason="Message appears intelligible but has no specialized route.",
-        )
-
-    return IntentResult(intent="unknown", confidence=0.2, matched_terms=[], reason="Message is not intelligible.")
+    reason = "No configured route matched." if _looks_like_natural_message(normalized) else "Message is not intelligible."
+    return IntentResult(intent="unknown", confidence=0.2, matched_terms=[], reason=reason)
 
 
 def _normalize(message: str) -> str:
