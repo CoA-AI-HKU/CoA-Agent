@@ -310,6 +310,21 @@
     .secondary-button:hover { background: #e6f3f4; }
     .danger-button { color: #b42318; border-color: #b42318; background: #fff; }
     .danger-button:hover { background: #fef0ef; }
+    .game-button {
+      min-height: 70px;
+      padding: .7rem 1rem;
+      border: 2px solid #076b75;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      background: #fff;
+      color: #075b64;
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    .game-button:hover { background: #e6f3f4; }
+    .game-button.selected { background: #076b75; color: #fff; }
 
     .privacy-note {
       margin: 1.25rem 0 0;
@@ -349,6 +364,7 @@
 
     .message-bubble.user { background: #e6f3f4; }
     .message-bubble.assistant { background: #f4f1e8; }
+    .message-bubble.game { background: #f0f8f0; border-left: 4px solid #2a8cff; }
     .message-label { display: block; margin-bottom: .25rem; font-weight: 800; }
 
     .audio-preference {
@@ -370,11 +386,29 @@
 
     .audio-status { min-height: 1.7rem; margin: .8rem 0 0; font-weight: 700; }
 
+    .game-result {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      background: #f5f8fe;
+      border: 1px solid #b7cfd2;
+    }
+    .game-result h3 { margin: 0 0 0.5rem; }
+    .game-result .score { font-size: 1.5rem; font-weight: 700; color: #076b75; }
+
+    .game-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+    }
+
     @media (min-width: 560px) {
       main { padding-top: 3rem; }
       .actions { grid-template-columns: 1.4fr 1fr 1fr; }
       .microphone-button { width: 190px; height: 190px; }
       .audio-actions { grid-template-columns: repeat(3, 1fr); }
+      .game-options { grid-template-columns: 1fr 1fr 1fr; }
     }
   </style>
 </head>
@@ -390,15 +424,17 @@
   <button id="menuOverlay" class="menu-overlay" type="button" aria-label="關閉選單" hidden></button>
   <nav id="menuPanel" class="menu-panel" aria-label="主選單" hidden>
     <ul class="menu-list">
-      <li><button class="menu-link page-link" type="button" data-page="accountPage">賬戶</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="remindersPage">提醒設定</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="contactsPage">聯繫人</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="caregiverPage">照顧者模式</button></li>
-      <li class="privacy-menu-item"><a class="menu-link" href="privacy.html">私隱及同意書</a></li>
+      <li><button class="menu-link page-link" type="button" data-page="accountPage">👤賬戶</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="remindersPage">⏰ 提醒設定</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="cognitivePage">🧠 認知訓練</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="contactsPage">📞聯繫人</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="caregiverPage">🫂照顧者模式</button></li>
+      <li class="privacy-menu-item"><a class="menu-link" href="privacy.html">🔒私隱及同意書</a></li>
     </ul>
   </nav>
 
   <main>
+    <!-- ========== HOME PAGE ========== -->
     <section id="homePage" class="page">
       <h1>CoA 智能助理</h1>
       <p class="intro">按下咪高峰，然後慢慢說出你想問的事情。</p>
@@ -445,8 +481,9 @@
       </section>
     </section>
 
+    <!-- ========== ACCOUNT PAGE ========== -->
     <section id="accountPage" class="page subpage" hidden>
-      <h1>賬戶</h1>
+      <h1>👤 賬戶</h1>
       <p class="subpage-intro">登入或註冊以使用提醒功能。</p>
       <div class="mode-buttons">
         <button id="showLoginButton" class="action-button send-button" type="button">登入</button>
@@ -484,11 +521,11 @@
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
 
+    <!-- ========== REMINDERS PAGE ========== -->
     <section id="remindersPage" class="page subpage" hidden>
-      <h1>提醒設定</h1>
+      <h1>⏰ 提醒設定</h1>
       <p class="subpage-intro">設定你嘅食藥時間，小安會準時提你。</p>
 
-      <!-- 新增提醒表單 -->
       <div class="reminder-form">
         <div class="form-field">
           <label for="medName">💊 藥物名稱</label>
@@ -511,7 +548,6 @@
         <button id="addReminderBtn" class="action-button send-button" type="button">➕ 新增提醒</button>
       </div>
 
-      <!-- 提醒列表 -->
       <h3 style="margin: 1.5rem 0 .5rem;">📋 你嘅提醒清單</h3>
       <ul id="reminderList" class="reminder-list" aria-label="已設定的提醒">
         <li class="reminder-item" style="justify-content:center; color:#61767b;">暫無提醒，新增一個吧！</li>
@@ -524,8 +560,52 @@
       <button class="action-button secondary-button home-link" type="button" style="margin-top: 1.2rem;">返回主頁</button>
     </section>
 
+    <!-- ========== COGNITIVE TRAINING PAGE ========== -->
+    <section id="cognitivePage" class="page subpage" hidden>
+      <h1>🧠 認知訓練</h1>
+      <p class="subpage-intro">透過小遊戲訓練記憶同思考能力。每日練習可以幫助保持腦筋靈活。</p>
+
+      <!-- 遊戲選擇 -->
+      <div style="margin: 1rem 0;">
+        <button class="game-button selected" data-game="naming" id="gameNamingBtn">🍎 命名遊戲</button>
+        <button class="game-button" data-game="memory" id="gameMemoryBtn">🔢 記憶遊戲</button>
+        <button class="game-button" data-game="calculation" id="gameCalculationBtn">🧮 計算遊戲</button>
+      </div>
+
+      <!-- 遊戲內容區 -->
+      <div id="gameContent" style="margin-top: 1rem; padding: 1rem; border: 1px solid #b7cfd2; border-radius: 12px; background: #fafcff; text-align: center;">
+        <div id="gameQuestion" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1rem;">
+          按「開始遊戲」開始訓練
+        </div>
+
+        <div id="gameInputArea">
+          <input type="text" id="gameAnswerInput" placeholder="輸入你嘅答案..." style="width: 100%; min-height: 56px; padding: .65rem .8rem; border: 2px solid #789da2; border-radius: 10px; font: inherit; font-size: 1.2rem;">
+          <button id="gameSubmitBtn" class="action-button send-button" style="margin-top: .5rem; width: 100%;">✅ 提交答案</button>
+        </div>
+
+        <div id="gameFeedback" style="min-height: 2.5rem; margin-top: .8rem; font-weight: 700;"></div>
+
+        <button id="gameNextBtn" class="action-button secondary-button" style="margin-top: .5rem; width: 100%;" disabled>▶️ 下一題</button>
+        <button id="gameStartBtn" class="action-button send-button" style="margin-top: .5rem; width: 100%;">🎯 開始遊戲</button>
+      </div>
+
+      <!-- 遊戲記錄 -->
+      <div class="game-result" style="margin-top: 1rem;">
+        <h3>📊 訓練記錄</h3>
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 0.5rem;">
+          <div><span style="font-weight: 400;">答對：</span><span id="gameCorrectCount" class="score" style="color: #22c55e;">0</span></div>
+          <div><span style="font-weight: 400;">答錯：</span><span id="gameWrongCount" class="score" style="color: #e74c3c;">0</span></div>
+          <div><span style="font-weight: 400;">總分：</span><span id="gameTotalScore" class="score" style="color: #076b75;">0</span></div>
+        </div>
+        <div style="margin-top: 0.5rem; font-size: 0.9rem; color: #61767b;" id="gameStreakMessage">連續答對 0 題</div>
+      </div>
+
+      <button class="action-button secondary-button home-link" type="button" style="margin-top: 1.2rem;">返回主頁</button>
+    </section>
+
+    <!-- ========== CONTACTS PAGE ========== -->
     <section id="contactsPage" class="page subpage" hidden>
-      <h1>聯繫人</h1>
+      <h1>📞聯繫人</h1>
       <p class="subpage-intro">新增或修改聯繫人。資料只會在本次開啟網頁期間保留。</p>
       <form id="contactForm">
         <div class="form-field">
@@ -543,8 +623,9 @@
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
 
+    <!-- ========== CAREGIVER PAGE ========== -->
     <section id="caregiverPage" class="page subpage" hidden>
-      <h1>照顧者模式</h1>
+      <h1>🫂照顧者模式</h1>
       <p class="subpage-intro">此頁面將於稍後提供。</p>
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
@@ -554,10 +635,10 @@
     "use strict";
 
     // ===== CONFIGURATION =====
-    const API_BASE_URL = "http://localhost:8001";   // 修改為你的伺服器地址
+    const API_BASE_URL = "http://localhost:8001";
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // ===== DOM ELEMENTS =====
+    // ===== DOM ELEMENTS (existing) =====
     const microphoneButton = document.getElementById("microphoneButton");
     const microphoneLabel = document.getElementById("microphoneLabel");
     const statusRegion = document.getElementById("status");
@@ -591,22 +672,379 @@
     const medRepeatSelect = document.getElementById("medRepeat");
     const reminderList = document.getElementById("reminderList");
 
-    // ===== STATE =====
+    // Cognitive Training elements
+    const gameNamingBtn = document.getElementById("gameNamingBtn");
+    const gameMemoryBtn = document.getElementById("gameMemoryBtn");
+    const gameCalculationBtn = document.getElementById("gameCalculationBtn");
+    const gameQuestion = document.getElementById("gameQuestion");
+    const gameAnswerInput = document.getElementById("gameAnswerInput");
+    const gameSubmitBtn = document.getElementById("gameSubmitBtn");
+    const gameNextBtn = document.getElementById("gameNextBtn");
+    const gameStartBtn = document.getElementById("gameStartBtn");
+    const gameFeedback = document.getElementById("gameFeedback");
+    const gameCorrectCount = document.getElementById("gameCorrectCount");
+    const gameWrongCount = document.getElementById("gameWrongCount");
+    const gameTotalScore = document.getElementById("gameTotalScore");
+    const gameStreakMessage = document.getElementById("gameStreakMessage");
+
+    // ===== COGNITIVE TRAINING STATE =====
+    let currentGame = "naming";
+    let gameActive = false;
+    let gameQuestions = [];
+    let gameIndex = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let totalScore = 0;
+    let streak = 0;
+    let gameData = {};
+
+    // ===== GAME DATASETS =====
+    const namingCategories = {
+      "水果": ["蘋果", "香蕉", "橙", "西瓜", "提子", "芒果", "梨", "火龍果", "士多啤梨", "蜜瓜", "奇異果", "龍眼"],
+      "動物": ["貓", "狗", "雞", "鴨", "牛", "羊", "豬", "兔", "馬", "魚", "雀", "熊貓"],
+      "顏色": ["紅色", "藍色", "綠色", "黃色", "黑色", "白色", "粉紅色", "紫色", "橙色", "灰色"],
+      "食物": ["飯", "麵", "湯", "菜", "肉", "魚", "蛋", "豆腐", "麵包", "牛奶", "餅乾", "蛋糕"],
+      "地方": ["醫院", "學校", "公園", "圖書館", "街市", "便利店", "餐廳", "銀行", "郵局", "運動場"]
+    };
+    const namingCategoryList = Object.keys(namingCategories);
+    let namingCurrentCategory = "";
+
+    const memoryNumbers = [
+      [1, 2, 3],
+      [4, 5, 6, 7],
+      [8, 9, 0, 1, 2],
+      [3, 6, 9, 2, 5, 8],
+      [1, 4, 7, 0, 3, 6, 9],
+      [2, 5, 8, 1, 4, 7, 0, 3]
+    ];
+    let memoryCurrentSequence = [];
+
+    const calculationEasy = [
+      { a: 2, b: 3, op: "+", ans: 5 },
+      { a: 5, b: 4, op: "+", ans: 9 },
+      { a: 8, b: 3, op: "-", ans: 5 },
+      { a: 7, b: 2, op: "+", ans: 9 },
+      { a: 6, b: 4, op: "-", ans: 2 },
+      { a: 3, b: 5, op: "+", ans: 8 },
+      { a: 9, b: 2, op: "-", ans: 7 },
+      { a: 4, b: 6, op: "+", ans: 10 },
+      { a: 12, b: 5, op: "-", ans: 7 }
+    ];
+    const calculationHard = [
+      { a: 15, b: 7, op: "-", ans: 8 },
+      { a: 8, b: 9, op: "+", ans: 17 },
+      { a: 23, b: 6, op: "-", ans: 17 },
+      { a: 14, b: 8, op: "+", ans: 22 },
+      { a: 31, b: 15, op: "-", ans: 16 },
+      { a: 7, b: 16, op: "+", ans: 23 },
+      { a: 42, b: 18, op: "-", ans: 24 },
+      { a: 26, b: 37, op: "+", ans: 63 }
+    ];
+    let currentCalcQuestion = null;
+    let calcDifficulty = "easy";
+
+    // ===== COGNITIVE TRAINING FUNCTIONS =====
+
+    function resetGameStats() {
+      correctCount = 0;
+      wrongCount = 0;
+      totalScore = 0;
+      streak = 0;
+      updateGameStats();
+    }
+
+    function updateGameStats() {
+      gameCorrectCount.textContent = correctCount;
+      gameWrongCount.textContent = wrongCount;
+      gameTotalScore.textContent = totalScore;
+      gameStreakMessage.textContent = "連續答對 " + streak + " 題";
+    }
+
+    function selectGame(game) {
+      currentGame = game;
+      document.querySelectorAll(".game-button").forEach(function(btn) {
+        btn.classList.remove("selected");
+      });
+      if (game === "naming") gameNamingBtn.classList.add("selected");
+      else if (game === "memory") gameMemoryBtn.classList.add("selected");
+      else if (game === "calculation") gameCalculationBtn.classList.add("selected");
+      gameActive = false;
+      gameStartBtn.disabled = false;
+      gameSubmitBtn.disabled = true;
+      gameNextBtn.disabled = true;
+      gameAnswerInput.disabled = true;
+      gameAnswerInput.value = "";
+      gameFeedback.textContent = "";
+      gameQuestion.textContent = "準備好之後，按「開始遊戲」";
+      gameFeedback.style.color = "";
+    }
+
+    function startGame() {
+      gameActive = true;
+      gameIndex = 0;
+      gameStartBtn.disabled = true;
+      gameAnswerInput.disabled = false;
+      gameAnswerInput.focus();
+      gameFeedback.textContent = "";
+      gameFeedback.style.color = "";
+
+      if (currentGame === "naming") {
+        // 隨機選擇一個類別
+        const randomIndex = Math.floor(Math.random() * namingCategoryList.length);
+        namingCurrentCategory = namingCategoryList[randomIndex];
+        const items = namingCategories[namingCurrentCategory];
+        // 隨機選擇 5 個項目
+        const shuffled = items.slice().sort(() => Math.random() - 0.5);
+        gameQuestions = shuffled.slice(0, 5);
+        gameIndex = 0;
+        gameQuestion.textContent = "請講出 3 種「" + namingCurrentCategory + "」";
+        gameData = { category: namingCurrentCategory, items: gameQuestions, usedItems: [] };
+        gameAnswerInput.placeholder = "輸入一種「" + namingCurrentCategory + "」...";
+        gameNextBtn.disabled = true;
+        resetGameStats();
+      } else if (currentGame === "memory") {
+        // 隨機選擇一個序列
+        const seqIndex = Math.floor(Math.random() * memoryNumbers.length);
+        memoryCurrentSequence = memoryNumbers[seqIndex];
+        gameQuestion.textContent = "記住以下數字：" + memoryCurrentSequence.join(" ");
+        gameAnswerInput.placeholder = "輸入你記住的數字...";
+        gameNextBtn.disabled = true;
+        resetGameStats();
+        // 3秒後自動轉為輸入模式
+        setTimeout(function() {
+          if (gameActive) {
+            gameQuestion.textContent = "請輸入你記住的數字（用空格分開）";
+            gameAnswerInput.placeholder = "例如：" + memoryCurrentSequence.join(" ");
+          }
+        }, 3000);
+      } else if (currentGame === "calculation") {
+        // 隨機選擇難度
+        calcDifficulty = Math.random() > 0.5 ? "hard" : "easy";
+        const pool = calcDifficulty === "easy" ? calculationEasy : calculationHard;
+        const qIndex = Math.floor(Math.random() * pool.length);
+        currentCalcQuestion = pool[qIndex];
+        const opSymbol = currentCalcQuestion.op === "+" ? "+" : "−";
+        gameQuestion.textContent = currentCalcQuestion.a + " " + opSymbol + " " + currentCalcQuestion.b + " = ?";
+        gameAnswerInput.placeholder = "輸入答案...";
+        gameNextBtn.disabled = true;
+        resetGameStats();
+      }
+    }
+
+    function submitGameAnswer() {
+      if (!gameActive) return;
+      const userAnswer = gameAnswerInput.value.trim();
+      if (!userAnswer) {
+        gameFeedback.textContent = "⚠️ 請輸入答案！";
+        gameFeedback.style.color = "#e67e22";
+        return;
+      }
+
+      let isCorrect = false;
+      let correctAnswer = "";
+
+      if (currentGame === "naming") {
+        // 檢查是否已經答過
+        const items = gameData.items || [];
+        const used = gameData.usedItems || [];
+        const normalizedInput = userAnswer.trim();
+        const match = items.find(function(item) {
+          return item === normalizedInput && used.indexOf(item) === -1;
+        });
+        if (match) {
+          isCorrect = true;
+          gameData.usedItems.push(match);
+          gameData.usedItems = gameData.usedItems || [];
+        } else {
+          // 檢查是否重複
+          const alreadyUsed = used.some(function(u) { return u === normalizedInput; });
+          if (alreadyUsed) {
+            gameFeedback.textContent = "⚠️ 呢個答案已經講過啦！試吓講另一個。";
+            gameFeedback.style.color = "#e67e22";
+            gameAnswerInput.value = "";
+            gameAnswerInput.focus();
+            return;
+          }
+          // 檢查是否屬於該類別
+          const categoryItems = namingCategories[namingCurrentCategory] || [];
+          const belongs = categoryItems.some(function(item) { return item === normalizedInput; });
+          if (!belongs) {
+            gameFeedback.textContent = "❌ 唔屬於「" + namingCurrentCategory + "」類別，試吓另一個。";
+            gameFeedback.style.color = "#e74c3c";
+            gameAnswerInput.value = "";
+            gameAnswerInput.focus();
+            return;
+          }
+          // 如果不在列表中但屬於類別，也當作正確
+          isCorrect = true;
+          gameData.usedItems.push(normalizedInput);
+          gameData.usedItems = gameData.usedItems || [];
+        }
+        correctAnswer = match || normalizedInput;
+      } else if (currentGame === "memory") {
+        // 記憶遊戲：比較數字序列
+        const userNumbers = userAnswer.split(/\s+/).filter(function(s) { return s !== ""; }).map(Number);
+        const expected = memoryCurrentSequence;
+        // 比較長度和每個元素
+        if (userNumbers.length === expected.length) {
+          let allMatch = true;
+          for (var i = 0; i < expected.length; i++) {
+            if (userNumbers[i] !== expected[i]) { allMatch = false; break; }
+          }
+          if (allMatch) { isCorrect = true; }
+          correctAnswer = expected.join(" ");
+        } else {
+          correctAnswer = expected.join(" ");
+        }
+      } else if (currentGame === "calculation") {
+        const userNum = parseFloat(userAnswer);
+        if (!isNaN(userNum) && userNum === currentCalcQuestion.ans) {
+          isCorrect = true;
+        }
+        correctAnswer = String(currentCalcQuestion.ans);
+        // 如果錯誤，也記錄正確答案
+      }
+
+      if (isCorrect) {
+        correctCount++;
+        totalScore += 10;
+        streak++;
+        gameFeedback.textContent = "✅ 正確！好叻呀！ 🎉";
+        gameFeedback.style.color = "#22c55e";
+      } else {
+        wrongCount++;
+        streak = 0;
+        gameFeedback.textContent = "❌ 唔啱。正確答案係：" + correctAnswer + "。繼續加油！";
+        gameFeedback.style.color = "#e74c3c";
+      }
+
+      updateGameStats();
+      gameSubmitBtn.disabled = true;
+      gameAnswerInput.disabled = true;
+      gameNextBtn.disabled = false;
+
+      // 檢查是否完成
+      if (currentGame === "naming" && gameData.usedItems && gameData.usedItems.length >= 3) {
+        // 完成一個命名回合
+        gameQuestion.textContent = "🎉 完成咗「" + namingCurrentCategory + "」嘅練習！好叻！";
+        gameNextBtn.textContent = "🔄 下一輪（新類別）";
+      } else if (currentGame === "naming") {
+        gameNextBtn.textContent = "⬇️ 下一題";
+      } else if (currentGame === "memory") {
+        gameNextBtn.textContent = "🔄 新嘅記憶練習";
+      } else if (currentGame === "calculation") {
+        gameNextBtn.textContent = "🔄 下一題計數";
+      }
+    }
+
+    function nextGameQuestion() {
+      if (currentGame === "naming") {
+        const used = gameData.usedItems || [];
+        if (used.length >= 3) {
+          // 完成一輪，重新開始新類別
+          const available = namingCategoryList.filter(function(c) { return c !== namingCurrentCategory; });
+          if (available.length === 0) {
+            // 所有類別都用完了，重置
+            namingCurrentCategory = namingCategoryList[Math.floor(Math.random() * namingCategoryList.length)];
+          } else {
+            namingCurrentCategory = available[Math.floor(Math.random() * available.length)];
+          }
+          const items = namingCategories[namingCurrentCategory];
+          const shuffled = items.slice().sort(() => Math.random() - 0.5);
+          gameQuestions = shuffled.slice(0, 5);
+          gameData = { category: namingCurrentCategory, items: gameQuestions, usedItems: [] };
+          gameQuestion.textContent = "請講出 3 種「" + namingCurrentCategory + "」";
+          gameAnswerInput.placeholder = "輸入一種「" + namingCurrentCategory + "」...";
+        } else {
+          // 繼續同一個類別
+          const remaining = gameData.items.filter(function(item) {
+            return gameData.usedItems.indexOf(item) === -1;
+          });
+          // 如果只剩下很少，補充更多
+          if (remaining.length < 1) {
+            const categoryItems = namingCategories[namingCurrentCategory] || [];
+            const unused = categoryItems.filter(function(item) {
+              return gameData.usedItems.indexOf(item) === -1;
+            });
+            if (unused.length > 0) {
+              const toAdd = unused.slice(0, 3);
+              gameData.items = gameData.items.concat(toAdd);
+            } else {
+              // 所有都用完了，重置類別
+              namingCurrentCategory = namingCategoryList[Math.floor(Math.random() * namingCategoryList.length)];
+              const items = namingCategories[namingCurrentCategory];
+              const shuffled = items.slice().sort(() => Math.random() - 0.5);
+              gameQuestions = shuffled.slice(0, 5);
+              gameData = { category: namingCurrentCategory, items: gameQuestions, usedItems: [] };
+              gameQuestion.textContent = "請講出 3 種「" + namingCurrentCategory + "」";
+              gameAnswerInput.placeholder = "輸入一種「" + namingCurrentCategory + "」...";
+            }
+          }
+          gameQuestion.textContent = "請講出另一種「" + namingCurrentCategory + "」";
+          gameAnswerInput.placeholder = "輸入另一種「" + namingCurrentCategory + "」...";
+        }
+      } else if (currentGame === "memory") {
+        // 新一組數字
+        const seqIndex = Math.floor(Math.random() * memoryNumbers.length);
+        memoryCurrentSequence = memoryNumbers[seqIndex];
+        gameQuestion.textContent = "記住以下數字：" + memoryCurrentSequence.join(" ");
+        gameAnswerInput.placeholder = "輸入你記住的數字...";
+        setTimeout(function() {
+          if (gameActive) {
+            gameQuestion.textContent = "請輸入你記住的數字（用空格分開）";
+            gameAnswerInput.placeholder = "例如：" + memoryCurrentSequence.join(" ");
+          }
+        }, 2500);
+      } else if (currentGame === "calculation") {
+        calcDifficulty = Math.random() > 0.5 ? "hard" : "easy";
+        const pool = calcDifficulty === "easy" ? calculationEasy : calculationHard;
+        const qIndex = Math.floor(Math.random() * pool.length);
+        currentCalcQuestion = pool[qIndex];
+        const opSymbol = currentCalcQuestion.op === "+" ? "+" : "−";
+        gameQuestion.textContent = currentCalcQuestion.a + " " + opSymbol + " " + currentCalcQuestion.b + " = ?";
+        gameAnswerInput.placeholder = "輸入答案...";
+      }
+
+      gameAnswerInput.value = "";
+      gameAnswerInput.disabled = false;
+      gameSubmitBtn.disabled = false;
+      gameNextBtn.disabled = true;
+      gameFeedback.textContent = "";
+      gameFeedback.style.color = "";
+      gameAnswerInput.focus();
+    }
+
+    // ===== COGNITIVE TRAINING EVENT LISTENERS =====
+    gameNamingBtn.addEventListener("click", function() { selectGame("naming"); });
+    gameMemoryBtn.addEventListener("click", function() { selectGame("memory"); });
+    gameCalculationBtn.addEventListener("click", function() { selectGame("calculation"); });
+    gameStartBtn.addEventListener("click", startGame);
+    gameSubmitBtn.addEventListener("click", submitGameAnswer);
+    gameNextBtn.addEventListener("click", nextGameQuestion);
+    gameAnswerInput.addEventListener("keydown", function(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (!gameSubmitBtn.disabled) {
+          submitGameAnswer();
+        } else if (!gameNextBtn.disabled) {
+          nextGameQuestion();
+        }
+      }
+    });
+
+    // ===== AUTH STATE =====
+    let authToken = localStorage.getItem("reminder_token");
+    let contacts = [];
+    let editingContactIndex = -1;
     let recognition = null;
     let recognitionActive = false;
     let finalTranscript = "";
     let ignoreAbortError = false;
-    let temporaryAccount = null;
-    let contacts = [];
-    let editingContactIndex = -1;
     let latestAssistantReply = "";
     let latestAssistantLanguage = "zh-HK";
     let speechGeneration = 0;
     let lastInputMode = "text";
     const prototypeSessionId = createPrototypeSessionId();
-
-    // Auth state
-    let authToken = localStorage.getItem("reminder_token");
 
     // ===== HELPERS =====
     function createPrototypeSessionId() {
@@ -750,6 +1188,17 @@
       if (pageId === "remindersPage") {
         loadReminders();
       }
+      if (pageId === "cognitivePage") {
+        // 重置認知訓練狀態
+        if (!gameActive) {
+          gameQuestion.textContent = "按「開始遊戲」開始訓練";
+          gameAnswerInput.disabled = true;
+          gameSubmitBtn.disabled = true;
+          gameNextBtn.disabled = true;
+          gameStartBtn.disabled = false;
+          gameFeedback.textContent = "";
+        }
+      }
     }
 
     function showAccountForm(mode) {
@@ -823,7 +1272,6 @@
           </li>`;
         }).join("");
 
-        // 綁定刪除按鈕事件
         document.querySelectorAll("#reminderList .danger-button").forEach(function (btn) {
           btn.addEventListener("click", function () {
             const id = parseInt(btn.dataset.reminderId);
@@ -877,7 +1325,7 @@
             "Authorization": "Bearer " + authToken
           },
           body: JSON.stringify({
-            patient_id: 1, // 暫時固定為 1，因為我們沒有患者選擇，可改進為動態
+            patient_id: 1,
             text: text,
             time: time,
             days: days
@@ -1196,20 +1644,21 @@
     // ===== REMINDER ADD BUTTON =====
     addReminderBtn.addEventListener("click", addReminder);
 
-    // ===== AUTO-LOAD ON START =====
-    // 如果已有 token，嘗試加載提醒（但提醒頁面只在切換到時載入）
-    // 我們會在 showPage('remindersPage') 時調用 loadReminders
-
     // ===== INIT =====
     setUiState(SpeechRecognition ? "idle" : "unsupported");
-    // 預設顯示主頁
     showPage("homePage");
 
-    // 如果已有 token 且沒有過期，可嘗試預載（但加載提醒只在切換頁面時觸發）
     if (isAuthenticated()) {
-      // 驗證 token 是否有效（可選）
-      // 簡單起見，不驗證
+      // 可選：預載提醒
     }
+
+    // 預設選擇命名遊戲
+    selectGame("naming");
+
+    console.log("✅ CoA 智能助理已啟動");
+    console.log("   - 語音辨識: " + (SpeechRecognition ? "✅ 支援" : "❌ 不支援"));
+    console.log("   - 提醒功能: " + (isAuthenticated() ? "✅ 已登入" : "❌ 未登入"));
+    console.log("   - 認知訓練: ✅ 已載入");
   </script>
 </body>
 </html>
