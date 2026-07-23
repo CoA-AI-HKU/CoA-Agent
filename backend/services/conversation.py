@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -69,3 +71,34 @@ class ConversationService:
                 "safety_level": result.get("safety_level"),
             },
         )
+
+
+async def process_user_message(
+    user_id: str,
+    message: str,
+    channel: str,
+    session_id: str | None = None,
+    *,
+    timeout_seconds: float = 30.0,
+    service: ConversationService | None = None,
+) -> dict[str, str]:
+    """Run a channel message through the shared agent pipeline.
+
+    Only the small, user-safe contract returned here may cross the prototype
+    web boundary. Agent metadata remains server-side.
+    """
+    conversation_service = service or ConversationService()
+    result = await asyncio.wait_for(
+        asyncio.to_thread(
+            conversation_service.respond,
+            ConversationRequest(user_id=user_id, message=message, platform=channel),
+        ),
+        timeout=timeout_seconds,
+    )
+    if not result.response:
+        raise RuntimeError("agent returned an empty response")
+    return {
+        "reply": result.response,
+        "language": "zh-HK",
+        "session_id": session_id or uuid.uuid4().hex,
+    }
