@@ -210,7 +210,7 @@
 
     .form-field { margin-bottom: 1rem; }
 
-    input {
+    input, select {
       width: 100%;
       min-height: 56px;
       padding: .65rem .8rem;
@@ -221,7 +221,9 @@
       font: inherit;
     }
 
-    input:focus-visible, a:focus-visible {
+    select { appearance: auto; }
+
+    input:focus-visible, select:focus-visible, a:focus-visible {
       outline: 4px solid #f2a900;
       outline-offset: 4px;
     }
@@ -240,7 +242,7 @@
       color: #075b64;
     }
 
-    .contact-list {
+    .contact-list, .reminder-list {
       display: grid;
       gap: .7rem;
       margin: 1.3rem 0 0;
@@ -248,7 +250,7 @@
       list-style: none;
     }
 
-    .contact-item {
+    .contact-item, .reminder-item {
       display: flex;
       padding: .8rem;
       align-items: center;
@@ -306,6 +308,8 @@
     .send-button:hover { background: #055862; }
     .secondary-button { color: #075b64; background: #fff; }
     .secondary-button:hover { background: #e6f3f4; }
+    .danger-button { color: #b42318; border-color: #b42318; background: #fff; }
+    .danger-button:hover { background: #fef0ef; }
 
     .privacy-note {
       margin: 1.25rem 0 0;
@@ -387,8 +391,9 @@
   <nav id="menuPanel" class="menu-panel" aria-label="主選單" hidden>
     <ul class="menu-list">
       <li><button class="menu-link page-link" type="button" data-page="accountPage">賬戶</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="contactsPage">聯係人</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="caregiverPage">照顧著模式</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="remindersPage">提醒設定</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="contactsPage">聯繫人</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="caregiverPage">照顧者模式</button></li>
       <li class="privacy-menu-item"><a class="menu-link" href="privacy.html">私隱及同意書</a></li>
     </ul>
   </nav>
@@ -442,7 +447,7 @@
 
     <section id="accountPage" class="page subpage" hidden>
       <h1>賬戶</h1>
-      <p class="subpage-intro">這是臨時測試賬戶，只會在本次開啟網頁期間使用。</p>
+      <p class="subpage-intro">登入或註冊以使用提醒功能。</p>
       <div class="mode-buttons">
         <button id="showLoginButton" class="action-button send-button" type="button">登入</button>
         <button id="showRegisterButton" class="action-button secondary-button" type="button">註冊</button>
@@ -469,15 +474,59 @@
           <label for="registerPassword">密碼</label>
           <input id="registerPassword" name="registerPassword" type="password" autocomplete="new-password" required>
         </div>
-        <button class="action-button send-button" type="submit">建立測試賬戶</button>
+        <div class="form-field">
+          <label for="registerDisplayName">顯示名稱</label>
+          <input id="registerDisplayName" name="registerDisplayName" placeholder="例如：陳照顧者" required>
+        </div>
+        <button class="action-button send-button" type="submit">註冊</button>
       </form>
       <p id="accountMessage" class="form-message" aria-live="polite"></p>
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
 
+    <section id="remindersPage" class="page subpage" hidden>
+      <h1>提醒設定</h1>
+      <p class="subpage-intro">設定你嘅食藥時間，小安會準時提你。</p>
+
+      <!-- 新增提醒表單 -->
+      <div class="reminder-form">
+        <div class="form-field">
+          <label for="medName">💊 藥物名稱</label>
+          <input type="text" id="medName" placeholder="例如：Donepezil" class="input-large">
+        </div>
+        <div class="form-field">
+          <label for="medTime">🕐 時間</label>
+          <input type="time" id="medTime" value="08:00" class="input-large">
+        </div>
+        <div class="form-field">
+          <label for="medRepeat">📅 重複</label>
+          <select id="medRepeat" class="input-large">
+            <option value="mon,tue,wed,thu,fri,sat,sun">每日</option>
+            <option value="mon,tue,wed,thu,fri">平日 (一至五)</option>
+            <option value="sat,sun">週末</option>
+            <option value="mon,wed,fri">一三五</option>
+            <option value="tue,thu">二四</option>
+          </select>
+        </div>
+        <button id="addReminderBtn" class="action-button send-button" type="button">➕ 新增提醒</button>
+      </div>
+
+      <!-- 提醒列表 -->
+      <h3 style="margin: 1.5rem 0 .5rem;">📋 你嘅提醒清單</h3>
+      <ul id="reminderList" class="reminder-list" aria-label="已設定的提醒">
+        <li class="reminder-item" style="justify-content:center; color:#61767b;">暫無提醒，新增一個吧！</li>
+      </ul>
+
+      <div style="margin-top: 1rem; padding: .8rem 1rem; background: #f0f8f0; border-radius: 12px; font-size: .9rem; color: #2a5a3a;">
+        💡 提你食藥嘅時候，小安會用語音叫你。
+      </div>
+
+      <button class="action-button secondary-button home-link" type="button" style="margin-top: 1.2rem;">返回主頁</button>
+    </section>
+
     <section id="contactsPage" class="page subpage" hidden>
-      <h1>聯係人</h1>
-      <p class="subpage-intro">新增或修改聯係人。資料只會在本次開啟網頁期間保留。</p>
+      <h1>聯繫人</h1>
+      <p class="subpage-intro">新增或修改聯繫人。資料只會在本次開啟網頁期間保留。</p>
       <form id="contactForm">
         <div class="form-field">
           <label for="contactName">姓名</label>
@@ -487,15 +536,15 @@
           <label for="contactDetail">電話或聯絡資料</label>
           <input id="contactDetail" name="contactDetail" inputmode="tel" required>
         </div>
-        <button id="saveContactButton" class="action-button send-button" type="submit">新增聯係人</button>
+        <button id="saveContactButton" class="action-button send-button" type="submit">新增聯繫人</button>
       </form>
       <p id="contactMessage" class="form-message" aria-live="polite"></p>
-      <ul id="contactList" class="contact-list" aria-label="已加入的聯係人"></ul>
+      <ul id="contactList" class="contact-list" aria-label="已加入的聯繫人"></ul>
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
 
     <section id="caregiverPage" class="page subpage" hidden>
-      <h1>照顧著模式</h1>
+      <h1>照顧者模式</h1>
       <p class="subpage-intro">此頁面將於稍後提供。</p>
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
@@ -504,8 +553,11 @@
   <script>
     "use strict";
 
-    const API_BASE_URL = "";
+    // ===== CONFIGURATION =====
+    const API_BASE_URL = "http://localhost:8001";   // 修改為你的伺服器地址
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    // ===== DOM ELEMENTS =====
     const microphoneButton = document.getElementById("microphoneButton");
     const microphoneLabel = document.getElementById("microphoneLabel");
     const statusRegion = document.getElementById("status");
@@ -532,14 +584,14 @@
     const replayReplyButton = document.getElementById("replayReplyButton");
     const audioStatus = document.getElementById("audioStatus");
 
-    const messages = {
-      idle: "準備好後，請按下咪高峰。",
-      listening: "正在聆聽，請慢慢說話……",
-      processing: "正在整理文字……",
-      transcript_ready: "已完成。請先確認下面的文字。",
-      unsupported: "這個瀏覽器暫時不支援語音輸入。你仍然可以在下面輸入文字。"
-    };
+    // Reminder elements
+    const addReminderBtn = document.getElementById("addReminderBtn");
+    const medNameInput = document.getElementById("medName");
+    const medTimeInput = document.getElementById("medTime");
+    const medRepeatSelect = document.getElementById("medRepeat");
+    const reminderList = document.getElementById("reminderList");
 
+    // ===== STATE =====
     let recognition = null;
     let recognitionActive = false;
     let finalTranscript = "";
@@ -553,6 +605,10 @@
     let lastInputMode = "text";
     const prototypeSessionId = createPrototypeSessionId();
 
+    // Auth state
+    let authToken = localStorage.getItem("reminder_token");
+
+    // ===== HELPERS =====
     function createPrototypeSessionId() {
       if (window.crypto && typeof window.crypto.randomUUID === "function") {
         return window.crypto.randomUUID();
@@ -560,13 +616,12 @@
       if (window.crypto && typeof window.crypto.getRandomValues === "function") {
         const values = new Uint32Array(4);
         window.crypto.getRandomValues(values);
-        return Array.from(values, function (value) { return value.toString(16); }).join("-");
+        return Array.from(values, function (v) { return v.toString(16); }).join("-");
       }
       return "prototype-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
     }
 
     function getPrototypeUserId() {
-      // TODO: Replace this prototype identity with an authenticated server session.
       return "web-demo-user";
     }
 
@@ -574,6 +629,25 @@
       return prototypeSessionId;
     }
 
+    function getAuthHeaders() {
+      return { "Authorization": "Bearer " + authToken };
+    }
+
+    function isAuthenticated() {
+      return !!authToken;
+    }
+
+    function setAuthToken(token) {
+      authToken = token;
+      localStorage.setItem("reminder_token", token);
+    }
+
+    function clearAuth() {
+      authToken = null;
+      localStorage.removeItem("reminder_token");
+    }
+
+    // ===== AUDIO STATE =====
     function setAudioState(state, message) {
       const stateMessages = {
         idle: "",
@@ -626,7 +700,6 @@
         setAudioState("speech_unsupported");
         return;
       }
-
       stopRecognition();
       cancelAssistantSpeech(false);
       const currentGeneration = speechGeneration;
@@ -636,7 +709,6 @@
       utterance.rate = 0.9;
       utterance.pitch = 1;
       utterance.volume = 1;
-
       const matchingVoice = window.speechSynthesis.getVoices().find(function (voice) {
         return voice.lang.toLowerCase() === resolvedLanguage.toLowerCase();
       });
@@ -654,6 +726,7 @@
       window.speechSynthesis.speak(utterance);
     }
 
+    // ===== UI HELPERS =====
     function setMenuOpen(isOpen) {
       menuPanel.hidden = !isOpen;
       menuOverlay.hidden = !isOpen;
@@ -673,6 +746,9 @@
       if (heading) {
         heading.setAttribute("tabindex", "-1");
         heading.focus();
+      }
+      if (pageId === "remindersPage") {
+        loadReminders();
       }
     }
 
@@ -712,8 +788,143 @@
       });
     }
 
-    function setUiState(state, message = messages[state]) {
-      statusRegion.textContent = message;
+    // ===== REMINDER FUNCTIONS =====
+    async function loadReminders() {
+      if (!isAuthenticated()) {
+        reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">請先登入以查看提醒。</li>';
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + "/api/reminders", {
+          headers: { "Authorization": "Bearer " + authToken }
+        });
+        if (!res.ok) {
+          if (res.status === 401) {
+            clearAuth();
+            reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">登入已過期，請重新登入。</li>';
+            return;
+          }
+          throw new Error("Failed to load reminders");
+        }
+        const reminders = await res.json();
+        if (reminders.length === 0) {
+          reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">暫無提醒，新增一個吧！</li>';
+          return;
+        }
+        reminderList.innerHTML = reminders.map(function (reminder) {
+          const daysDisplay = formatDays(reminder.days);
+          return `<li class="reminder-item">
+            <div>
+              <strong>💊 ${reminder.text}</strong>
+              <div style="font-size:0.9rem; color:#61767b;">🕐 ${reminder.time} · ${daysDisplay}</div>
+            </div>
+            <button class="action-button danger-button small-button" data-reminder-id="${reminder.id}">刪除</button>
+          </li>`;
+        }).join("");
+
+        // 綁定刪除按鈕事件
+        document.querySelectorAll("#reminderList .danger-button").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            const id = parseInt(btn.dataset.reminderId);
+            deleteReminder(id);
+          });
+        });
+      } catch (err) {
+        console.error(err);
+        reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#b42318;">無法載入提醒，請稍後再試。</li>';
+      }
+    }
+
+    function formatDays(days) {
+      const map = {
+        'mon,tue,wed,thu,fri,sat,sun': '每日',
+        'mon,tue,wed,thu,fri': '平日 (一至五)',
+        'sat,sun': '週末',
+        'mon,wed,fri': '一三五',
+        'tue,thu': '二四'
+      };
+      return map[days] || days;
+    }
+
+    async function addReminder() {
+      if (!isAuthenticated()) {
+        accountMessage.textContent = "請先登入以新增提醒。";
+        showPage("accountPage");
+        return;
+      }
+
+      const text = medNameInput.value.trim();
+      const time = medTimeInput.value;
+      const days = medRepeatSelect.value;
+
+      if (!text) {
+        alert("請輸入藥物名稱");
+        medNameInput.focus();
+        return;
+      }
+      if (!time) {
+        alert("請選擇時間");
+        medTimeInput.focus();
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + "/api/reminders", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + authToken
+          },
+          body: JSON.stringify({
+            patient_id: 1, // 暫時固定為 1，因為我們沒有患者選擇，可改進為動態
+            text: text,
+            time: time,
+            days: days
+          })
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          alert("新增失敗：" + (err.detail || "未知錯誤"));
+          return;
+        }
+        medNameInput.value = "";
+        medTimeInput.value = "08:00";
+        medRepeatSelect.selectedIndex = 0;
+        loadReminders();
+      } catch (err) {
+        alert("連線錯誤：" + err.message);
+      }
+    }
+
+    async function deleteReminder(reminderId) {
+      if (!confirm("確定要刪除這個提醒嗎？")) return;
+      try {
+        const res = await fetch(API_BASE_URL + "/api/reminders/" + reminderId, {
+          method: "DELETE",
+          headers: { "Authorization": "Bearer " + authToken }
+        });
+        if (!res.ok) {
+          alert("刪除失敗");
+          return;
+        }
+        loadReminders();
+      } catch (err) {
+        alert("連線錯誤：" + err.message);
+      }
+    }
+
+    // ===== RECOGNITION =====
+    function setUiState(state, message) {
+      const messages = {
+        idle: "準備好後，請按下咪高峰。",
+        listening: "正在聆聽，請慢慢說話……",
+        processing: "正在整理文字……",
+        transcript_ready: "已完成。請先確認下面的文字。",
+        unsupported: "這個瀏覽器暫時不支援語音輸入。你仍然可以在下面輸入文字。",
+        error: message || "發生錯誤，請再試一次。"
+      };
+      statusRegion.textContent = messages[state] || message;
       statusRegion.classList.toggle("error", state === "error");
       microphoneButton.classList.toggle("listening", state === "listening");
       microphoneButton.disabled = recognitionActive || !SpeechRecognition;
@@ -721,9 +932,8 @@
       microphoneLabel.textContent = state === "listening" ? "正在聆聽" : "按下說話";
     }
 
-    function startRecognition(clearExisting = false) {
+    function startRecognition(clearExisting) {
       if (!recognition || recognitionActive) return;
-
       cancelAssistantSpeech(false);
       if (clearExisting) transcriptTextarea.value = "";
       finalTranscript = transcriptTextarea.value.trim();
@@ -731,10 +941,7 @@
       ignoreAbortError = false;
       recognitionActive = true;
       setUiState("listening");
-
-      try {
-        recognition.start();
-      } catch (error) {
+      try { recognition.start(); } catch (err) {
         recognitionActive = false;
         setUiState("error", "無法開始語音辨識，請再試一次。");
       }
@@ -744,9 +951,10 @@
       if (!recognition || !recognitionActive) return;
       ignoreAbortError = true;
       recognitionActive = false;
-      try { recognition.abort(); } catch (error) { /* Recognition may already have ended. */ }
+      try { recognition.abort(); } catch (err) { /* ignore */ }
     }
 
+    // ===== INIT RECOGNITION =====
     if (SpeechRecognition) {
       recognition = new SpeechRecognition();
       recognition.lang = "zh-HK";
@@ -762,16 +970,14 @@
       recognition.onresult = function (event) {
         let interimTranscript = "";
         lastInputMode = "voice";
-
         for (let index = event.resultIndex; index < event.results.length; index += 1) {
-          const recognizedText = event.results[index][0].transcript;
+          const text = event.results[index][0].transcript;
           if (event.results[index].isFinal) {
-            finalTranscript += recognizedText;
+            finalTranscript += text;
           } else {
-            interimTranscript += recognizedText;
+            interimTranscript += text;
           }
         }
-
         transcriptTextarea.value = finalTranscript + interimTranscript;
         if (finalTranscript.trim()) setUiState("transcript_ready");
       };
@@ -783,7 +989,6 @@
       recognition.onerror = function (event) {
         recognitionActive = false;
         if (event.error === "aborted" && ignoreAbortError) return;
-
         const errorMessages = {
           "not-allowed": "請允許瀏覽器使用咪高峰。",
           "service-not-allowed": "請允許瀏覽器使用咪高峰。",
@@ -806,15 +1011,13 @@
           microphoneButton.disabled = false;
         }
       };
-
       setUiState("idle");
     } else {
       setUiState("unsupported");
     }
 
-    microphoneButton.addEventListener("click", function () {
-      startRecognition(false);
-    });
+    // ===== EVENT LISTENERS =====
+    microphoneButton.addEventListener("click", function () { startRecognition(false); });
 
     retryButton.addEventListener("click", function () {
       if (!SpeechRecognition) {
@@ -845,13 +1048,12 @@
         transcriptTextarea.focus();
         return;
       }
-
       sendButton.disabled = true;
       setUiState("processing", "正在處理你的訊息……");
       setAudioState("loading_response");
 
       try {
-        const response = await fetch(`${API_BASE_URL}/api/chat`, {
+        const response = await fetch(API_BASE_URL + "/api/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -862,9 +1064,7 @@
           })
         });
         const payload = await response.json().catch(function () { return {}; });
-        if (!response.ok) {
-          throw new Error("agent-response");
-        }
+        if (!response.ok) throw new Error("agent-response");
         const reply = typeof payload.reply === "string" ? payload.reply.trim() : "";
         if (!reply) throw new Error("agent-response");
 
@@ -874,11 +1074,9 @@
         latestAssistantLanguage = payload.language || "zh-HK";
         setUiState("transcript_ready", "回覆已完成。");
         setAudioState("response_ready");
-
-        // The visible assistant text above is the sole source for playback.
         if (autoPlayReply.checked) speakAssistantReply(latestAssistantReply, latestAssistantLanguage);
-      } catch (error) {
-        if (error instanceof TypeError) {
+      } catch (err) {
+        if (err instanceof TypeError) {
           setUiState("error", "暫時無法連接 CoA-Agent，請稍後再試。");
         } else {
           setUiState("error", "CoA-Agent 暫時無法處理這個訊息，請稍後再試。");
@@ -889,99 +1087,129 @@
       }
     });
 
-    playReplyButton.addEventListener("click", function () {
-      speakAssistantReply(latestAssistantReply, latestAssistantLanguage);
-    });
-
-    replayReplyButton.addEventListener("click", function () {
-      speakAssistantReply(latestAssistantReply, latestAssistantLanguage);
-    });
-
+    playReplyButton.addEventListener("click", function () { speakAssistantReply(latestAssistantReply, latestAssistantLanguage); });
+    replayReplyButton.addEventListener("click", function () { speakAssistantReply(latestAssistantReply, latestAssistantLanguage); });
     stopAudioButton.addEventListener("click", stopAssistantSpeech);
 
-    menuButton.addEventListener("click", function () {
-      setMenuOpen(menuPanel.hidden);
-    });
+    // ===== AUTH =====
+    document.getElementById("showLoginButton").addEventListener("click", function () { showAccountForm("login"); });
+    document.getElementById("showRegisterButton").addEventListener("click", function () { showAccountForm("register"); });
 
-    menuOverlay.addEventListener("click", function () {
-      setMenuOpen(false);
-      menuButton.focus();
-    });
+    registerForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const username = document.getElementById("registerName").value.trim();
+      const password = document.getElementById("registerPassword").value;
+      const display_name = document.getElementById("registerDisplayName").value.trim();
 
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape" && !menuPanel.hidden) {
-        setMenuOpen(false);
-        menuButton.focus();
+      if (!username || !password || !display_name) {
+        accountMessage.textContent = "請填寫所有欄位。";
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + "/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, display_name })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          accountMessage.textContent = "註冊失敗：" + (data.detail || "未知錯誤");
+          return;
+        }
+        setAuthToken(data.access_token);
+        accountMessage.textContent = "註冊成功！已自動登入。";
+        showPage("homePage");
+        loadReminders();
+      } catch (err) {
+        accountMessage.textContent = "連線錯誤：" + err.message;
       }
     });
 
-    document.querySelectorAll(".page-link").forEach(function (button) {
-      button.addEventListener("click", function () {
-        showPage(button.dataset.page);
-      });
-    });
-
-    document.querySelectorAll(".home-link").forEach(function (button) {
-      button.addEventListener("click", function () {
-        showPage("homePage");
-      });
-    });
-
-    document.getElementById("showLoginButton").addEventListener("click", function () {
-      showAccountForm("login");
-    });
-
-    document.getElementById("showRegisterButton").addEventListener("click", function () {
-      showAccountForm("register");
-    });
-
-    registerForm.addEventListener("submit", function (event) {
+    loginForm.addEventListener("submit", async function (event) {
       event.preventDefault();
-      temporaryAccount = {
-        name: document.getElementById("registerName").value.trim(),
-        password: document.getElementById("registerPassword").value
-      };
-      registerForm.reset();
-      showAccountForm("login");
-      document.getElementById("loginName").value = temporaryAccount.name;
-      accountMessage.textContent = "測試賬戶已建立，現在可以登入。";
-    });
-
-    loginForm.addEventListener("submit", function (event) {
-      event.preventDefault();
-      const name = document.getElementById("loginName").value.trim();
+      const username = document.getElementById("loginName").value.trim();
       const password = document.getElementById("loginPassword").value;
 
-      if (temporaryAccount && name === temporaryAccount.name && password === temporaryAccount.password) {
-        accountMessage.textContent = "登入成功。歡迎你，" + temporaryAccount.name + "。";
+      if (!username || !password) {
+        accountMessage.textContent = "請輸入用戶名稱和密碼。";
+        return;
+      }
+
+      try {
+        const res = await fetch(API_BASE_URL + "/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          accountMessage.textContent = "登入失敗：" + (data.detail || "用戶名稱或密碼不正確");
+          return;
+        }
+        setAuthToken(data.access_token);
+        accountMessage.textContent = "登入成功！歡迎你，" + data.display_name + "。";
         loginForm.reset();
-      } else if (!temporaryAccount) {
-        accountMessage.textContent = "請先建立一個測試賬戶。";
-      } else {
-        accountMessage.textContent = "用戶名稱或密碼不正確。";
+        showPage("homePage");
+        loadReminders();
+      } catch (err) {
+        accountMessage.textContent = "連線錯誤：" + err.message;
       }
     });
 
+    // ===== CONTACTS =====
     contactForm.addEventListener("submit", function (event) {
       event.preventDefault();
       const contact = {
         name: document.getElementById("contactName").value.trim(),
         detail: document.getElementById("contactDetail").value.trim()
       };
-
       if (editingContactIndex >= 0) {
         contacts[editingContactIndex] = contact;
-        contactMessage.textContent = "聯係人已修改。";
+        contactMessage.textContent = "聯繫人已修改。";
       } else {
         contacts.push(contact);
-        contactMessage.textContent = "聯係人已新增。";
+        contactMessage.textContent = "聯繫人已新增。";
       }
-
       editingContactIndex = -1;
-      saveContactButton.textContent = "新增聯係人";
+      saveContactButton.textContent = "新增聯繫人";
       contactForm.reset();
       renderContacts();
     });
+
+    // ===== MENU & NAVIGATION =====
+    menuButton.addEventListener("click", function () { setMenuOpen(menuPanel.hidden); });
+    menuOverlay.addEventListener("click", function () { setMenuOpen(false); menuButton.focus(); });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape" && !menuPanel.hidden) {
+        setMenuOpen(false);
+        menuButton.focus();
+      }
+    });
+    document.querySelectorAll(".page-link").forEach(function (button) {
+      button.addEventListener("click", function () { showPage(button.dataset.page); });
+    });
+    document.querySelectorAll(".home-link").forEach(function (button) {
+      button.addEventListener("click", function () { showPage("homePage"); });
+    });
+
+    // ===== REMINDER ADD BUTTON =====
+    addReminderBtn.addEventListener("click", addReminder);
+
+    // ===== AUTO-LOAD ON START =====
+    // 如果已有 token，嘗試加載提醒（但提醒頁面只在切換到時載入）
+    // 我們會在 showPage('remindersPage') 時調用 loadReminders
+
+    // ===== INIT =====
+    setUiState(SpeechRecognition ? "idle" : "unsupported");
+    // 預設顯示主頁
+    showPage("homePage");
+
+    // 如果已有 token 且沒有過期，可嘗試預載（但加載提醒只在切換頁面時觸發）
+    if (isAuthenticated()) {
+      // 驗證 token 是否有效（可選）
+      // 簡單起見，不驗證
+    }
   </script>
 </body>
 </html>

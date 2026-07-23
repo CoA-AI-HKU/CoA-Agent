@@ -1,120 +1,15 @@
 nohup: ignoring input
-INFO:     Started server process [131358]
+INFO:     Started server process [138298]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:36984 - "GET / HTTP/1.1" 404 Not Found
-INFO:     127.0.0.1:57348 - "GET /docs HTTP/1.1" 200 OK
-(trapped) error reading bcrypt version
-Traceback (most recent call last):
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 620, in _load_backend_mixin
-    version = _bcrypt.__about__.__version__
-              ^^^^^^^^^^^^^^^^^
-AttributeError: module 'bcrypt' has no attribute '__about__'
-INFO:     127.0.0.1:38418 - "POST /api/auth/register HTTP/1.1" 500 Internal Server Error
-ERROR:    Exception in ASGI application
-Traceback (most recent call last):
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/uvicorn/protocols/http/httptools_impl.py", line 399, in run_asgi
-    result = await app(  # type: ignore[func-returns-value]
-             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/uvicorn/middleware/proxy_headers.py", line 70, in __call__
-    return await self.app(scope, receive, send)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/fastapi/applications.py", line 1054, in __call__
-    await super().__call__(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/applications.py", line 123, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 186, in __call__
-    raise exc
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/middleware/errors.py", line 164, in __call__
-    await self.app(scope, receive, _send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/middleware/cors.py", line 85, in __call__
-    await self.app(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/middleware/exceptions.py", line 65, in __call__
-    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
-    raise exc
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    await app(scope, receive, sender)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/routing.py", line 756, in __call__
-    await self.middleware_stack(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/routing.py", line 776, in app
-    await route.handle(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/routing.py", line 297, in handle
-    await self.app(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/routing.py", line 77, in app
-    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 64, in wrapped_app
-    raise exc
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/_exception_handler.py", line 53, in wrapped_app
-    await app(scope, receive, sender)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/routing.py", line 72, in app
-    response = await func(request)
-               ^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 278, in app
-    raw_response = await run_endpoint_function(
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/fastapi/routing.py", line 193, in run_endpoint_function
-    return await run_in_threadpool(dependant.call, **values)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/starlette/concurrency.py", line 42, in run_in_threadpool
-    return await anyio.to_thread.run_sync(func, *args)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/anyio/to_thread.py", line 65, in run_sync
-    return await get_async_backend().run_sync_in_worker_thread(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 2641, in run_sync_in_worker_thread
-    return await future
-           ^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 1033, in run
-    result = context.run(func, *args)
-             ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/reminder_backend/app.py", line 84, in register
-    password_hash=get_password_hash(req.password),
-                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/reminder_backend/auth.py", line 20, in get_password_hash
-    return pwd_context.hash(password)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/context.py", line 2258, in hash
-    return record.hash(secret, **kwds)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 779, in hash
-    self.checksum = self._calc_checksum(secret)
-                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 591, in _calc_checksum
-    self._stub_requires_backend()
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2254, in _stub_requires_backend
-    cls.set_backend()
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2156, in set_backend
-    return owner.set_backend(name, dryrun=dryrun)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2163, in set_backend
-    return cls.set_backend(name, dryrun=dryrun)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2188, in set_backend
-    cls._set_backend(name, dryrun)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2311, in _set_backend
-    super(SubclassBackendMixin, cls)._set_backend(name, dryrun)
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 2224, in _set_backend
-    ok = loader(**kwds)
-         ^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 626, in _load_backend_mixin
-    return mixin_cls._finalize_backend_mixin(name, dryrun)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 421, in _finalize_backend_mixin
-    if detect_wrap_bug(IDENT_2A):
-       ^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 380, in detect_wrap_bug
-    if verify(secret, bug_hash):
-       ^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/utils/handlers.py", line 792, in verify
-    return consteq(self._calc_checksum(secret), chk)
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/coa/CoA-Agent/.venv/lib/python3.12/site-packages/passlib/handlers/bcrypt.py", line 655, in _calc_checksum
-    hash = _bcrypt.hashpw(secret, config)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-ValueError: password cannot be longer than 72 bytes, truncate manually if necessary (e.g. my_password[:72])
-INFO:     Shutting down
-INFO:     Waiting for application shutdown.
-INFO:     Application shutdown complete.
-INFO:     Finished server process [131358]
+INFO:     127.0.0.1:44602 - "POST /api/auth/register HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40548 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:40560 - "POST /api/patients HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:40562 - "POST /api/reminders HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:44574 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44580 - "POST /api/patients HTTP/1.1" 200 OK
+INFO:     127.0.0.1:44588 - "POST /api/reminders HTTP/1.1" 200 OK
+WARNING:  Invalid HTTP request received.
+WARNING:  Invalid HTTP request received.
+INFO:     103.203.58.4:51278 - "GET / HTTP/1.1" 404 Not Found
