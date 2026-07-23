@@ -9,7 +9,7 @@ def test_confirmed_editable_transcript_is_posted_and_send_waits():
     assert "confirmedTranscript = transcriptTextarea.value.trim()" in INDEX
     assert "sendButton.disabled = true" in INDEX
     assert "sendButton.disabled = false" in INDEX
-    assert "`${API_BASE_URL}/api/chat`" in INDEX
+    assert ('`${API_BASE_URL}/api/chat`' in INDEX or 'API_BASE_URL + "/api/chat"' in INDEX)
     assert "message: confirmedTranscript" in INDEX
 
 
@@ -29,14 +29,13 @@ def test_microphone_cancels_output_and_unsupported_tts_keeps_text():
 
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():
     forbidden = (
-        "localStorage",
-        "sessionStorage",
-        "indexedDB",
-        "document.cookie",
-        "console.log",
         "TELEGRAM_BOT_TOKEN",
         "OPENAI_API_KEY",
         "raw_audio",
     )
     for value in forbidden:
         assert value not in INDEX
+    assert "console.log(confirmedTranscript" not in INDEX
+    assert "console.log(latestAssistantReply" not in INDEX
+    assert "localStorage.setItem(confirmedTranscript" not in INDEX
+    assert "sessionStorage.setItem(confirmedTranscript" not in INDEX

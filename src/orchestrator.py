@@ -69,7 +69,9 @@ def handle_dementia_user_message(
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":
-        result = _supportive_response(decision)
+        result = _supportive_response(message, decision)
+    elif decision.route == "general":
+        result = _general_response(message, decision)
     else:
         result = _unknown_response(decision)
 
@@ -105,15 +107,44 @@ def handle_dementia_user_message(
     return user_facing
 
 
-def _supportive_response(decision: AgentDecision) -> dict[str, Any]:
+def _supportive_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    normalized = str(message or "").lower()
+    if any(term in normalized for term in ("好累", "很累", "攰", "疲倦", "tired", "exhausted")):
+        answer = (
+            "聽起來你今天很累。可以先讓自己休息一下、喝點水，慢慢來。"
+            "如果疲倦持續、突然很嚴重，或同時有其他不適，請告訴家人並向醫護人員查詢。"
+        )
+    else:
+        answer = EMOTIONAL_SUPPORT_RESPONSE
     return {
-        "answer": EMOTIONAL_SUPPORT_RESPONSE,
+        "answer": answer,
         "intent": decision.intent,
         "safety_level": "supportive_non_clinical",
         "found": False,
         "sources": [],
         "rag_called": False,
         "route": "supportive",
+        "debug": {"agent": "coordinator"},
+    }
+
+
+def _general_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    normalized = str(message or "").lower()
+    if any(term in normalized for term in ("吃什麼", "食什麼", "食咩", "晚上吃", "今晚食", "晚餐")):
+        answer = (
+            "今晚可以按你的口味選一頓簡單的飯，例如飯或麵配蔬菜，再加你喜歡的蛋、魚或豆腐。"
+            "如果你有醫生建議的飲食限制，就以醫護人員的建議為先。"
+        )
+    else:
+        answer = "我明白你的意思。你可以再告訴我多一點，我會陪你慢慢整理。"
+    return {
+        "answer": answer,
+        "intent": decision.intent,
+        "safety_level": "normal",
+        "found": False,
+        "sources": [],
+        "rag_called": False,
+        "route": "general",
         "debug": {"agent": "coordinator"},
     }
 

@@ -4,7 +4,10 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from database import get_db, Caregiver
+try:
+    from .database import get_db, Caregiver
+except ImportError:  # Support running this directory as the application root.
+    from database import get_db, Caregiver
 
 SECRET_KEY = "your-secret-key-change-this-in-production"
 ALGORITHM = "HS256"

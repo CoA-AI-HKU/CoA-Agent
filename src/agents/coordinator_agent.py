@@ -130,6 +130,7 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         "reminder_request": ("routine", False, False),
         "cognitive_activity": ("activity", False, False),
         "unknown": ("unknown", False, False),
+        "general_conversation": ("general", False, False),
     }
     route, rag_required, safety_override = route_map.get(intent_result.intent, ("unknown", False, False))
 

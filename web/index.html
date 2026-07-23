@@ -377,7 +377,6 @@
     }
 
     .audio-preference input { width: 26px; min-height: 26px; flex: 0 0 auto; }
-    .message-bubble.text-reply-hidden { display: none; }
 
     .audio-actions {
       display: grid;
@@ -468,7 +467,7 @@
       <li><button class="menu-link page-link" type="button" data-page="accountPage">👤賬戶</button></li>
       <li><button class="menu-link page-link" type="button" data-page="remindersPage">⏰ 提醒設定</button></li>
       <li><button class="menu-link page-link" type="button" data-page="cognitivePage">🧠 認知訓練</button></li>
-      <li><button class="menu-link page-link" type="button" data-page="contactsPage">📞聯絡人</button></li>
+      <li><button class="menu-link page-link" type="button" data-page="contactsPage">📞聯繫人</button></li>
       <li><button class="menu-link page-link" type="button" data-page="caregiverPage">🫂照顧者模式</button></li>
       <li class="privacy-menu-item"><a class="menu-link" href="privacy.html">🔒私隱及同意書</a></li>
     </ul>
@@ -490,8 +489,8 @@
       <p id="status" class="status" aria-live="polite">準備好後，請按下咪高峰。</p>
 
       <section class="text-entry" aria-labelledby="transcriptLabel">
-        <label id="transcriptLabel" for="transcript">你說的內容（也可以直接輸入文字）</label>
-        <textarea id="transcript" placeholder="語音辨識文字會顯示在這裡，你也可以直接輸入"></textarea>
+        <label id="transcriptLabel" for="transcript">你說的內容</label>
+        <textarea id="transcript" placeholder="辨識出的文字會顯示在這裡"></textarea>
 
         <div class="actions">
           <button id="sendButton" class="action-button send-button" type="button">傳送</button>
@@ -511,10 +510,6 @@
         <label class="audio-preference" for="autoPlayReply">
           <input id="autoPlayReply" type="checkbox" checked>
           <span>收到回覆後自動播放</span>
-        </label>
-        <label class="audio-preference" for="showTextReply">
-          <input id="showTextReply" type="checkbox" checked>
-          <span>顯示文字回覆</span>
         </label>
 
         <div class="audio-actions">
@@ -650,8 +645,8 @@
 
     <!-- ========== CONTACTS PAGE ========== -->
     <section id="contactsPage" class="page subpage" hidden>
-      <h1>📞聯絡人</h1>
-      <p class="subpage-intro">新增或修改聯絡人。資料只會在本次開啟網頁期間保留。</p>
+      <h1>📞聯繫人</h1>
+      <p class="subpage-intro">新增或修改聯繫人。資料只會在本次開啟網頁期間保留。</p>
       <form id="contactForm">
         <div class="form-field">
           <label for="contactName">姓名</label>
@@ -661,10 +656,10 @@
           <label for="contactDetail">電話或聯絡資料</label>
           <input id="contactDetail" name="contactDetail" inputmode="tel" required>
         </div>
-        <button id="saveContactButton" class="action-button send-button" type="submit">新增聯絡人</button>
+        <button id="saveContactButton" class="action-button send-button" type="submit">新增聯繫人</button>
       </form>
       <p id="contactMessage" class="form-message" aria-live="polite"></p>
-      <ul id="contactList" class="contact-list" aria-label="已加入的聯絡人"></ul>
+      <ul id="contactList" class="contact-list" aria-label="已加入的聯繫人"></ul>
       <button class="action-button secondary-button home-link" type="button">返回主頁</button>
     </section>
 
@@ -710,7 +705,6 @@
     const conversationList = document.getElementById("conversationList");
     const conversationEmpty = document.getElementById("conversationEmpty");
     const autoPlayReply = document.getElementById("autoPlayReply");
-    const showTextReply = document.getElementById("showTextReply");
     const playReplyButton = document.getElementById("playReplyButton");
     const stopAudioButton = document.getElementById("stopAudioButton");
     const replayReplyButton = document.getElementById("replayReplyButton");
@@ -1163,19 +1157,10 @@
       const messageLabel = document.createElement("span");
       const messageText = document.createTextNode(text);
       message.className = "message-bubble " + type;
-      if (type === "assistant" && !showTextReply.checked) {
-        message.classList.add("text-reply-hidden");
-      }
       messageLabel.className = "message-label";
       messageLabel.textContent = label;
       message.append(messageLabel, messageText);
       conversationList.append(message);
-    }
-
-    function updateTextReplyVisibility() {
-      document.querySelectorAll(".message-bubble.assistant").forEach(function (message) {
-        message.classList.toggle("text-reply-hidden", !showTextReply.checked);
-      });
     }
 
     function resolveSpeechLanguage(language) {
@@ -1198,8 +1183,6 @@
 
     function speakAssistantReply(text, language) {
       if (!("speechSynthesis" in window) || typeof window.SpeechSynthesisUtterance !== "function") {
-        showTextReply.checked = true;
-        updateTextReplyVisibility();
         setAudioState("speech_unsupported");
         return;
       }
@@ -1604,8 +1587,6 @@
     replayReplyButton.addEventListener("click", function () { speakAssistantReply(latestAssistantReply, latestAssistantLanguage); });
     stopAudioButton.addEventListener("click", stopAssistantSpeech);
 
-    showTextReply.addEventListener("change", updateTextReplyVisibility);
-
     // ===== AUTH =====
     document.getElementById("showLoginButton").addEventListener("click", function () { showAccountForm("login"); });
     document.getElementById("showRegisterButton").addEventListener("click", function () { showAccountForm("register"); });
@@ -1681,13 +1662,13 @@
       };
       if (editingContactIndex >= 0) {
         contacts[editingContactIndex] = contact;
-        contactMessage.textContent = "聯絡人已修改。";
+        contactMessage.textContent = "聯繫人已修改。";
       } else {
         contacts.push(contact);
-        contactMessage.textContent = "聯絡人已新增。";
+        contactMessage.textContent = "聯繫人已新增。";
       }
       editingContactIndex = -1;
-      saveContactButton.textContent = "新增聯絡人";
+      saveContactButton.textContent = "新增聯繫人";
       contactForm.reset();
       renderContacts();
     });
@@ -1727,7 +1708,7 @@
         if (!res.ok) throw new Error("無法載入聯絡人");
         const contacts = await res.json();
         if (contacts.length === 0) {
-          alert("請先設定至少一位緊急聯絡人\n前往「📞 聯絡人」頁面新增。");
+          alert("請先設定至少一位緊急聯絡人\n前往「📞 聯繫人」頁面新增。");
           showPage("contactsPage");
           return;
         }

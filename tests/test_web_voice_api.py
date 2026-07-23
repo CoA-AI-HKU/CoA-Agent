@@ -4,11 +4,12 @@ import asyncio
 
 from fastapi.testclient import TestClient
 
+from backend.api import web_chat as chat_api
+from backend.main import app
 from backend.services.conversation import ConversationService, process_user_message
-from src import web_api
 
 
-client = TestClient(web_api.app)
+client = TestClient(app)
 
 
 def test_health_returns_success():
@@ -39,7 +40,7 @@ def test_valid_text_reaches_shared_processor_and_privileged_fields_are_ignored(m
             "tool_name": "private-tool",
         }
 
-    monkeypatch.setattr(web_api, "process_user_message", fake_process)
+    monkeypatch.setattr(chat_api, "process_user_message", fake_process)
     response = client.post(
         "/api/chat",
         json={
@@ -98,7 +99,7 @@ def test_agent_exception_returns_safe_error(monkeypatch):
     async def failed_process(**kwargs):
         raise RuntimeError("private failure details")
 
-    monkeypatch.setattr(web_api, "process_user_message", failed_process)
+    monkeypatch.setattr(chat_api, "process_user_message", failed_process)
     response = client.post(
         "/api/chat",
         json={"message": "你好", "user_id": "web-demo-user", "input_mode": "text"},
@@ -112,7 +113,7 @@ def test_agent_timeout_returns_safe_error(monkeypatch):
     async def timed_out_process(**kwargs):
         raise asyncio.TimeoutError
 
-    monkeypatch.setattr(web_api, "process_user_message", timed_out_process)
+    monkeypatch.setattr(chat_api, "process_user_message", timed_out_process)
     response = client.post(
         "/api/chat",
         json={"message": "你好", "user_id": "web-demo-user", "input_mode": "voice"},

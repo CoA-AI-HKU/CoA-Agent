@@ -1,17 +1,37 @@
 nohup: ignoring input
-INFO:     Started server process [138298]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-INFO:     Uvicorn running on http://0.0.0.0:8001 (Press CTRL+C to quit)
-INFO:     127.0.0.1:44602 - "POST /api/auth/register HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40548 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:40560 - "POST /api/patients HTTP/1.1" 401 Unauthorized
-INFO:     127.0.0.1:40562 - "POST /api/reminders HTTP/1.1" 401 Unauthorized
-INFO:     127.0.0.1:44574 - "POST /api/auth/login HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44580 - "POST /api/patients HTTP/1.1" 200 OK
-INFO:     127.0.0.1:44588 - "POST /api/reminders HTTP/1.1" 200 OK
-WARNING:  Invalid HTTP request received.
-WARNING:  Invalid HTTP request received.
-INFO:     103.203.58.4:51278 - "GET / HTTP/1.1" 404 Not Found
-WARNING:  Invalid HTTP request received.
-INFO:     8.216.9.195:50162 - "GET / HTTP/1.1" 404 Not Found
+nohup: failed to run command 'python': No such file or directory
+RAG_DEBUG cwd=/opt/coa/CoA-Agent/reminder_backend
+RAG_DEBUG answer_language=zh-Hant
+RAG_DEBUG docs_dir=/opt/coa/CoA-Agent/data/mds
+RAG_DEBUG chroma_dir=/opt/coa/CoA-Agent/data/private/chroma/ling_rag
+RAG_DEBUG embedding_model=dummy
+RAG_DEBUG embedder_provider=dummy
+RAG_DEBUG llm_model=extractive-fallback
+RAG_DEBUG llm_provider=extractive
+RAG_DEBUG mode=mcp
+RAG_DEBUG collection_name=ling_rag
+RAG_DEBUG chunk_count=2001
+RAG_DEBUG retrieve_top_k=8
+RAG_DEBUG answer_top_k=2
+RAG_DEBUG min_relevance_score=0.35
+RAG_DEBUG fallback_active=True
+RAG_DEBUG sources=['/opt/coa/CoA-Agent/data/mds/web/www.jccpa.org.hk/about-dementia/www-jccpa-org-hk-about-dementia-caring-tips-understanding-people-with-dementia-4c4742beed.md']
+RAG_DEBUG scores=[0.9206, 0.9123]
+INFO:     127.0.0.1:36764 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58658 - "POST /api/auth/register HTTP/1.1" 400 Bad Request
+INFO:     118.140.62.208:64350 - "OPTIONS /api/auth/login HTTP/1.1" 200 OK
+INFO:     118.140.62.208:64350 - "POST /api/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     118.140.62.208:64241 - "OPTIONS /api/auth/register HTTP/1.1" 200 OK
+INFO:     118.140.62.208:64241 - "POST /api/auth/register HTTP/1.1" 200 OK
+INFO:     118.140.62.208:64241 - "OPTIONS /api/reminders HTTP/1.1" 200 OK
+INFO:     118.140.62.208:64241 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     118.140.62.208:63585 - "GET /api/reminders HTTP/1.1" 200 OK
+INFO:     118.140.62.208:61641 - "OPTIONS /api/reminders HTTP/1.1" 200 OK
+INFO:     118.140.62.208:61641 - "POST /api/reminders HTTP/1.1" 404 Not Found
+INFO:     118.140.62.208:58932 - "POST /api/reminders HTTP/1.1" 404 Not Found
+INFO:     118.140.62.208:50878 - "POST /api/reminders HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:51394 - "POST /api/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:51396 - "POST /api/patients HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:58800 - "POST /api/auth/login HTTP/1.1" 401 Unauthorized
+INFO:     127.0.0.1:35450 - "POST /api/auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56992 - "POST /api/patients HTTP/1.1" 401 Unauthorized

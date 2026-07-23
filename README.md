@@ -4,7 +4,8 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 
 ## Project structure
 
-- `backend/` — transport-neutral REST API and application services wrapping the established orchestrator.
+- `backend/` — the single FastAPI application, transport-neutral chat services, and API routers for web and channel clients.
+- `reminder_backend/` — reminder persistence, authentication, and route definitions included by the unified backend; it is not a separately deployed agent.
 - `clients/` — thin transport adapters; Telegram is optional and contains no AI logic.
 - `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
 - `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.

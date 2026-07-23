@@ -1,14 +1,12 @@
 from fastapi import FastAPI
 
-from backend.api import auth, caregiver, chat, health
+from backend.api import health, web_chat
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="CoA-Agent API", version="1.0.0")
+    app = FastAPI(title="CoA-Agent Web API", version="1.0.0")
     app.include_router(health.router)
-    app.include_router(auth.router)
-    app.include_router(chat.router)
-    app.include_router(caregiver.router)
+    app.include_router(web_chat.router)
     return app
 
 

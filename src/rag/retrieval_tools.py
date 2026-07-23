@@ -89,6 +89,15 @@ def keyword_search(
     for document in _all_documents(vector_store):
         lowered = document.text.casefold()
         raw_score = sum(lowered.count(term.casefold()) * max(1, len(term)) for term in terms)
+        opening = lowered[:500]
+        # Definition queries should prefer a chunk whose heading/opening states
+        # the full question, instead of a later care article that merely repeats
+        # the broad disease term many times.
+        definition_markers = ("是什麼", "是甚麼", "係咩", "什麼是", "甚麼是", "what is", "define")
+        for term in terms:
+            normalized_term = term.casefold()
+            if any(marker in normalized_term for marker in definition_markers) and normalized_term in opening:
+                raw_score += 500
         if raw_score <= 0:
             continue
         matched = [term for term in terms if term.casefold() in lowered]

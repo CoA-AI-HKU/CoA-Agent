@@ -1,23 +1,27 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 from sqlalchemy.orm import Session
 
-from database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
-from auth import get_password_hash, authenticate_caregiver, create_access_token, get_current_caregiver, verify_password
+try:
+    from .database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
+    from .auth import get_password_hash, authenticate_caregiver, create_access_token, get_current_caregiver, verify_password
+except ImportError:  # Support `cd reminder_backend && uvicorn app:app`.
+    from database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
+    from auth import get_password_hash, authenticate_caregiver, create_access_token, get_current_caregiver, verify_password
 
 app = FastAPI(title="CoA-Agent Reminder API")
 
-# CORS
+# In production Nginx gives the browser one origin. This CORS setting only
+# supports direct development access to the reminder API.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 # ============================================================
@@ -309,9 +313,10 @@ def acknowledge_reminder(reminder_id: int, db: Session = Depends(get_db)):
     
     return {"status": "ok"}
 
+
 # ============================================================
 # Start the server
 # ============================================================
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+    uvicorn.run(app, host="127.0.0.1", port=8001)

@@ -17,6 +17,7 @@ Intent = Literal[
     "emotional_support",
     "safety_sensitive",
     "medication_or_diagnosis",
+    "general_conversation",
     "unknown",
 ]
 
@@ -462,6 +463,27 @@ EMOTIONAL_TERMS = [
     "scared",
     "afraid",
     "frustrated",
+    "好累",
+    "很累",
+    "攰",
+    "疲倦",
+    "tired",
+    "exhausted",
+]
+
+GENERAL_CONVERSATION_TERMS = [
+    "吃什麼",
+    "食什麼",
+    "食咩",
+    "晚上吃",
+    "今晚食",
+    "晚餐",
+    "早餐",
+    "午餐",
+    "傾下計",
+    "聊聊天",
+    "what should i eat",
+    "what to eat",
 ]
 
 # ============================================================
@@ -584,6 +606,14 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched a caregiver-reported screening or diagnosis concern.",
         )
 
+    if _is_dementia_definition_question(normalized):
+        return IntentResult(
+            intent="knowledge_qa",
+            confidence=0.95,
+            matched_terms=_matched_terms(normalized, KNOWLEDGE_TERMS),
+            reason="Matched a dementia definition question.",
+        )
+
     # ============================================================
     # 🆕 priority_rules 现在包含问候语，放在第一位
     # ============================================================
@@ -620,6 +650,7 @@ def classify_intent(message: str) -> IntentResult:
         ("cognitive_activity", ACTIVITY_TERMS, 0.8, "Matched activity or engagement terms."),
         ("emotional_support", EMOTIONAL_TERMS, 0.8, "Matched emotional support terms."),
         ("knowledge_qa", KNOWLEDGE_TERMS, 0.7, "Matched dementia knowledge terms."),
+        ("general_conversation", GENERAL_CONVERSATION_TERMS, 0.7, "Matched a general conversation request."),
     ]
 
     for intent, terms, confidence, reason in priority_rules:
@@ -646,12 +677,15 @@ def classify_intent(message: str) -> IntentResult:
             reason="Fallback: message contains English question pattern.",
         )
 
-    return IntentResult(
-        intent="unknown",
-        confidence=0.2,
-        matched_terms=[],
-        reason="No configured intent terms matched.",
-    )
+    if _looks_like_natural_message(normalized):
+        return IntentResult(
+            intent="general_conversation",
+            confidence=0.5,
+            matched_terms=[],
+            reason="Message appears intelligible but has no specialized route.",
+        )
+
+    return IntentResult(intent="unknown", confidence=0.2, matched_terms=[], reason="Message is not intelligible.")
 
 
 def _normalize(message: str) -> str:
@@ -677,6 +711,22 @@ def _is_urgent_safety_match(normalized_message: str, matched_terms: list[str]) -
     if _matched_terms(normalized_message, NONURGENT_SAFETY_CONTEXT_TERMS):
         return False
     return bool(_matched_terms(normalized_message, URGENT_SAFETY_CONTEXT_TERMS))
+
+
+def _is_dementia_definition_question(normalized_message: str) -> bool:
+    dementia_terms = ("腦退化", "脑退化", "認知障礙", "认知障碍", "失智", "dementia")
+    definition_terms = ("是什麼", "是甚麼", "係咩", "什麼是", "甚麼是", "what is", "define", "explain")
+    return any(term in normalized_message for term in dementia_terms) and any(
+        term in normalized_message for term in definition_terms
+    )
+
+
+def _looks_like_natural_message(normalized_message: str) -> bool:
+    cjk_count = sum("\u3400" <= char <= "\u9fff" for char in normalized_message)
+    if cjk_count >= 3:
+        return True
+    latin_words = [word for word in normalized_message.split() if word.isalpha()]
+    return len(latin_words) >= 2
 
 
 def _confidence(base_confidence: float, matched_count: int) -> float:
