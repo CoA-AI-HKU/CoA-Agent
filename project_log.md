@@ -371,3 +371,5 @@ Open questions for future work:
 #### Frontend & Network (2026-07-17)
 - Deployed on github, the frontend now is 24/7 working, QR code is generated and won't be affected by wifi AP isolation issues. 
 - Next critical step is to deploy the backend (Telegram Bot + LightRAG) to a cloud server so the bot can reply 24/7 without relying on anyone's local computer
+
+#### 2026-07-23
