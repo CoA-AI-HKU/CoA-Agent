@@ -1,10 +1,5 @@
 nohup: ignoring input
-Traceback (most recent call last):
-  File "/opt/coa/CoA-Agent/reminder_backend/scheduler.py", line 4, in <module>
-    from database import SessionLocal, Reminder, NotificationLog, Patient
-  File "/opt/coa/CoA-Agent/reminder_backend/database.py", line 45, in <module>
-    class EmergencyContact(Base):
-  File "/opt/coa/CoA-Agent/reminder_backend/database.py", line 54, in EmergencyContact
-    patient = relationship("Patient", backref="emergency_contacts")
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: 'Column' object is not callable
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "check_and_send_reminders" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:__main__:✅ Reminder scheduler started (runs every minute)

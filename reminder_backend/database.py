@@ -48,10 +48,8 @@ class EmergencyContact(Base):
     patient_id = Column(Integer, ForeignKey("patients.id"))
     name = Column(String)
     phone = Column(String)
-    relationship = Column(String)
+    relationship_type = Column(String)  # 改名避免冲突
     created_at = Column(DateTime, default=datetime.utcnow)
-    
-    patient = relationship("Patient", backref="emergency_contacts")
 
 class NotificationLog(Base):
     __tablename__ = "notification_logs"
