@@ -13,3 +13,5 @@ INFO:     127.0.0.1:44588 - "POST /api/reminders HTTP/1.1" 200 OK
 WARNING:  Invalid HTTP request received.
 WARNING:  Invalid HTTP request received.
 INFO:     103.203.58.4:51278 - "GET / HTTP/1.1" 404 Not Found
+WARNING:  Invalid HTTP request received.
+INFO:     8.216.9.195:50162 - "GET / HTTP/1.1" 404 Not Found

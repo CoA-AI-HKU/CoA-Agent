@@ -403,6 +403,46 @@
       margin: 0.5rem 0;
     }
 
+    /* ===== 緊急求助懸浮按鈕 (FAB) ===== */
+    .emergency-fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: #b42318;
+      color: #fff;
+      border: none;
+      font-size: 32px;
+      box-shadow: 0 4px 16px rgba(180, 35, 24, 0.4);
+      cursor: pointer;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .emergency-fab:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 24px rgba(180, 35, 24, 0.6);
+    }
+
+    .emergency-fab:active {
+      transform: scale(0.95);
+    }
+
+    @media (max-width: 480px) {
+      .emergency-fab {
+        width: 56px;
+        height: 56px;
+        font-size: 26px;
+        bottom: 16px;
+        right: 16px;
+      }
+    }
+
     @media (min-width: 560px) {
       main { padding-top: 3rem; }
       .actions { grid-template-columns: 1.4fr 1fr 1fr; }
@@ -631,6 +671,11 @@
     </section>
   </main>
 
+  <!-- 緊急求助懸浮按鈕 -->
+  <button id="emergencyButton" class="emergency-fab" type="button" aria-label="緊急求助">
+    🆘
+  </button>
+
   <script>
     "use strict";
 
@@ -686,6 +731,9 @@
     const gameWrongCount = document.getElementById("gameWrongCount");
     const gameTotalScore = document.getElementById("gameTotalScore");
     const gameStreakMessage = document.getElementById("gameStreakMessage");
+
+    // Emergency button
+    const emergencyButton = document.getElementById("emergencyButton");
 
     // ===== COGNITIVE TRAINING STATE =====
     let currentGame = "naming";
@@ -1643,6 +1691,51 @@
 
     // ===== REMINDER ADD BUTTON =====
     addReminderBtn.addEventListener("click", addReminder);
+
+    // ===== EMERGENCY BUTTON =====
+    async function triggerEmergency() {
+      if (!isAuthenticated()) {
+        alert("請先登入以使用緊急求助功能");
+        showPage("accountPage");
+        return;
+      }
+
+      try {
+        // 先获取紧急联系人列表，检查是否为空
+        const res = await fetch(API_BASE_URL + "/api/emergency", {
+          headers: { "Authorization": "Bearer " + authToken }
+        });
+        if (!res.ok) throw new Error("無法載入聯絡人");
+        const contacts = await res.json();
+        if (contacts.length === 0) {
+          alert("請先設定至少一位緊急聯絡人\n前往「📞 聯繫人」頁面新增。");
+          showPage("contactsPage");
+          return;
+        }
+
+        if (!confirm("🚨 你確定要發出緊急求助嗎？\n系統會通知你所有嘅緊急聯絡人。")) return;
+
+        const triggerRes = await fetch(API_BASE_URL + "/api/emergency/trigger", {
+          method: "POST",
+          headers: { "Authorization": "Bearer " + authToken }
+        });
+        if (!triggerRes.ok) {
+          const err = await triggerRes.json();
+          alert("緊急求助失敗：" + (err.detail || "未知錯誤"));
+          return;
+        }
+        const data = await triggerRes.json();
+        const names = data.notified.map(function(c) { return c.name; }).join("、");
+        alert("✅ 已發出緊急求助！\n已通知：" + names);
+        appendConversationMessage("系統", "🚨 已發出緊急求助！已通知：" + names, "assistant");
+      } catch (err) {
+        alert("連線錯誤：" + err.message);
+      }
+    }
+
+    if (emergencyButton) {
+      emergencyButton.addEventListener("click", triggerEmergency);
+    }
 
     // ===== INIT =====
     setUiState(SpeechRecognition ? "idle" : "unsupported");
