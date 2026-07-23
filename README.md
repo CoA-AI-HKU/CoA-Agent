@@ -4,6 +4,8 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 
 ## Project structure
 
+- `backend/` — transport-neutral REST API and application services wrapping the established orchestrator.
+- `clients/` — thin transport adapters; Telegram is optional and contains no AI logic.
 - `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
 - `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.
 - `src/agents/` — managers, safety, screening, RAG evidence, simplification, and user-facing formatting.
@@ -17,6 +19,8 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 - `docs/` — integration and debugging guides, including [A-RAG integration](docs/arag_integration.md).
 - `data/` — source documents, generated corpus, aliases, profiles, and private runtime state.
 - `web/` — caregiver dashboard and screening assets.
+
+See [Backend API](docs/backend_api.md) for the chat contract, authentication, startup, and adapter configuration.
 
 
 ## Telegram and WhatsApp internal commands

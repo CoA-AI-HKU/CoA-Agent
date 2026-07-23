@@ -1,7 +1,9 @@
 beautifulsoup4
+fastapi>=0.110,<1
 markdownify
 pandas
 plotly
 requests
 streamlit
 trafilatura
+uvicorn[standard]>=0.27,<1
