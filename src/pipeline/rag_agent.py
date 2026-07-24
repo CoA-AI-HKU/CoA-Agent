@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
 import sys
 from pathlib import Path
 from typing import Any, Callable, List, Optional
+from urllib.parse import urlparse
+from uuid import uuid4
 
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
@@ -30,6 +33,7 @@ from ..safety.medication_guard import (
 
 
 UNKNOWN_ANSWER = FALLBACK_ANSWER
+logger = logging.getLogger(__name__)
 RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
@@ -628,7 +632,7 @@ def _index_manifest(
         "chunk_size": config["chunk_size"],
         "chunk_overlap": config["chunk_overlap"],
         "embedder_provider": embedder_provider,
-        "embedder_model": config["embedder_model"],
+        "embedder_model": "dummy" if embedder_provider == "dummy" else config["embedder_model"],
         "embedding_dimension": embedding_dimension,
         "docs_dir": str(config["docs_dir"].resolve()),
         "collection_name": config["collection_name"],
@@ -660,7 +664,9 @@ def _load_manifest(path: Path) -> dict[str, Any] | None:
 
 def _save_manifest(path: Path, manifest: dict[str, Any]) -> None:
     _ensure_directory(path.parent)
-    path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    temporary.replace(path)
 
 
 def _ensure_directory(path: Path) -> None:
@@ -694,22 +700,18 @@ def _extract_model_text(data: dict[str, Any]) -> str:
     return ""
 
 
-def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | None:
+def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
     try:
         import requests
     except ImportError:
         return None
 
-    if config["openrouter_key"] and config["openrouter_model"]:
-        url = str(config["openrouter_base_url"])
-        model = str(config["openrouter_model"])
-        headers = {"Authorization": f"Bearer {config['openrouter_key']}", "Content-Type": "application/json"}
-    elif config["deepseek_url"] and config["deepseek_key"]:
-        url = str(config["deepseek_url"])
-        model = str(config["deepseek_model"])
-        headers = {"Authorization": f"Bearer {config['deepseek_key']}", "Content-Type": "application/json"}
-    else:
+    if config["llm_provider"] == "extractive":
         return None
+    base_url = str(config["llm_base_url"]).rstrip("/")
+    url = base_url if base_url.endswith("/chat/completions") else f"{base_url}/chat/completions"
+    model = str(config["llm_model"])
+    headers = {"Authorization": f"Bearer {config['llm_api_key']}", "Content-Type": "application/json"}
 
     def answer_callable(prompt: str) -> str:
         payload = {
@@ -717,10 +719,26 @@ def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | Non
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
         }
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        if response.status_code in {400, 404, 422}:
-            response = requests.post(url, headers=headers, json={"prompt": prompt}, timeout=30)
-        response.raise_for_status()
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            if response.status_code >= 400:
+                detail = response.text.strip()[:500]
+                logger.error(
+                    "LLM request failed status=%s provider=%s model=%s endpoint=%s error=%s",
+                    response.status_code, config["llm_provider"], model, urlparse(url).hostname, detail,
+                )
+                raise RuntimeError(
+                    f"{config['llm_provider']} upstream API error (HTTP {response.status_code}): {detail}"
+                )
+            response.raise_for_status()
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            logger.exception(
+                "LLM request error provider=%s model=%s endpoint=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+            )
+            raise RuntimeError(f"{config['llm_provider']} upstream API request failed: {exc}") from exc
         return _extract_model_text(response.json()).strip()
 
     return answer_callable
@@ -747,7 +765,7 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
             ) from exc
     resolved_provider = embedder.resolved_provider
     embedding_dimension = embedder.dimension
-    manifest_path = config["chroma_dir"] / "index_manifest.json"
+    manifest_path = Path(config.get("manifest_path") or config["chroma_dir"] / "index_manifest.json")
     current_manifest = _index_manifest(
         docs,
         config,
@@ -790,6 +808,10 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
     )
 
     store_count = vector_store.count() if hasattr(vector_store, "count") else 0
+    if store_count > 0 and saved_manifest is None and not config["force_reindex"]:
+        raise RuntimeError(
+            "Existing Chroma collection has no valid index_manifest.json. Refusing to query stale vectors; rebuild it."
+        )
     if docs and config["auto_index"] and (store_count <= 0 or config["force_reindex"] or manifest_changed):
         if hasattr(vector_store, "clear"):
             vector_store.clear()
@@ -822,9 +844,40 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
 
 def rebuild_runtime_index(config: dict[str, Any] | None = None) -> dict[str, Any]:
     resolved = _runtime_config({**(config or {}), "force_reindex": True, "auto_index": True})
-    _, debug = _build_runtime_agent(resolved)
-    manifest_path = resolved["chroma_dir"] / "index_manifest.json"
-    manifest = _load_manifest(manifest_path)
+    target_name = str(resolved["collection_name"])
+    temporary_name = f"{target_name}__rebuild_{uuid4().hex}"
+    temporary_manifest = resolved["chroma_dir"] / f"index_manifest.{temporary_name}.json"
+    print(
+        f"Rebuild started: provider={resolved['embedder_provider']} model={resolved['embedder_model']} "
+        f"temporary_collection={temporary_name}", flush=True,
+    )
+    staged_agent = None
+    try:
+        staged_agent, debug = _build_runtime_agent({
+            **resolved, "collection_name": temporary_name, "manifest_path": temporary_manifest,
+        })
+        if debug["chunk_count"] <= 0:
+            raise RuntimeError("Rebuild produced an empty collection; the live collection was not replaced.")
+        staged_agent.vector_store.replace_collection(target_name)
+        manifest = _load_manifest(temporary_manifest)
+        if manifest is None:
+            raise RuntimeError("Rebuild did not produce a valid index manifest.")
+        manifest["collection_name"] = target_name
+        manifest_path = resolved["chroma_dir"] / "index_manifest.json"
+        _save_manifest(manifest_path, manifest)
+    except Exception:
+        if staged_agent is not None:
+            try:
+                staged_agent.vector_store.drop_collection()
+            except Exception:
+                pass
+        raise
+    finally:
+        temporary_manifest.unlink(missing_ok=True)
+    print(
+        f"Rebuild complete: chunk_count={debug['chunk_count']} provider={debug['embedder_provider']} "
+        f"model={manifest['embedder_model']} vector_dimension={debug['embedding_dimension']}", flush=True,
+    )
     return {
         "chunk_count": debug["chunk_count"],
         "manifest_path": str(manifest_path),
@@ -1043,9 +1096,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
                 "embedding_model": runtime_config["embedding_model"],
                 "embedder_provider": runtime_config["embedder_provider"],
                 "llm_model": runtime_config["llm_model"],
-                "llm_provider": "openrouter"
-                if runtime_config["openrouter_key"] and runtime_config["openrouter_model"]
-                else ("deepseek" if runtime_config["deepseek_url"] and runtime_config["deepseek_key"] else "extractive"),
+                "llm_provider": runtime_config["llm_provider"],
                 "mode": runtime_config["mode"],
                 "collection_name": runtime_config["collection_name"],
                 "chunk_count": 0,
@@ -1075,7 +1126,12 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             return boundary_result
 
     agent, runtime_debug = _build_runtime_agent(runtime_config)
-    answer_callable = _build_answer_callable(runtime_config)
+    answer_callable = create_chat_answer(runtime_config)
+    if answer_callable is None and not runtime_config["allow_extractive_fallback"]:
+        raise RuntimeError(
+            "No LLM generation provider is configured and extractive fallback is disabled. "
+            "Configure LLM_PROVIDER or explicitly set RAG_ALLOW_EXTRACTIVE_FALLBACK=true."
+        )
     assert agent is not None and callable(agent.answer_question), "ARAG retriever is unavailable"
     generator = answer_callable or agent._extractive_answer
     assert callable(generator), "ARAG generator is unavailable"
@@ -1089,7 +1145,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
         )
     except Exception as exc:
         runtime_debug["answer_model_error"] = str(exc)
-        if not runtime_config["allow_extractive_fallback"]:
+        if runtime_config["rag_env"] == "production" or not runtime_config["allow_extractive_fallback"]:
             raise RuntimeError(
                 "Configured LLM generation failed and extractive fallback is disabled."
             ) from exc

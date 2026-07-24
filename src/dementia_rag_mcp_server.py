@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import argparse
+import logging
 import os
 import sys
 from pathlib import Path
 from typing import Any
 from urllib import parse, request
+
+logger = logging.getLogger(__name__)
 
 try:
     from .citations import finalize_user_facing_result
@@ -13,7 +17,7 @@ try:
     from .orchestrator import handle_dementia_user_message
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from .screening.outbox import mark_screening_message_delivered
-    from .pipeline.rag_agent import get_runtime_agent
+    from .pipeline.rag_agent import create_chat_answer, get_runtime_agent
     from .rag.runtime_config import load_rag_config, log_resolved_config
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
@@ -25,7 +29,7 @@ except ImportError:
     from src.orchestrator import handle_dementia_user_message
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from src.screening.outbox import mark_screening_message_delivered
-    from src.pipeline.rag_agent import get_runtime_agent
+    from src.pipeline.rag_agent import create_chat_answer, get_runtime_agent
     from src.rag.runtime_config import load_rag_config, log_resolved_config
 
 
@@ -72,7 +76,10 @@ def handle_incoming_message_tool(
     Do not mention RAG, database, MCP, tool calls, file names, source paths,
     debug logs, Chroma, markdown files, or retrieval.
     """
-    result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)
+    if telegram_username:
+        result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)
+    else:
+        result = handle_incoming_message(message, sender_id, channel or "telegram")
     if str(channel or "telegram").lower() == "telegram":
         _deliver_telegram_outbound(result.get("outbound_messages"))
     public = _public_message_result(result)
@@ -134,16 +141,43 @@ if mcp is not None:
     mcp.tool(name="handle_incoming_message")(handle_incoming_message_tool)
 
 
+def diagnose_runtime(*, validate_llm: bool = True) -> dict[str, object]:
+    """Initialize external dependencies without opening MCP stdio."""
+    config = load_rag_config("mcp")
+    log_resolved_config(config, "MCP_DIAGNOSE_CONFIG")
+    agent = get_runtime_agent({**config, "auto_index": False})
+    count = agent.vector_store.count()
+    if validate_llm and config["llm_provider"] != "extractive":
+        generator = create_chat_answer(config)
+        if generator is None or not generator("Reply with OK only.").strip():
+            raise RuntimeError("Configured LLM health check returned an empty response.")
+    return {
+        "status": "ok", "collection_count": count,
+        "embedder_provider": agent.embedder.resolved_provider,
+        "embedding_model": config["embedder_model"],
+        "llm_provider": config["llm_provider"], "llm_model": config["llm_model"],
+    }
+
+
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--diagnose", action="store_true", help="Validate embedder, Chroma and LLM without starting MCP")
+    args = parser.parse_args()
     if mcp is None:
         raise RuntimeError("Install the Python MCP package to run this server: pip install mcp")
-    config = load_rag_config("mcp")
-    log_resolved_config(config, "MCP_RAG_CONFIG")
-    get_runtime_agent({**config, "auto_index": False})
-    print(f"MCP_STARTUP chroma_dir={config['chroma_dir']}", file=sys.stderr)
-    print(f"MCP_STARTUP collection_name={config['collection_name']}", file=sys.stderr)
-    print("MCP_STARTUP enabled_tools=handle_incoming_message", file=sys.stderr)
-    mcp.run()
+    try:
+        health = diagnose_runtime(validate_llm=args.diagnose)
+        if args.diagnose:
+            print(health)
+            return
+        config = load_rag_config("mcp")
+        print(f"MCP_STARTUP chroma_dir={config['chroma_dir']}", file=sys.stderr)
+        print(f"MCP_STARTUP collection_name={config['collection_name']}", file=sys.stderr)
+        print("MCP_STARTUP health=ok enabled_tools=handle_incoming_message", file=sys.stderr)
+        mcp.run()
+    except BaseException:
+        logger.exception("MCP process failed during initialization or server lifecycle")
+        raise
 
 
 if __name__ == "__main__":

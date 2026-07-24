@@ -235,50 +235,11 @@ def _extract_model_text(data: dict[str, Any]) -> str:
     return ""
 
 
-def _build_answer_callable():
-    deepseek_url = os.getenv("DEEPSEEK_URL")
-    deepseek_key = os.getenv("DEEPSEEK_API_KEY")
-    deepseek_model = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
-    openrouter_key = os.getenv("OPENROUTER_API_KEY")
-    openrouter_model = os.getenv("OPENROUTER_MODEL")
+def create_chat_answer():
+    """Compatibility wrapper around the canonical provider-aware generator."""
+    from .pipeline.rag_agent import create_chat_answer as build_chat_answer
 
-    if not ((deepseek_url and deepseek_key) or (openrouter_key and openrouter_model)):
-        return None
-
-    try:
-        import requests
-    except ImportError:
-        _debug("requests is not installed; using extractive answer fallback")
-        return None
-
-    if openrouter_key and openrouter_model:
-        url = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions")
-        headers = {
-            "Authorization": f"Bearer {openrouter_key}",
-            "Content-Type": "application/json",
-        }
-        model = openrouter_model
-    else:
-        url = str(deepseek_url)
-        headers = {
-            "Authorization": f"Bearer {deepseek_key}",
-            "Content-Type": "application/json",
-        }
-        model = deepseek_model
-
-    def answer_callable(prompt: str) -> str:
-        payload = {
-            "model": model,
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.1,
-        }
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        if response.status_code in {400, 404, 422}:
-            response = requests.post(url, headers=headers, json={"prompt": prompt}, timeout=30)
-        response.raise_for_status()
-        return _extract_model_text(response.json()).strip()
-
-    return answer_callable
+    return build_chat_answer(load_rag_config("mcp"))
 
 
 def search_dementia_knowledge(question: str) -> dict[str, Any]:

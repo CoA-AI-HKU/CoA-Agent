@@ -261,6 +261,34 @@ class ChromaVectorStore:
                 raise
         self._refresh_collection()
 
+    def drop_collection(self) -> None:
+        """Delete this collection without recreating it."""
+        try:
+            self.client.delete_collection(name=self.collection_name)
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+
+    def replace_collection(self, target_name: str) -> None:
+        """Atomically-ish swap a fully built staging collection into service."""
+        backup_name = f"{target_name}__backup_{uuid4().hex}"
+        old = None
+        try:
+            old = self.client.get_collection(name=target_name)
+            old.modify(name=backup_name)
+        except Exception as exc:
+            if not self._is_missing_collection_error(exc):
+                raise
+        try:
+            self.collection.modify(name=target_name)
+        except Exception:
+            if old is not None:
+                old.modify(name=target_name)
+            raise
+        self.collection_name = target_name
+        if old is not None:
+            self.client.delete_collection(name=backup_name)
+
     def all_documents(self) -> List[Document]:
         try:
             result = self.collection.get(include=["documents", "metadatas"])

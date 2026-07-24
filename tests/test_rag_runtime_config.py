@@ -70,10 +70,19 @@ def test_dummy_is_only_used_when_explicitly_requested(monkeypatch, tmp_path) -> 
 def test_index_model_mismatch_is_detected(tmp_path) -> None:
     config = _config(tmp_path, force_reindex=True)
     get_runtime_agent(config)
-    mismatched = {**config, "force_reindex": False, "embedder_model": "different-existing-model"}
+    mismatched = {**config, "force_reindex": False, "embedder_provider": "local"}
 
-    with pytest.raises(RuntimeError, match="does not match runtime configuration"):
-        get_runtime_agent(mismatched)
+    class FakeLocalEmbedder:
+        resolved_provider = "local"
+        dimension = 3
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr("src.pipeline.rag_agent.Embedder", FakeLocalEmbedder)
+        with pytest.raises(RuntimeError, match="does not match runtime configuration"):
+            get_runtime_agent(mismatched)
 
 
 def test_reload_rebuilds_with_configured_provider(tmp_path) -> None:
@@ -81,10 +90,43 @@ def test_reload_rebuilds_with_configured_provider(tmp_path) -> None:
 
     assert result["chunk_count"] > 0
     assert result["manifest"]["embedder_provider"] == "dummy"
-    assert result["manifest"]["embedder_model"] == "all-MiniLM-L6-v2"
+    assert result["manifest"]["embedder_model"] == "dummy"
     assert result["manifest"]["embedding_dimension"] == 384
     assert result["manifest"]["collection_name"] == "test_collection"
     assert result["manifest"]["docs_dir"].endswith("/docs")
+
+
+def test_reload_replaces_dummy_collection_with_local_vectors(monkeypatch, tmp_path) -> None:
+    dummy_config = _config(tmp_path, force_reindex=True)
+    dummy_agent = get_runtime_agent(dummy_config)
+    old_results = dummy_agent.retrieve("腦退化症", k=1)
+
+    class FakeLocalEmbedder:
+        resolved_provider = "local"
+        dimension = 3
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def encode(self, texts):
+            return [[1.0, float(len(text) % 7), 0.5] for text in texts]
+
+        def encode_documents(self, documents):
+            return self.encode([document.text for document in documents])
+
+    monkeypatch.setattr("src.pipeline.rag_agent.Embedder", FakeLocalEmbedder)
+    local_config = {
+        **dummy_config, "embedder_provider": "local", "embedder_model": "fake-local",
+        "force_reindex": False,
+    }
+    rebuilt = rebuild_runtime_index(local_config)
+    new_agent = get_runtime_agent(local_config)
+    new_results = new_agent.retrieve("腦退化症", k=1)
+
+    assert rebuilt["manifest"]["embedder_provider"] == "local"
+    assert rebuilt["manifest"]["embedder_model"] == "fake-local"
+    assert rebuilt["manifest"]["embedding_dimension"] == 3
+    assert old_results[0].metadata.get("distance") != new_results[0].metadata.get("distance")
 
 
 def test_definition_query_prefers_definition_source() -> None:
