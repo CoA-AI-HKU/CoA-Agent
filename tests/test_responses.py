@@ -353,7 +353,7 @@ def test_exact_leaking_reply_is_replaced_at_final_output_guard() -> None:
 
     for blocked in ["來源", ".md", "資料庫", "腦退化", "dementia"]:
         assert blocked.lower() not in guarded["answer"].lower()
-    assert guarded["debug"]["unsupported_dementia_assumption_removed"] is True
+    assert guarded["debug"]["unsupported_dementia_assumption_removed"] is False
 
 
 def test_production_mcp_result_excludes_internal_source_and_debug_fields(monkeypatch) -> None:

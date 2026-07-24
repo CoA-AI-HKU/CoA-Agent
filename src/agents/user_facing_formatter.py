@@ -131,7 +131,6 @@ ADDITIONAL_BLOCKED_TERMS = [
     "來源",
     ".md",
     "資料庫",
-    "根據",
     "根據資料庫",
     "資料庫指出",
     "資料庫講到",
@@ -231,18 +230,24 @@ def guard_user_facing_answer(
         message,
     )
 
-    logging.warning(
-        "OUTPUT_GUARD_CHECK "
-        "internal_leakage=%s "
-        "unsupported_dementia_assumption=%s "
-        "answer_length=%d "
-        "answer_preview=%r "
-        "message_preview=%r",
+    fallback_reason = (
+        "internal_leakage_and_unsupported_dementia_assumption"
+        if has_internal_leakage and has_unsupported_assumption
+        else "internal_leakage"
+        if has_internal_leakage
+        else "unsupported_dementia_assumption"
+        if has_unsupported_assumption
+        else "none"
+    )
+    logging.getLogger(__name__).info(
+        "output_guard_check has_internal_leakage=%s "
+        "has_unsupported_dementia_assumption=%s answer_length=%d "
+        "safe_answer_preview=%r fallback_reason=%s",
         has_internal_leakage,
         has_unsupported_assumption,
         len(answer),
-        answer[:200],
-        str(message or "")[:100],
+        answer[:300],
+        fallback_reason,
     )
 
     if not has_internal_leakage and not has_unsupported_assumption:
@@ -261,20 +266,17 @@ def guard_user_facing_answer(
 
     fallback = _fallback_for_route(output, message)
 
-    logging.warning(
-        "OUTPUT_GUARD_REPLACED "
-        "reason=%s "
-        "before_length=%d "
-        "after_length=%d "
-        "fallback_preview=%r",
-        (
-            "internal_leakage"
-            if has_internal_leakage
-            else "unsupported_dementia_assumption"
-        ),
+    logging.getLogger(__name__).warning(
+        "output_guard_replaced has_internal_leakage=%s "
+        "has_unsupported_dementia_assumption=%s fallback_reason=%s "
+        "answer_length=%d safe_answer_preview=%r before_length=%d after_length=%d",
+        has_internal_leakage,
+        has_unsupported_assumption,
+        fallback_reason,
+        len(answer),
+        answer[:300],
         len(answer),
         len(fallback),
-        fallback[:200],
     )
 
     output["answer"] = fallback
@@ -437,6 +439,8 @@ def _contains_internal_leakage(answer: str) -> bool:
     lowered = answer.lower()
     if re.search(r"(?<![a-z0-9])[a-z]:[\\/]", answer, flags=re.IGNORECASE):
         return True
+    if re.search(r"(?:^|\s)/(?:home|opt|var|tmp|mnt|etc)/\S+", answer, flags=re.IGNORECASE):
+        return True
     for term in ADDITIONAL_BLOCKED_TERMS:
         haystack = lowered if term.isascii() else answer
         needle = term.lower() if term.isascii() else term
@@ -453,29 +457,37 @@ def _contains_internal_leakage(answer: str) -> bool:
 def _contains_unsupported_dementia_assumption(answer: str, message: str) -> bool:
     user_text = str(message or "").lower()
     answer_text = str(answer or "").lower()
-    explicit_user_terms = (
-        "腦退化",
-        "脑退化",
-        "認知障礙",
-        "认知障碍",
-        "失智",
-        "dementia",
-        "alzheimer",
-        "mci",
+    supported_self_claims = (
+        "我有腦退化", "我有脑退化", "我患有腦退化", "我患有脑退化",
+        "我有失智", "我患有失智", "我被診斷", "我被诊断",
+        "醫生話我有", "醫生說我有", "医生说我有",
+        "i have dementia", "i was diagnosed", "doctor diagnosed me",
     )
-    user_explicitly_raised_topic = any(term in user_text for term in explicit_user_terms)
+    if any(term in user_text for term in supported_self_claims):
+        return False
+
+    # Only direct second-person diagnosis assertions are blocked. General
+    # education about dementia, patients, or people with dementia is allowed.
     unsupported_assertions = (
         "你有腦退化",
         "你有脑退化",
+        "你患有腦退化",
+        "你患有脑退化",
+        "你有失智",
+        "你患有失智",
         "你的腦退化",
         "你的脑退化",
         "you have dementia",
+        "you suffer from dementia",
         "your dementia",
-        "腦退化症人士",
-        "脑退化症人士",
-        "person with dementia",
     )
-    return any(term in answer_text for term in unsupported_assertions) and not user_explicitly_raised_topic
+    symptom_proof_patterns = (
+        r"你的(?:症狀|症状).{0,20}(?:證明|证明|顯示|显示).{0,12}(?:腦退化|脑退化|失智)",
+        r"your symptoms.{0,30}(?:prove|show|confirm).{0,20}(?:dementia|alzheimer)",
+    )
+    return any(term in answer_text for term in unsupported_assertions) or any(
+        re.search(pattern, answer_text, flags=re.IGNORECASE) for pattern in symptom_proof_patterns
+    )
 
 
 def _fallback_for_route(result: dict[str, Any], message: str) -> str:
