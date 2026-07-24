@@ -144,6 +144,7 @@ def _build_runtime_agent() -> RagAgent:
     vector_store = get_default_vector_store(
         persist_directory=persist_dir,
         collection_name=collection_name,
+        require_persistent=True,
     )
     _debug(f"using_chroma_dir={persist_dir}")
     agent = RagAgent(

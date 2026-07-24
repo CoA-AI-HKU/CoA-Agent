@@ -761,6 +761,7 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
     vector_store = get_default_vector_store(
         persist_directory=config["chroma_dir"],
         collection_name=config["collection_name"],
+        require_persistent=True,
     )
     agent = RagAgent(
         embedder_provider=config["embedder_provider"],
