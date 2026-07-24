@@ -108,7 +108,7 @@ def load_rag_config(
         "llm_model": llm_model,
     }
     # Preserve orchestration-only settings without teaching every caller a new loader.
-    for key in ("force_retrieval", "planner_route"):
+    for key in ("force_retrieval", "planner_route", "sender_id"):
         if key in values:
             config[key] = values[key]
     return config

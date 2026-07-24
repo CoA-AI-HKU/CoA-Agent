@@ -28,6 +28,7 @@ from .agents.user_facing_formatter import (
 )
 from .pipeline.language import detect_answer_language
 from .pipeline.rag_agent import answer_question, build_default_rag_config
+from .pipeline.query_normalization import log_string_diagnostic
 from .rag.execution_metrics import record_retrieval
 
 
@@ -50,6 +51,10 @@ def handle_dementia_user_message(
     user_id: str | None = None,
     show_sources: bool = False,
 ) -> dict[str, Any]:
+    log_string_diagnostic(
+        logger, "orchestrator_input_message", message,
+        sender_id=str(user_id or ""),
+    )
     message_id = uuid.uuid4().hex
     decision = coordinate_message(message, user_id)
     logger.info(
@@ -69,9 +74,14 @@ def handle_dementia_user_message(
             overrides={
                 "force_retrieval": True,
                 "planner_route": decision.route,
+                "sender_id": str(user_id or ""),
             },
         )
-        | {"force_retrieval": True, "planner_route": decision.route},
+        | {
+            "force_retrieval": True,
+            "planner_route": decision.route,
+            "sender_id": str(user_id or ""),
+        },
     )
     arag_debug = dict(arag_result.get("debug") or {})
     scores = [float(score or 0.0) for score in arag_debug.get("scores") or []]

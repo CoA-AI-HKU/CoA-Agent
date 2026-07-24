@@ -14,6 +14,7 @@ from src.agents.user_facing_formatter import (
     guard_user_facing_answer,
 )
 from src.metrics import clear_user_events, detect_concern_signal, infer_event_type, log_event
+from src.pipeline.query_normalization import log_string_diagnostic
 from src.screening.outbox import queue_screening_message
 from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
@@ -48,6 +49,10 @@ def handle_incoming_message(
     channel: str = "",
     telegram_username: str = "",
 ) -> dict[str, Any]:
+    log_string_diagnostic(
+        logger, "router_input_message", message,
+        sender_id=sender_id, channel=channel,
+    )
     logger.info(
         "message router started",
         extra={"event": "message_router_started", "sender_id": sender_id, "channel": channel},

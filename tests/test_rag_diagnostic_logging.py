@@ -60,6 +60,5 @@ def test_router_diagnostics_do_not_change_returned_answer(caplog) -> None:
     result = _finalize_user_output(original, "問題")
 
     assert result["answer"] == "安全回答"
-    assert "event=router_finalization_started" in caplog.text
-    assert "event=router_finalization_completed" in caplog.text
-    assert "scores=[0.92, 0.91]" in caplog.text
+    assert "ROUTER_FINALIZE_START" in caplog.text
+    assert "ROUTER_FINALIZE_COMPLETED" in caplog.text

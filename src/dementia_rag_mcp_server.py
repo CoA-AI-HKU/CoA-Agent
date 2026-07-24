@@ -18,6 +18,7 @@ try:
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from .screening.outbox import mark_screening_message_delivered
     from .pipeline.rag_agent import create_chat_answer, get_runtime_agent
+    from .pipeline.query_normalization import log_string_diagnostic
     from .rag.runtime_config import load_rag_config, log_resolved_config
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
@@ -30,6 +31,7 @@ except ImportError:
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from src.screening.outbox import mark_screening_message_delivered
     from src.pipeline.rag_agent import create_chat_answer, get_runtime_agent
+    from src.pipeline.query_normalization import log_string_diagnostic
     from src.rag.runtime_config import load_rag_config, log_resolved_config
 
 
@@ -76,11 +78,9 @@ def handle_incoming_message_tool(
     Do not mention RAG, database, MCP, tool calls, file names, source paths,
     debug logs, Chroma, markdown files, or retrieval.
     """
-    logger.warning(
-        "DEMENTIA_RAG_TOOL_CALLED channel=%s sender_id=%s message=%r",
-        channel,
-        sender_id,
-        message[:100]
+    log_string_diagnostic(
+        logger, "mcp_tool_input_message", message,
+        sender_id=sender_id, channel=channel,
     )
     if telegram_username:
         result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)

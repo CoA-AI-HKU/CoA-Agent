@@ -17,6 +17,7 @@ from .document import Document
 from .embedder import Embedder
 from .language import AnswerLanguage, detect_answer_language
 from .prompts import FALLBACK_ANSWER, build_answer_prompt, get_fallback_answer, get_source_label
+from .query_normalization import log_string_diagnostic, normalize_retrieval_query
 from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
 from ..rag.runtime_config import (
@@ -271,19 +272,27 @@ class RagAgent:
         k = k or self.top_k
         if self.vector_store is None:
             self.vector_store = get_default_vector_store()
-        query_embedding = self.embedder.encode([query])[0]
+        retrieval_query = normalize_retrieval_query(query)
+        log_string_diagnostic(
+            logger, "retrieval_query", retrieval_query,
+            original_preview=str(query or "")[:200],
+            retrieval_query_changed=retrieval_query != str(query or ""),
+        )
+        query_embedding = self.embedder.encode([retrieval_query])[0]
         candidate_count = max(k * 10, 25)
-        search_results = self.vector_store.query(query, n_results=candidate_count, query_embedding=query_embedding)
+        search_results = self.vector_store.query(
+            retrieval_query, n_results=candidate_count, query_embedding=query_embedding,
+        )
         documents = []
         for result in search_results:
             metadata = dict(result["metadata"])
             if "distance" in result:
                 metadata["distance"] = result["distance"]
             documents.append(Document(text=result["text"], metadata=metadata))
-        supported_documents = self._filter_supported_documents(query, documents)
+        supported_documents = self._filter_supported_documents(retrieval_query, documents)
         return sorted(
             supported_documents,
-            key=lambda document: _document_relevance_score(query, document),
+            key=lambda document: _document_relevance_score(retrieval_query, document),
             reverse=True,
         )[:k]
 
@@ -358,7 +367,15 @@ class RagAgent:
 
         answer_language = answer_language or detect_answer_language(question)
         fallback_answer = get_fallback_answer(answer_language)
-        search_query = rewrite_query(question)
+        retrieval_query_original = rewrite_query(question)
+        search_query = normalize_retrieval_query(retrieval_query_original)
+        log_string_diagnostic(
+            logger, "retrieval_query_original", retrieval_query_original,
+        )
+        log_string_diagnostic(
+            logger, "retrieval_query_normalized", search_query,
+            retrieval_query_changed=search_query != retrieval_query_original,
+        )
         retrieve_k = retrieve_top_k or self.retrieve_top_k
         use_k = answer_top_k or self.answer_top_k
         threshold = self.min_relevance_score if min_relevance_score is None else min_relevance_score
@@ -384,9 +401,19 @@ class RagAgent:
         best_score = float(scored[0].metadata.get("relevance_score", 0.0)) if scored else 0.0
         sufficiency = retrieval.get("sufficiency", {})
         scores = [doc.metadata.get("relevance_score", 0.0) for doc in scored[:use_k]]
+        source_identifiers = list(dict.fromkeys(
+            str(doc.metadata.get("source") or "unknown") for doc in scored[:use_k]
+        ))
         logger.info(
             "rag_diagnostic event=retrieval_completed found=%s retrieved_sources=%d scores=%s",
             bool(scored), len(scored), scores,
+        )
+        logger.info(
+            "retrieval_result result_count=%d scores=%r source_identifiers=%r threshold=%s "
+            "sender_id=%r route=%r intent=%r",
+            len(scored), scores, source_identifiers, threshold,
+            str(getattr(self, "diagnostic_sender_id", "")), route,
+            str(getattr(self, "diagnostic_intent", route)),
         )
 
         if not scored or best_score < threshold or not sufficiency.get("sufficient", False):
@@ -407,6 +434,7 @@ class RagAgent:
                     "top_k_used": 0,
                     "retrieved_count": len(scored),
                     "best_score": best_score,
+                    "scores": scores,
                     "min_relevance_score": threshold,
                     "retrieval": retrieval.get("retrieval_log", {}),
                     "evidence_sufficiency": sufficiency,
@@ -893,6 +921,8 @@ def rebuild_runtime_index(config: dict[str, Any] | None = None) -> dict[str, Any
         f"Rebuild started: provider={resolved['embedder_provider']} model={resolved['embedder_model']} "
         f"temporary_collection={temporary_name}", flush=True,
     )
+    agent.diagnostic_sender_id = str(config.get("sender_id") or "")
+    agent.diagnostic_intent = str(config.get("diagnostic_intent") or config.get("planner_route") or "")
     staged_agent = None
     try:
         staged_agent, debug = _build_runtime_agent({
@@ -1116,6 +1146,10 @@ def _has_caregiver(patient_profile: Any) -> bool:
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
+    log_string_diagnostic(
+        logger, "rag_input_question", question,
+        sender_id=str(runtime_config.get("sender_id") or ""),
+    )
     answer_language = detect_answer_language(question, str(runtime_config.get("answer_language", "auto")))
     runtime_config["resolved_answer_language"] = answer_language
     if config:
@@ -1124,6 +1158,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
                 runtime_config[key] = config[key]
     intent_result = classify_intent(question)
     assert intent_result is not None, "ARAG planner is unavailable"
+    runtime_config["diagnostic_intent"] = intent_result.intent
     if not question or not question.strip():
         result = {
             "found": False,
@@ -1211,6 +1246,17 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     result_debug["fallback_active"] = fallback_active
     result_debug["scores"] = result_debug.get("scores", [])
     result["debug"] = result_debug
+    logger.info(
+        "retrieval_result result_count=%d scores=%r source_identifiers=%r threshold=%s "
+        "sender_id=%r route=%r intent=%r",
+        int(result_debug.get("retrieved_count") or 0),
+        list(result_debug.get("scores") or []),
+        [str(source) for source in (result.get("sources") or [])],
+        result_debug.get("min_relevance_score"),
+        str(runtime_config.get("sender_id") or ""),
+        str((config or {}).get("planner_route") or intent_result.intent),
+        intent_result.intent,
+    )
     _attach_intent_debug(result, intent_result)
     _emit_runtime_debug(result)
     return result
