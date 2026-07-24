@@ -183,7 +183,7 @@ def interactive_loop(
     show_sources: bool = False,
     debug_rag: bool = False,
 ) -> None:
-    from .orchestrator import handle_dementia_user_message
+    from .user.message_router import handle_incoming_message
     
     print("Enter questions (empty line to quit). Type 'reload' to re-index documents.")
     while True:
@@ -208,10 +208,8 @@ def interactive_loop(
                 print("Fallback mode active: True")
             print("Answer:\n", answer)
         else:
-            result = handle_dementia_user_message(query, show_sources=show_sources)
+            result = handle_incoming_message(query, "cli-user", "cli")
             print("Answer:\n", result.get("answer", result))
-            if show_sources and result.get("sources"):
-                print("Sources metadata:", result.get("sources"))
             if debug_rag:
                 print("Debug:", result.get("debug", {}))
 

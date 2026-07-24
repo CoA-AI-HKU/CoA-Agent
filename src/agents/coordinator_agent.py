@@ -134,7 +134,7 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         "unknown": ("unknown", False, False),
         "general_conversation": ("general", False, False),
     }
-    route, rag_required, safety_override = route_map.get(intent_result.intent, ("unknown", False, False))
+    route, _, safety_override = route_map.get(intent_result.intent, ("unknown", True, False))
 
     return AgentDecision(
         route=route,
@@ -142,7 +142,9 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         confidence=intent_result.confidence,
         matched_terms=intent_result.matched_terms,
         reason=intent_result.reason,
-        rag_required=rag_required,
+        # Commands are consumed by message_router before the orchestrator.
+        # Every message reaching this planner therefore retrieves by default.
+        rag_required=True,
         safety_override=safety_override,
         user_role=user_role,
     )

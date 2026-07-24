@@ -1010,6 +1010,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             if key in config:
                 runtime_config[key] = config[key]
     intent_result = classify_intent(question)
+    assert intent_result is not None, "ARAG planner is unavailable"
     if not question or not question.strip():
         result = {
             "found": False,
@@ -1043,25 +1044,30 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
         _emit_runtime_debug(result)
         return result
 
-    medication_guardrail_result = _medication_guardrail_response(question, runtime_config, intent_result)
-    if medication_guardrail_result is not None:
-        _emit_runtime_debug(medication_guardrail_result)
-        return medication_guardrail_result
+    force_retrieval = bool(config and config.get("force_retrieval"))
+    if not force_retrieval:
+        medication_guardrail_result = _medication_guardrail_response(question, runtime_config, intent_result)
+        if medication_guardrail_result is not None:
+            _emit_runtime_debug(medication_guardrail_result)
+            return medication_guardrail_result
 
-    boundary_result = _boundary_response(intent_result, runtime_config)
-    if boundary_result is not None:
-        _emit_runtime_debug(boundary_result)
-        return boundary_result
+        boundary_result = _boundary_response(intent_result, runtime_config)
+        if boundary_result is not None:
+            _emit_runtime_debug(boundary_result)
+            return boundary_result
 
     agent, runtime_debug = _build_runtime_agent(runtime_config)
     answer_callable = _build_answer_callable(runtime_config)
+    assert agent is not None and callable(agent.answer_question), "ARAG retriever is unavailable"
+    generator = answer_callable or agent._extractive_answer
+    assert callable(generator), "ARAG generator is unavailable"
     fallback_active = answer_callable is None
     try:
         result = agent.answer_question(
             question,
             answer_callable=answer_callable,
             answer_language=answer_language,
-            route=intent_result.intent,
+            route=str((config or {}).get("planner_route") or intent_result.intent),
         )
     except Exception as exc:
         runtime_debug["answer_model_error"] = str(exc)
@@ -1070,7 +1076,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             question,
             answer_callable=None,
             answer_language=answer_language,
-            route=intent_result.intent,
+            route=str((config or {}).get("planner_route") or intent_result.intent),
         )
 
     result_debug = dict(result.get("debug", {}))

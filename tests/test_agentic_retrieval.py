@@ -82,16 +82,16 @@ def test_agentic_retrieve_reads_bounded_evidence_for_knowledge_route() -> None:
     assert result["retrieval_log"]["answer_used_rag"] is True
 
 
-def test_route_policies_skip_urgent_and_unknown_retrieval() -> None:
+def test_route_policies_retrieve_for_urgent_and_unknown_messages() -> None:
     agent = _agent(Document(text="If someone is missing, act immediately.", metadata={"source": "safety.md"}))
 
     wandering = agentic_retrieve("My family member is missing", "wandering_safety", rag_agent=agent)
     unknown = agentic_retrieve("Tell me the weather", "unknown", rag_agent=agent)
 
-    assert wandering["evidence"] == []
-    assert wandering["retrieval_log"]["tools_used"] == []
-    assert unknown["evidence"] == []
-    assert unknown["retrieval_log"]["tools_used"] == []
+    assert wandering["retrieval_log"]["requires_retrieval"] is True
+    assert wandering["retrieval_log"]["tools_used"]
+    assert unknown["retrieval_log"]["requires_retrieval"] is True
+    assert unknown["retrieval_log"]["tools_used"]
 
 
 def test_medication_route_never_reads_full_chunks() -> None:

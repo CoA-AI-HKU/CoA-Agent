@@ -21,7 +21,12 @@ def test_health_returns_success():
 def test_empty_message_is_rejected():
     response = client.post(
         "/api/chat",
-        json={"message": "   ", "user_id": "web-demo-user", "input_mode": "text"},
+        json={
+            "message": "   ",
+            "user_id": "web-demo-user",
+            "session_id": "session-empty",
+            "input_mode": "text",
+        },
     )
     assert response.status_code == 400
     assert response.json() == {"error": "請先輸入訊息。"}
@@ -102,10 +107,19 @@ def test_agent_exception_returns_safe_error(monkeypatch):
     monkeypatch.setattr(chat_api, "process_user_message", failed_process)
     response = client.post(
         "/api/chat",
-        json={"message": "你好", "user_id": "web-demo-user", "input_mode": "text"},
+        json={
+            "message": "你好",
+            "user_id": "web-demo-user",
+            "session_id": "session-error",
+            "input_mode": "text",
+        },
     )
-    assert response.status_code == 500
-    assert response.json() == {"error": "CoA-Agent 暫時無法處理這個訊息，請稍後再試。"}
+    assert response.status_code == 200
+    assert response.json() == {
+        "reply": "我暫時未能處理這個訊息。請稍後再試，我會繼續在這裡陪你。",
+        "language": "zh-HK",
+        "session_id": "session-error",
+    }
     assert "private" not in response.text
 
 
@@ -116,7 +130,13 @@ def test_agent_timeout_returns_safe_error(monkeypatch):
     monkeypatch.setattr(chat_api, "process_user_message", timed_out_process)
     response = client.post(
         "/api/chat",
-        json={"message": "你好", "user_id": "web-demo-user", "input_mode": "voice"},
+        json={
+            "message": "你好",
+            "user_id": "web-demo-user",
+            "session_id": "session-timeout",
+            "input_mode": "voice",
+        },
     )
-    assert response.status_code == 504
-    assert response.json() == {"error": "CoA-Agent 暫時無法處理這個訊息，請稍後再試。"}
+    assert response.status_code == 200
+    assert response.json()["reply"].strip()
+    assert response.json()["session_id"] == "session-timeout"

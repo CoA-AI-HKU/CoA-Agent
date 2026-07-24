@@ -9,8 +9,7 @@ from .retrieval_tools import chunk_read, keyword_search, semantic_search
 
 
 NO_RETRIEVAL_ROUTES = {
-    "unknown", "out_of_scope", "wandering_safety", "safety", "safety_sensitive",
-    "caregiver_summary",
+    "system_command", "account_management",
 }
 MEMORY_ROUTES = {"memory_concern", "self_memory_concern"}
 MEDICAL_ROUTES = {"medical_boundary", "medication_or_diagnosis"}
@@ -109,6 +108,8 @@ def agentic_retrieve(
     step_limit = min(max(int(max_steps), 0), 3)
     log: dict[str, Any] = {
         "route": normalized_route,
+        "requires_retrieval": normalized_route not in NO_RETRIEVAL_ROUTES,
+        "rewritten_query": question,
         "tools_used": [],
         "keyword_queries": [],
         "semantic_queries": [],
