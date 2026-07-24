@@ -319,7 +319,7 @@ def _clean_source_text(answer: str) -> str:
     cleaned = "\n".join(kept_lines)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
-    return cleaned.strip(" ，,。")
+    return cleaned.strip()
 
 
 def _remove_cited_quote_blocks(answer: str) -> str:
@@ -378,29 +378,61 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
     elif safety_level in {"urgent_boundary", "medical_boundary"}:
         max_chars = 250
     else:
-        max_chars = 120
+        max_chars = 220
     normalized = (
         answer
         if safety_level in {"screening_check_in", "caregiver_observation_guidance"}
         else _remove_excess_numbering(answer)
     )
-    if len(normalized) <= max_chars:
-        return normalized
-
+    normalized = normalized.strip()
+    route_specific_limit = safety_level in {
+        "screening_check_in",
+        "self_memory_concern",
+        "memory_concern",
+        "caregiver_observation_guidance",
+        "urgent_boundary",
+        "medical_boundary",
+    }
     sentences = _split_sentences(normalized)
-    if not sentences:
-        return normalized[:max_chars].rstrip("，,。 .") + "。"
+    if len(normalized) <= max_chars and (route_specific_limit or len(sentences) <= 3):
+        return _ensure_terminal_punctuation(normalized, max_chars)
+
+    complete_sentences = [sentence for sentence in sentences if _has_terminal_punctuation(sentence)]
 
     selected: list[str] = []
     total = 0
-    for sentence in sentences:
-        if selected and total + len(sentence) > max_chars:
+    max_sentences = None if route_specific_limit else 3
+    for sentence in complete_sentences:
+        if max_sentences is not None and len(selected) >= max_sentences:
+            break
+        if total + len(sentence) > max_chars:
             break
         selected.append(sentence)
         total += len(sentence)
-    if not selected:
-        selected = [sentences[0][:max_chars].rstrip("，,。 .") + "。"]
-    return "".join(selected).strip()
+    if selected:
+        return "".join(selected).strip()
+    return _truncate_at_sentence_boundary(normalized, max_chars)
+
+
+def _has_terminal_punctuation(text: str) -> bool:
+    return bool(re.search(r"[。！？!?]$", text.rstrip()))
+
+
+def _ensure_terminal_punctuation(text: str, max_chars: int) -> str:
+    stripped = text.strip()
+    if not stripped or _has_terminal_punctuation(stripped):
+        return stripped
+    stem = stripped.rstrip("，,：:; ")
+    return stem[: max_chars - 1].rstrip("，,：:; ") + "。"
+
+
+def _truncate_at_sentence_boundary(answer: str, max_chars: int) -> str:
+    candidate = answer[:max_chars].strip()
+    punctuation_boundaries = list(re.finditer(r"[。！？!?]", candidate))
+    if punctuation_boundaries:
+        return candidate[: punctuation_boundaries[-1].end()].strip()
+    stem = candidate[: max_chars - 1].rstrip("，,：:; ")
+    return stem + "。"
 
 
 def _remove_excess_numbering(answer: str) -> str:
