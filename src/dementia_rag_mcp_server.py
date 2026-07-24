@@ -134,6 +134,7 @@ def _public_message_result(result: dict[str, Any]) -> dict[str, Any]:
         "linked_user_id",
         "found",
         "rag_called",
+        "fallback_reason",
         "medication_status",
     )
     return {field: result[field] for field in public_fields if field in result}

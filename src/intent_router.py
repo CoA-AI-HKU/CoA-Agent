@@ -18,6 +18,11 @@ Intent = Literal[
     "safety_sensitive",
     "medication_or_diagnosis",
     "general_conversation",
+    "daily_life_support",
+    "casual_conversation",
+    "dementia_knowledge",
+    "memory_concern",
+    "urgent_safety",
     "unknown",
 ]
 
@@ -48,6 +53,13 @@ GREETING_TERMS = [
     "早晨", "你好", "午安", "晚安",
     "good morning", "good afternoon", "good evening",
     "嗨", "哈囉", "hello there",
+]
+
+DAILY_LIFE_TERMS = [
+    "出去走走", "出去散步", "出街行下", "自己去買東西", "自己去買嘢",
+    "找不到鎖匙", "搵唔到鎖匙", "找不到鑰匙", "可以煮飯", "搭巴士",
+    "坐巴士", "去公園", "打電話給女兒", "打電話俾女兒", "打電話給家人",
+    "自己出門", "go for a walk", "go shopping alone", "take the bus", "cook today",
 ]
 
 # ============================================================
@@ -277,6 +289,7 @@ COGNITIVE_CONCERN_SCREENING_TERMS = [
 ]
 
 SELF_MEMORY_CONCERN_TERMS = [
+    "我最近成日唔記得嘢",
     "想不起來",
     "想不起来",
     "記不起",
@@ -576,10 +589,19 @@ def classify_intent(message: str) -> IntentResult:
             reason="Message is empty after normalization.",
         )
 
+    daily_life_matches = _matched_terms(normalized, DAILY_LIFE_TERMS)
+    if daily_life_matches:
+        return IntentResult(
+            intent="daily_life_support",
+            confidence=_confidence(0.94, len(daily_life_matches)),
+            matched_terms=daily_life_matches,
+            reason="Matched an ordinary daily-life support request.",
+        )
+
     safety_matches = _matched_terms(normalized, SAFETY_TERMS)
     if _is_urgent_safety_match(normalized, safety_matches):
         return IntentResult(
-            intent="safety_sensitive",
+            intent="urgent_safety",
             confidence=_confidence(0.95, len(safety_matches)),
             matched_terms=safety_matches,
             reason="Matched urgent or current safety-risk terms.",
@@ -624,7 +646,7 @@ def classify_intent(message: str) -> IntentResult:
 
     if _is_dementia_definition_question(normalized):
         return IntentResult(
-            intent="knowledge_qa",
+            intent="dementia_knowledge",
             confidence=0.95,
             matched_terms=_matched_terms(normalized, KNOWLEDGE_TERMS),
             reason="Matched a dementia definition question.",
@@ -635,7 +657,7 @@ def classify_intent(message: str) -> IntentResult:
     # ============================================================
     priority_rules: list[tuple[Intent, list[str], float, str]] = [
         # 问候语优先（最高优先级）
-        ("emotional_support", GREETING_TERMS, 0.99, "Matched greeting terms."),
+        ("casual_conversation", GREETING_TERMS, 0.99, "Matched greeting terms."),
         # 原有的规则
         (
             "caregiver_support",
@@ -644,7 +666,7 @@ def classify_intent(message: str) -> IntentResult:
             "Matched caregiver observation or support terms.",
         ),
         (
-            "self_memory_concern",
+            "memory_concern",
             SELF_MEMORY_CONCERN_TERMS,
             0.94,
             "Matched first-person memory concern terms.",
@@ -665,8 +687,8 @@ def classify_intent(message: str) -> IntentResult:
         ("personal_memory", PERSONAL_MEMORY_TERMS, 0.8, "Matched personal memory terms."),
         ("cognitive_activity", ACTIVITY_TERMS, 0.8, "Matched activity or engagement terms."),
         ("emotional_support", EMOTIONAL_TERMS, 0.8, "Matched emotional support terms."),
-        ("knowledge_qa", KNOWLEDGE_TERMS, 0.7, "Matched dementia knowledge terms."),
-        ("general_conversation", GENERAL_CONVERSATION_TERMS, 0.7, "Matched a general conversation request."),
+        ("dementia_knowledge", KNOWLEDGE_TERMS, 0.7, "Matched dementia knowledge terms."),
+        ("casual_conversation", GENERAL_CONVERSATION_TERMS, 0.7, "Matched a general conversation request."),
     ]
 
     for intent, terms, confidence, reason in priority_rules:
@@ -687,10 +709,10 @@ def classify_intent(message: str) -> IntentResult:
         "why is", "why do", "tell me about", "define", "explain"
     ]):
         return IntentResult(
-            intent="knowledge_qa",
+            intent="casual_conversation",
             confidence=0.7,
             matched_terms=[],
-            reason="Fallback: message contains English question pattern.",
+            reason="Matched a general English question without dementia context.",
         )
 
     reason = "No configured route matched." if _looks_like_natural_message(normalized) else "Message is not intelligible."

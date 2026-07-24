@@ -1013,9 +1013,9 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
     answer_language = runtime_config["resolved_answer_language"]
     if intent_result.intent == "medication_or_diagnosis":
         answer = LOCALIZED_RESPONSES["medication_or_diagnosis"][answer_language]
-    elif intent_result.intent == "safety_sensitive":
+    elif intent_result.intent in {"safety_sensitive", "urgent_safety"}:
         answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
-    elif intent_result.intent == "self_memory_concern":
+    elif intent_result.intent in {"self_memory_concern", "memory_concern"}:
         answer = SELF_MEMORY_CONCERN_RESPONSE
     else:
         return None

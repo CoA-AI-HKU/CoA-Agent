@@ -14,6 +14,7 @@ from .agents.memory_routine_agent import (
     handle_routine_request,
 )
 from .agents.response_simplifier_agent import simplify_response
+from .agents.rag_evidence_agent import answer_with_dementia_evidence
 from .agents.safety_agent import handle_medical_boundary, handle_safety
 from .agents.screening_agent import (
     handle_caregiver_observation_guidance,
@@ -67,26 +68,11 @@ def handle_dementia_user_message(
         },
     )
     answer_language = detect_answer_language(message)
-    arag_result = answer_question(
-        message,
-        build_default_rag_config(
-            "mcp",
-            overrides={
-                "force_retrieval": True,
-                "planner_route": decision.route,
-                "sender_id": str(user_id or ""),
-            },
-        )
-        | {
-            "force_retrieval": True,
-            "planner_route": decision.route,
-            "sender_id": str(user_id or ""),
-        },
-    )
+    arag_result = answer_with_dementia_evidence(message, user_id) if decision.rag_required else {}
     arag_debug = dict(arag_result.get("debug") or {})
     scores = [float(score or 0.0) for score in arag_debug.get("scores") or []]
     retrieved_count = int(arag_debug.get("retrieved_count") or 0)
-    record_retrieval(enabled=True, scores=scores, chunk_count=retrieved_count)
+    record_retrieval(enabled=decision.rag_required, scores=scores, chunk_count=retrieved_count)
 
     if decision.route == "safety":
         result = handle_safety(message, decision)
@@ -113,17 +99,20 @@ def handle_dementia_user_message(
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":
         result = _supportive_response(message, decision)
+    elif decision.route == "daily_life":
+        result = _daily_life_response(message, decision)
     elif decision.route == "general":
         result = _general_response(message, decision)
     else:
         result = _unknown_response(message, decision)
 
-    result.setdefault("intent", decision.intent)
+    result["intent"] = decision.intent
     result.setdefault("found", False)
     result.setdefault("sources", [])
     result.setdefault("rag_called", False)
     result.setdefault("route", decision.route)
     result.setdefault("safety_level", "normal")
+    result.setdefault("fallback_reason", "insufficient_evidence" if decision.rag_required and not result.get("found") else "none")
     result["answer_language"] = result.get("answer_language", answer_language)
     trace = {
         "message_id": message_id,
@@ -132,7 +121,7 @@ def handle_dementia_user_message(
         "detected_intent": decision.intent,
         "selected_route": decision.route,
         "planner_decision": decision.reason,
-        "retrieval_enabled": True,
+        "retrieval_enabled": decision.rag_required,
         "retrieval_query": arag_debug.get("search_query"),
         "retrieved_chunk_count": retrieved_count,
         "top_similarity_scores": scores,
@@ -172,6 +161,26 @@ def handle_dementia_user_message(
         logger.info("ARAG_EXECUTION_TRACE %s", json.dumps(trace, ensure_ascii=False))
     _emit_debug(user_id, message, user_facing)
     return user_facing
+
+
+def _daily_life_response(message: str, decision: AgentDecision) -> dict[str, Any]:
+    normalized = str(message or "").lower()
+    if any(term in normalized for term in ("出去走走", "出去散步", "出街行下", "go for a walk")):
+        answer = ("可以呀，出去走走通常可以令人放鬆。出門前可以先看看天氣，帶好電話和鎖匙，"
+                  "並告訴家人你會去哪裡；如果你感到頭暈、容易迷路或身體不舒服，最好先請家人陪同。")
+    elif any(term in normalized for term in ("鎖匙", "鑰匙")):
+        answer = "先別著急，可以依次看看門邊、袋子、外套口袋和最近用過鎖匙的地方；如果仍找不到，可以請家人一起找，並使用備用鎖匙。"
+    elif any(term in normalized for term in ("煮飯", "cook")):
+        answer = "如果你現在精神和身體狀況良好，可以準備簡單的一餐。開始前先把材料放好，煮食時不要離開爐火；如果感到頭暈、很疲倦或不確定爐具操作，請家人陪同或改吃不用開火的食物。"
+    elif any(term in normalized for term in ("巴士", "bus")):
+        answer = "可以先查看路線和回程時間，帶好電話、鎖匙和車費，並告訴家人目的地；如果你不熟悉路線、容易迷路或身體不舒服，最好請熟悉路線的人同行。"
+    elif "打電話" in normalized:
+        answer = "可以呀，你可以現在打給她。如果一時找不到號碼，可以看看通訊錄或請身邊的人幫你找，但不要把密碼或驗證碼告訴別人。"
+    else:
+        answer = "可以先按自己的能力和當時情況安排。出發前準備好電話和鎖匙，告訴家人目的地；如果身體不舒服、不熟悉路線或感到不安全，就請可信任的人陪同。"
+    return {"answer": answer, "intent": decision.intent, "safety_level": "conditional_daily_life_safety",
+            "found": False, "sources": [], "rag_called": False, "route": "daily_life",
+            "fallback_reason": "none", "debug": {"agent": "coordinator"}}
 
 
 def _supportive_response(message: str, decision: AgentDecision) -> dict[str, Any]:

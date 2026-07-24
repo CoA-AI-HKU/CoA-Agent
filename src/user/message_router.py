@@ -484,6 +484,12 @@ def _finalize_user_output(
     message: str,
 ) -> dict[str, Any]:
     output = dict(result)
+    output.setdefault("found", False)
+    output.setdefault("rag_called", False)
+    output.setdefault(
+        "fallback_reason",
+        "insufficient_evidence" if output.get("rag_called") and not output.get("found") else "none",
+    )
 
     logger.warning(
         "ROUTER_FINALIZE_START "
