@@ -23,7 +23,9 @@ Example `~/.nanobot/config.json` fragment:
         "env": {
           "CHROMA_DIR": "/home/aine/.cache/coa-agent/chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
-          "EMBEDDER_PROVIDER": "dummy",
+          "RAG_ENV": "production",
+          "EMBEDDER_PROVIDER": "auto",
+          "EMBEDDER_MODEL": "all-MiniLM-L6-v2",
           "EMBEDDINGS_OFFLINE": "true",
           "RAG_RETRIEVE_TOP_K": "8",
           "RAG_ANSWER_TOP_K": "2",
@@ -64,7 +66,9 @@ If your Nanobot config launches the server by absolute file path instead, this a
         "env": {
           "CHROMA_DIR": "/home/aine/.cache/coa-agent/chroma/ling_rag",
           "CHROMA_COLLECTION": "ling_rag",
-          "EMBEDDER_PROVIDER": "dummy",
+          "RAG_ENV": "production",
+          "EMBEDDER_PROVIDER": "auto",
+          "EMBEDDER_MODEL": "all-MiniLM-L6-v2",
           "EMBEDDINGS_OFFLINE": "true",
           "RAG_ANSWER_TOP_K": "2",
           "RAG_ANSWER_LANGUAGE": "auto",

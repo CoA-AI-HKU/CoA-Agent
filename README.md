@@ -230,7 +230,7 @@ Run the CLI:
 python -m src.cli
 ```
 
-If no real embedding backend is available, the CLI falls back to the deterministic `dummy` embedder so local indexing can still run. Use `--embedder-provider local` with a cached sentence-transformers model, or configure `OPENAI_API_KEY`, for better retrieval quality.
+The CLI requires a real embedding backend by default. Install `sentence-transformers` with the documented `all-MiniLM-L6-v2` model available, or configure the supported OpenAI-compatible embedding provider. Dummy embeddings are test-only and require explicit `EMBEDDER_PROVIDER=dummy` or `RAG_ALLOW_DUMMY=true`.
 
 For answer-mode debugging:
 
@@ -246,7 +246,11 @@ For production cross-language retrieval, use a real multilingual embedding model
 
 Environment variables (optional):
 
-- `CHROMA_DIR` - writable Chroma index directory. Defaults to `/home/aine/.cache/coa-agent/chroma/ling_rag`.
+- `RAG_ENV=production` — enables strict startup validation for embeddings, model loading, index identity, and LLM fallback.
+- `EMBEDDER_PROVIDER` — defaults to `auto`; use `dummy` only explicitly for tests.
+- `EMBEDDER_MODEL` — defaults to the existing documented `all-MiniLM-L6-v2`.
+- `RAG_ALLOW_EXTRACTIVE_FALLBACK=true` — explicitly permits generation without a configured LLM.
+- `CHROMA_DIR` - writable Chroma index directory. Defaults to `data/private/chroma/ling_rag` under the project root.
 - `DEEPSEEK_URL` — URL of a DeepSeek or compatible generation endpoint that accepts JSON `{ "prompt": "..." }` and returns JSON with `answer` or `text`.
 - `DEEPSEEK_API_KEY` — API key for the remote DeepSeek service.
 

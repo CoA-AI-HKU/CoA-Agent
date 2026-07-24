@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable
 
@@ -58,6 +57,8 @@ class ConversationService:
         outbound = result.get("outbound_messages")
         events = list(outbound) if isinstance(outbound, list) else []
         answer = str(result.get("answer") or "").strip()
+        if not answer:
+            answer = "我暫時未能整理好回覆。你可以稍後再試，我會繼續在這裡陪你。"
         return ConversationResponse(
             response=answer,
             tts=answer or None,
@@ -69,6 +70,7 @@ class ConversationService:
                 "intent": result.get("intent"),
                 "route": result.get("route"),
                 "safety_level": result.get("safety_level"),
+                "answer_language": result.get("answer_language") or "zh-HK",
             },
         )
 
@@ -95,10 +97,8 @@ async def process_user_message(
         ),
         timeout=timeout_seconds,
     )
-    if not result.response:
-        raise RuntimeError("agent returned an empty response")
     return {
         "reply": result.response,
-        "language": "zh-HK",
-        "session_id": session_id or uuid.uuid4().hex,
+        "language": str(result.metadata.get("answer_language") or "zh-HK"),
+        "session_id": str(session_id or "").strip(),
     }

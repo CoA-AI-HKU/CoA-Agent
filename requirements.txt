@@ -1,9 +1,15 @@
 beautifulsoup4
+chromadb>=0.5,<2
+sentence-transformers
 fastapi>=0.110,<1
 markdownify
 pandas
 plotly
 requests
+SQLAlchemy>=2,<3
+python-jose>=3,<4
+passlib[bcrypt]>=1.7,<2
+APScheduler>=3,<4
 streamlit
 trafilatura
 uvicorn[standard]>=0.27,<1

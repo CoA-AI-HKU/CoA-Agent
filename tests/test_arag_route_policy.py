@@ -54,9 +54,8 @@ def test_memory_concern_uses_at_most_one_chunk() -> None:
     assert len(result["evidence"]) <= 1
 
 
-def test_safety_and_caregiver_summary_skip_retrieval() -> None:
+def test_safety_and_caregiver_summary_attempt_retrieval_by_default() -> None:
     for route in ("safety", "wandering_safety", "caregiver_summary"):
         result = agentic_retrieve("summary or urgent request", route, rag_agent=_agent())
-        assert result["evidence"] == []
-        assert result["retrieval_log"]["tools_used"] == []
-
+        assert result["retrieval_log"]["requires_retrieval"] is True
+        assert result["retrieval_log"]["tools_used"]

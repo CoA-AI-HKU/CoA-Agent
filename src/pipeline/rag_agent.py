@@ -16,6 +16,11 @@ from .language import AnswerLanguage, detect_answer_language
 from .prompts import FALLBACK_ANSWER, build_answer_prompt, get_fallback_answer, get_source_label
 from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
+from ..rag.runtime_config import (
+    DEFAULT_CHROMA_DIR as CANONICAL_CHROMA_DIR,
+    load_rag_config,
+    log_resolved_config,
+)
 from ..meds.medicine_normalizer import normalize_medicine_mentions
 from ..safety.medication_guard import (
     build_short_medication_safety_response,
@@ -29,7 +34,7 @@ RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CHROMA_DIR = (PROJECT_ROOT / "data" / "private" / "chroma" / "ling_rag").as_posix()
+DEFAULT_CHROMA_DIR = CANONICAL_CHROMA_DIR.as_posix()
 MEDICATION_OR_DIAGNOSIS_RESPONSE = (
     "我不能提供診斷或任何用藥建議。請詢問醫生、藥劑師或合資格醫護人員。"
 )
@@ -597,54 +602,7 @@ def _resolve_project_path(path_value: str | Path) -> Path:
 
 def build_default_rag_config(mode: str = "shared", overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     """Build the shared runtime config used by CLI and MCP."""
-    overrides = overrides or {}
-    config = {
-        "cwd": str(Path.cwd()),
-        "docs_dir": _resolve_project_path(overrides.get("docs_dir") or os.getenv("RAG_DATA_DIR", "data/mds")),
-        "chroma_dir": _resolve_project_path(overrides.get("chroma_dir") or os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR)),
-        "collection_name": overrides.get("collection_name") or os.getenv("CHROMA_COLLECTION", "ling_rag"),
-        "embedder_provider": overrides.get("embedder_provider") or os.getenv("EMBEDDER_PROVIDER", "dummy"),
-        "embedder_model": overrides.get("embedder_model") or os.getenv("EMBEDDER_MODEL") or None,
-        "offline_embeddings": bool(
-            overrides.get("offline_embeddings")
-            if "offline_embeddings" in overrides
-            else os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}
-        ),
-        "retrieve_top_k": int(overrides.get("retrieve_top_k") or os.getenv("RAG_RETRIEVE_TOP_K", RETRIEVE_TOP_K)),
-        "answer_top_k": int(overrides.get("answer_top_k") or os.getenv("RAG_ANSWER_TOP_K", ANSWER_TOP_K)),
-        "min_relevance_score": float(
-            overrides.get("min_relevance_score") or os.getenv("RAG_MIN_RELEVANCE_SCORE", MIN_RELEVANCE_SCORE)
-        ),
-        "min_shared_query_terms": int(
-            overrides.get("min_shared_query_terms") or os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1")
-        ),
-        "chunk_size": int(overrides.get("chunk_size") or os.getenv("RAG_CHUNK_SIZE", DEFAULT_CHUNK_SIZE)),
-        "chunk_overlap": int(overrides.get("chunk_overlap") or os.getenv("RAG_CHUNK_OVERLAP", DEFAULT_CHUNK_OVERLAP)),
-        "max_context_chars": int(overrides.get("max_context_chars") or os.getenv("RAG_MAX_CONTEXT_CHARS", "1800")),
-        "per_chunk_chars": int(overrides.get("per_chunk_chars") or os.getenv("RAG_PER_CHUNK_CHARS", "500")),
-        "mode": overrides.get("mode") or mode or os.getenv("RAG_MODE", "shared"),
-        "answer_language": overrides.get("answer_language") or os.getenv("RAG_ANSWER_LANGUAGE", "auto"),
-        "force_reindex": bool(overrides.get("force_reindex", False)),
-        "auto_index": bool(
-            overrides.get("auto_index")
-            if "auto_index" in overrides
-            else os.getenv("RAG_AUTO_INDEX", "1").lower() in {"1", "true", "yes"}
-        ),
-        "deepseek_url": overrides.get("deepseek_url") or os.getenv("DEEPSEEK_URL"),
-        "deepseek_key": overrides.get("deepseek_key") or os.getenv("DEEPSEEK_API_KEY"),
-        "deepseek_model": overrides.get("deepseek_model") or os.getenv("DEEPSEEK_MODEL", "deepseek-chat"),
-        "openrouter_key": overrides.get("openrouter_key") or os.getenv("OPENROUTER_API_KEY"),
-        "openrouter_model": overrides.get("openrouter_model") or os.getenv("OPENROUTER_MODEL"),
-        "openrouter_base_url": overrides.get("openrouter_base_url")
-        or os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1/chat/completions"),
-    }
-    config["embedding_model"] = config["embedder_model"] or config["embedder_provider"]
-    config["llm_model"] = (
-        config["openrouter_model"]
-        or (config["deepseek_model"] if config["deepseek_url"] and config["deepseek_key"] else None)
-        or "extractive-fallback"
-    )
-    return config
+    return load_rag_config(mode, overrides)
 
 
 def _runtime_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -652,20 +610,43 @@ def _runtime_config(overrides: dict[str, Any] | None = None) -> dict[str, Any]:
     return build_default_rag_config(str(overrides.get("mode") or "shared"), overrides)
 
 
-def _index_manifest(docs: List[Document], config: dict[str, Any], embedder_provider: str | None = None) -> dict[str, Any]:
+def _index_manifest(
+    docs: List[Document],
+    config: dict[str, Any],
+    *,
+    embedder_provider: str,
+    embedding_dimension: int,
+) -> dict[str, Any]:
     document_entries = []
     for document in docs:
         source = str(document.metadata.get("source", ""))
         text_hash = hashlib.sha256(document.text.encode("utf-8")).hexdigest()
         document_entries.append({"source": source, "sha256": text_hash, "chars": len(document.text)})
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "documents": sorted(document_entries, key=lambda item: item["source"]),
         "chunk_size": config["chunk_size"],
         "chunk_overlap": config["chunk_overlap"],
-        "embedder_provider": embedder_provider or config["embedder_provider"],
-        "embedder_model": config["embedder_model"] or "all-MiniLM-L6-v2",
+        "embedder_provider": embedder_provider,
+        "embedder_model": config["embedder_model"],
+        "embedding_dimension": embedding_dimension,
+        "docs_dir": str(config["docs_dir"].resolve()),
+        "collection_name": config["collection_name"],
     }
+
+
+def _manifest_embedding_identity(manifest: dict[str, Any] | None) -> tuple[Any, ...] | None:
+    if not manifest:
+        return None
+    return (
+        manifest.get("embedder_provider"),
+        manifest.get("embedder_model"),
+        manifest.get("embedding_dimension"),
+        manifest.get("docs_dir"),
+        manifest.get("collection_name"),
+        manifest.get("chunk_size"),
+        manifest.get("chunk_overlap"),
+    )
 
 
 def _load_manifest(path: Path) -> dict[str, Any] | None:
@@ -748,21 +729,52 @@ def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | Non
 def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, Any]]:
     from .markdown_loader import load_markdown_documents
 
+    log_resolved_config(config)
     docs = load_markdown_documents(config["docs_dir"])
+    try:
+        embedder = Embedder(
+            model_name=config["embedder_model"],
+            provider=config["embedder_provider"],
+            offline=config["offline_embeddings"],
+        )
+    except RuntimeError as exc:
+        if config["embedder_provider"] == "auto" and config["allow_dummy"] and config["rag_env"] != "production":
+            embedder = Embedder(model_name=config["embedder_model"], provider="dummy")
+        else:
+            raise RuntimeError(
+                "Real embedding backend unavailable. Install sentence-transformers or configure "
+                "the selected provider. Dummy fallback is disabled."
+            ) from exc
+    resolved_provider = embedder.resolved_provider
+    embedding_dimension = embedder.dimension
     manifest_path = config["chroma_dir"] / "index_manifest.json"
-    current_manifest = _index_manifest(docs, config)
+    current_manifest = _index_manifest(
+        docs,
+        config,
+        embedder_provider=resolved_provider,
+        embedding_dimension=embedding_dimension,
+    )
     saved_manifest = _load_manifest(manifest_path)
     manifest_changed = saved_manifest != current_manifest
+    identity_changed = (
+        saved_manifest is not None
+        and _manifest_embedding_identity(saved_manifest) != _manifest_embedding_identity(current_manifest)
+    )
 
-    if docs and config["auto_index"] and (config["force_reindex"] or manifest_changed):
-        _clear_chroma_dir(config["chroma_dir"])
+    if identity_changed and not config["force_reindex"]:
+        raise RuntimeError(
+            "Existing Chroma index embedding configuration does not match runtime configuration. "
+            "Refusing to query it. Rebuild the configured collection with python -m src.cli --force-reindex."
+        )
 
     _ensure_directory(config["chroma_dir"])
     vector_store = get_default_vector_store(
         persist_directory=config["chroma_dir"],
         collection_name=config["collection_name"],
+        require_persistent=True,
     )
     agent = RagAgent(
+        embedder=embedder,
         embedder_provider=config["embedder_provider"],
         embedder_model_name=config["embedder_model"],
         offline_embeddings=config["offline_embeddings"],
@@ -779,19 +791,9 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
 
     store_count = vector_store.count() if hasattr(vector_store, "count") else 0
     if docs and config["auto_index"] and (store_count <= 0 or config["force_reindex"] or manifest_changed):
-        try:
-            if hasattr(vector_store, "clear"):
-                vector_store.clear()
-            agent.index_documents(docs)
-        except RuntimeError as exc:
-            if agent.embedder_provider != "auto" or "No real embedding backend is available" not in str(exc):
-                raise
-            if hasattr(vector_store, "clear"):
-                vector_store.clear()
-            agent._embedder = None
-            agent.embedder_provider = "dummy"
-            agent.index_documents(docs)
-            current_manifest = _index_manifest(docs, config, embedder_provider="dummy")
+        if hasattr(vector_store, "clear"):
+            vector_store.clear()
+        agent.index_documents(docs)
         _save_manifest(manifest_path, current_manifest)
         store_count = vector_store.count() if hasattr(vector_store, "count") else 0
 
@@ -801,13 +803,12 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
         "chroma_dir": str(config["chroma_dir"]),
         "collection_name": config["collection_name"],
         "embedding_model": config["embedding_model"],
-        "embedder_provider": config["embedder_provider"],
+        "embedder_provider": resolved_provider,
+        "embedding_dimension": embedding_dimension,
         "llm_model": config["llm_model"],
-        "llm_provider": "openrouter"
-        if config["openrouter_key"] and config["openrouter_model"]
-        else ("deepseek" if config["deepseek_url"] and config["deepseek_key"] else "extractive"),
+        "llm_provider": config["llm_provider"],
         "mode": config["mode"],
-        "fallback_active": config["llm_model"] == "extractive-fallback",
+        "fallback_active": config["llm_provider"] == "extractive",
         "store_count": store_count,
         "chunk_count": store_count,
         "chunk_size": config["chunk_size"],
@@ -817,6 +818,24 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
         "min_relevance_score": config["min_relevance_score"],
     }
     return agent, debug
+
+
+def rebuild_runtime_index(config: dict[str, Any] | None = None) -> dict[str, Any]:
+    resolved = _runtime_config({**(config or {}), "force_reindex": True, "auto_index": True})
+    _, debug = _build_runtime_agent(resolved)
+    manifest_path = resolved["chroma_dir"] / "index_manifest.json"
+    manifest = _load_manifest(manifest_path)
+    return {
+        "chunk_count": debug["chunk_count"],
+        "manifest_path": str(manifest_path),
+        "manifest": manifest,
+    }
+
+
+def get_runtime_agent(config: dict[str, Any] | None = None) -> RagAgent:
+    resolved = _runtime_config(config)
+    agent, _ = _build_runtime_agent(resolved)
+    return agent
 
 
 def _emit_runtime_debug(result: dict[str, Any]) -> None:
@@ -1009,6 +1028,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             if key in config:
                 runtime_config[key] = config[key]
     intent_result = classify_intent(question)
+    assert intent_result is not None, "ARAG planner is unavailable"
     if not question or not question.strip():
         result = {
             "found": False,
@@ -1042,34 +1062,43 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
         _emit_runtime_debug(result)
         return result
 
-    medication_guardrail_result = _medication_guardrail_response(question, runtime_config, intent_result)
-    if medication_guardrail_result is not None:
-        _emit_runtime_debug(medication_guardrail_result)
-        return medication_guardrail_result
+    force_retrieval = bool(config and config.get("force_retrieval"))
+    if not force_retrieval:
+        medication_guardrail_result = _medication_guardrail_response(question, runtime_config, intent_result)
+        if medication_guardrail_result is not None:
+            _emit_runtime_debug(medication_guardrail_result)
+            return medication_guardrail_result
 
-    boundary_result = _boundary_response(intent_result, runtime_config)
-    if boundary_result is not None:
-        _emit_runtime_debug(boundary_result)
-        return boundary_result
+        boundary_result = _boundary_response(intent_result, runtime_config)
+        if boundary_result is not None:
+            _emit_runtime_debug(boundary_result)
+            return boundary_result
 
     agent, runtime_debug = _build_runtime_agent(runtime_config)
     answer_callable = _build_answer_callable(runtime_config)
+    assert agent is not None and callable(agent.answer_question), "ARAG retriever is unavailable"
+    generator = answer_callable or agent._extractive_answer
+    assert callable(generator), "ARAG generator is unavailable"
     fallback_active = answer_callable is None
     try:
         result = agent.answer_question(
             question,
             answer_callable=answer_callable,
             answer_language=answer_language,
-            route=intent_result.intent,
+            route=str((config or {}).get("planner_route") or intent_result.intent),
         )
     except Exception as exc:
         runtime_debug["answer_model_error"] = str(exc)
+        if not runtime_config["allow_extractive_fallback"]:
+            raise RuntimeError(
+                "Configured LLM generation failed and extractive fallback is disabled."
+            ) from exc
         fallback_active = True
         result = agent.answer_question(
             question,
             answer_callable=None,
             answer_language=answer_language,
-            route=intent_result.intent,
+            route=str((config or {}).get("planner_route") or intent_result.intent),
         )
 
     result_debug = dict(result.get("debug", {}))

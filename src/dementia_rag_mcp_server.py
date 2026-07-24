@@ -13,6 +13,8 @@ try:
     from .orchestrator import handle_dementia_user_message
     from .pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from .screening.outbox import mark_screening_message_delivered
+    from .pipeline.rag_agent import get_runtime_agent
+    from .rag.runtime_config import load_rag_config, log_resolved_config
 except ImportError:
     project_root = Path(__file__).resolve().parents[1]
     if str(project_root) not in sys.path:
@@ -23,6 +25,8 @@ except ImportError:
     from src.orchestrator import handle_dementia_user_message
     from src.pipeline.rag_agent import answer_question as shared_answer_question, build_default_rag_config
     from src.screening.outbox import mark_screening_message_delivered
+    from src.pipeline.rag_agent import get_runtime_agent
+    from src.rag.runtime_config import load_rag_config, log_resolved_config
 
 
 def search_dementia_knowledge_tool(question: str) -> dict[str, Any]:
@@ -133,7 +137,9 @@ if mcp is not None:
 def main() -> None:
     if mcp is None:
         raise RuntimeError("Install the Python MCP package to run this server: pip install mcp")
-    config = build_default_rag_config("mcp")
+    config = load_rag_config("mcp")
+    log_resolved_config(config, "MCP_RAG_CONFIG")
+    get_runtime_agent({**config, "auto_index": False})
     print(f"MCP_STARTUP chroma_dir={config['chroma_dir']}", file=sys.stderr)
     print(f"MCP_STARTUP collection_name={config['collection_name']}", file=sys.stderr)
     print("MCP_STARTUP enabled_tools=handle_incoming_message", file=sys.stderr)

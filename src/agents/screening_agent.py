@@ -5,7 +5,6 @@ from typing import Any
 from src.agents.coordinator_agent import infer_user_role
 from src.agents.types import AgentResult
 from src.pipeline.language import detect_answer_language
-from src.pipeline.rag_agent import answer_question, build_default_rag_config
 
 
 URGENT_RED_FLAGS = [
@@ -116,30 +115,21 @@ def handle_self_memory_concern(message: str, user_id: str | None = None) -> dict
     return handle_memory_concern(message, user_id)
 
 
-def handle_caregiver_observation_guidance(message: str, user_id: str | None = None) -> dict[str, Any]:
+def handle_caregiver_observation_guidance(
+    message: str,
+    user_id: str | None = None,
+    retrieval_result: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     answer_language = detect_answer_language(message)
     retrieval_debug: dict[str, Any] = {}
     sources: list[Any] = []
     found = False
-    try:
-        raw = answer_question(message, build_default_rag_config("mcp"))
-        if isinstance(raw, dict):
-            raw_debug = raw.get("debug") if isinstance(raw.get("debug"), dict) else {}
-            retrieval_debug = dict(raw_debug.get("retrieval") or {})
-            sources = list(raw.get("sources") or [])
-            found = bool(raw.get("found"))
-    except Exception as exc:  # pragma: no cover - care guidance remains available if retrieval fails.
-        retrieval_debug = {
-            "route": "caregiver_guidance",
-            "tools_used": [],
-            "keyword_queries": [],
-            "semantic_queries": [],
-            "chunks_read": [],
-            "evidence_sufficient": False,
-            "retrieval_failed": True,
-            "answer_used_rag": False,
-            "error_type": type(exc).__name__,
-        }
+    if isinstance(retrieval_result, dict):
+        raw_debug = retrieval_result.get("debug")
+        raw_debug = raw_debug if isinstance(raw_debug, dict) else {}
+        retrieval_debug = dict(raw_debug.get("retrieval") or {})
+        sources = list(retrieval_result.get("sources") or [])
+        found = bool(retrieval_result.get("found"))
     result = AgentResult(
         # Retrieved evidence validates the route internally; the stable care
         # wording remains practical, non-diagnostic, and non-shaming.

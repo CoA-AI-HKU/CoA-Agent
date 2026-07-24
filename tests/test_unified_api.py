@@ -34,15 +34,10 @@ def test_dedicated_coa_api_exposes_shared_rag_chat_route(monkeypatch):
     }
 
 
-def test_coa_and_reminder_apis_have_separate_responsibilities():
-    routes = {(route.path, method) for route in app.routes for method in getattr(route, "methods", set())}
-    reminder_routes = {
-        (route.path, method) for route in reminder_app.routes for method in getattr(route, "methods", set())
-    }
-    assert ("/health", "GET") in routes
-    assert ("/api/chat", "POST") in routes
-    assert ("/api/reminders", "GET") not in routes
-    assert ("/api/auth/login", "POST") not in routes
-    assert ("/api/chat", "POST") not in reminder_routes
-    assert ("/api/reminders", "GET") in reminder_routes
-    assert ("/api/auth/login", "POST") in reminder_routes
+def test_unified_app_includes_chat_reminder_and_auth_routes():
+    coa_paths = app.openapi()["paths"]
+
+    assert "get" in coa_paths["/health"]
+    assert "post" in coa_paths["/api/chat"]
+    assert "get" in coa_paths["/api/reminders"]
+    assert "post" in coa_paths["/api/auth/login"]

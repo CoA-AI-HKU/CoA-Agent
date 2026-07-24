@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import os
 import sys
+import logging
+import json
+import uuid
 from typing import Any
 
 from .agents.coordinator_agent import coordinate_message
@@ -10,7 +13,6 @@ from .agents.memory_routine_agent import (
     handle_personal_memory,
     handle_routine_request,
 )
-from .agents.rag_evidence_agent import answer_with_dementia_evidence
 from .agents.response_simplifier_agent import simplify_response
 from .agents.safety_agent import handle_medical_boundary, handle_safety
 from .agents.screening_agent import (
@@ -25,6 +27,11 @@ from .agents.user_facing_formatter import (
     guard_user_facing_answer,
 )
 from .pipeline.language import detect_answer_language
+from .pipeline.rag_agent import answer_question, build_default_rag_config
+from .rag.execution_metrics import record_retrieval
+
+
+logger = logging.getLogger(__name__)
 
 # 🆕 导入日志模块
 EMOTIONAL_SUPPORT_RESPONSE = (
@@ -43,8 +50,33 @@ def handle_dementia_user_message(
     user_id: str | None = None,
     show_sources: bool = False,
 ) -> dict[str, Any]:
+    message_id = uuid.uuid4().hex
     decision = coordinate_message(message, user_id)
+    logger.info(
+        "orchestrator route selected",
+        extra={
+            "event": "orchestrator_route_selected",
+            "user_id": user_id,
+            "route": decision.route,
+            "intent": decision.intent,
+        },
+    )
     answer_language = detect_answer_language(message)
+    arag_result = answer_question(
+        message,
+        build_default_rag_config(
+            "mcp",
+            overrides={
+                "force_retrieval": True,
+                "planner_route": decision.route,
+            },
+        )
+        | {"force_retrieval": True, "planner_route": decision.route},
+    )
+    arag_debug = dict(arag_result.get("debug") or {})
+    scores = [float(score or 0.0) for score in arag_debug.get("scores") or []]
+    retrieved_count = int(arag_debug.get("retrieved_count") or 0)
+    record_retrieval(enabled=True, scores=scores, chunk_count=retrieved_count)
 
     if decision.route == "safety":
         result = handle_safety(message, decision)
@@ -59,9 +91,10 @@ def handle_dementia_user_message(
     elif decision.route in {"memory_concern", "self_memory_concern"}:
         result = handle_memory_concern(message, user_id)
     elif decision.route == "caregiver_guidance":
-        result = handle_caregiver_observation_guidance(message, user_id)
+        result = handle_caregiver_observation_guidance(message, user_id, arag_result)
     elif decision.route == "rag_qa":
-        result = answer_with_dementia_evidence(message, user_id)
+        result = dict(arag_result)
+        result.update({"route": "rag_qa", "rag_called": True})
     elif decision.route == "memory":
         result = handle_personal_memory(message, user_id)
     elif decision.route == "routine":
@@ -82,6 +115,24 @@ def handle_dementia_user_message(
     result.setdefault("route", decision.route)
     result.setdefault("safety_level", "normal")
     result["answer_language"] = result.get("answer_language", answer_language)
+    trace = {
+        "message_id": message_id,
+        "user_id": user_id,
+        "role": decision.user_role,
+        "detected_intent": decision.intent,
+        "selected_route": decision.route,
+        "planner_decision": decision.reason,
+        "retrieval_enabled": True,
+        "retrieval_query": arag_debug.get("search_query"),
+        "retrieved_chunk_count": retrieved_count,
+        "top_similarity_scores": scores,
+        "selected_documents": list(arag_result.get("sources") or []),
+        "generation_model": arag_debug.get("llm_model"),
+        "safety_decisions": {
+            "override": decision.safety_override,
+            "level": result.get("safety_level"),
+        },
+    }
     _attach_coordinator_debug(result, decision)
     result["debug"]["user_message"] = message
 
@@ -103,13 +154,21 @@ def handle_dementia_user_message(
     # Interaction events are owned by message_router, where sender role and
     # transport context are available. The orchestrator intentionally does not
     # log them, preventing duplicate events for one incoming message.
+    trace["final_response"] = str(user_facing.get("answer") or "")
+    debug = dict(user_facing.get("debug") or {})
+    debug["execution_trace"] = trace
+    user_facing["debug"] = debug
+    if os.getenv("ARAG_DEBUG", "").lower() in {"1", "true", "yes"}:
+        logger.info("ARAG_EXECUTION_TRACE %s", json.dumps(trace, ensure_ascii=False))
     _emit_debug(user_id, message, user_facing)
     return user_facing
 
 
 def _supportive_response(message: str, decision: AgentDecision) -> dict[str, Any]:
     normalized = str(message or "").lower()
-    if any(term in normalized for term in ("好累", "很累", "攰", "疲倦", "tired", "exhausted")):
+    if any(term in normalized for term in ("你好", "您好", "早晨", "午安", "晚安", "hello", "hi")):
+        answer = "你好！很高興見到你。今天有甚麼想聊，或需要我幫忙整理的事嗎？"
+    elif any(term in normalized for term in ("好累", "很累", "攰", "疲倦", "tired", "exhausted")):
         answer = (
             "聽起來你今天很累。可以先讓自己休息一下、喝點水，慢慢來。"
             "如果疲倦持續、突然很嚴重，或同時有其他不適，請告訴家人並向醫護人員查詢。"
@@ -130,7 +189,17 @@ def _supportive_response(message: str, decision: AgentDecision) -> dict[str, Any
 
 def _general_response(message: str, decision: AgentDecision) -> dict[str, Any]:
     normalized = str(message or "").lower()
-    if any(term in normalized for term in ("吃什麼", "食什麼", "食咩", "晚上吃", "今晚食", "晚餐")):
+    if any(term in normalized for term in ("數獨", "数独", "sudoku")):
+        answer = (
+            "我覺得數獨幾好玩，尤其是逐步推理、終於填對整個方格時很有滿足感。"
+            "如果你喜歡安靜思考，可以由容易級開始玩。"
+        )
+    elif any(term in normalized for term in ("麻將", "麻将", "打牌", "mahjong")):
+        answer = (
+            "可以呀，如果你喜歡打麻將，和朋友輕鬆玩一會也可以是很好的社交活動。"
+            "記得按自己的精神和時間安排，中途休息一下；如果涉及金錢，就先定好能接受的限額。"
+        )
+    elif any(term in normalized for term in ("吃什麼", "食什麼", "食咩", "晚上吃", "今晚食", "晚餐")):
         answer = (
             "今晚可以按你的口味選一頓簡單的飯，例如飯或麵配蔬菜，再加你喜歡的蛋、魚或豆腐。"
             "如果你有醫生建議的飲食限制，就以醫護人員的建議為先。"

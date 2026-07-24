@@ -1,3 +1,4 @@
+from src.agents.coordinator_agent import coordinate_message
 from src.orchestrator import UNKNOWN_RESPONSE, handle_dementia_user_message
 
 
@@ -37,3 +38,15 @@ def test_dementia_definition_uses_rag_and_returns_relevant_definition(monkeypatc
     assert result["rag_called"] is True
     assert "統稱" in result["answer"]
     assert "認知" in result["answer"]
+
+
+def test_emergency_takes_priority_over_medication_safety():
+    decision = coordinate_message("她突然跌倒流血，我應不應該停藥？", user_id="priority-emergency")
+
+    assert decision.route == "safety"
+
+
+def test_medication_safety_takes_priority_over_memory_support():
+    decision = coordinate_message("我忘記吃過藥沒有，可以再吃一次嗎？", user_id="priority-medication")
+
+    assert decision.route == "medical_boundary"

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import re
 
+import pytest
+
 from src.pipeline.document import Document
 from src.pipeline.embedder import Embedder
 from src.pipeline.prompts import FALLBACK_ANSWER_EN, FALLBACK_ANSWER_ZH_HANS
@@ -233,3 +235,21 @@ def test_empty_retrieval_returns_safe_fallback() -> None:
     assert result["context"] == SAFE_FALLBACK_CONTEXT
     assert result["sources"] == []
 
+
+
+def test_required_persistent_store_does_not_silently_fallback(monkeypatch, tmp_path) -> None:
+    import src.pipeline.vector_store as vector_store_module
+
+    def unavailable_chroma(*args, **kwargs):
+        raise ImportError("chromadb unavailable")
+
+    monkeypatch.setattr(vector_store_module, "ChromaVectorStore", unavailable_chroma)
+
+    with pytest.raises(RuntimeError, match="Persistent Chroma storage is unavailable"):
+        vector_store_module.get_default_vector_store(
+            persist_directory=tmp_path / "chroma",
+            require_persistent=True,
+        )
+
+    fallback = vector_store_module.get_default_vector_store(persist_directory=tmp_path / "chroma")
+    assert isinstance(fallback, InMemoryVectorStore)

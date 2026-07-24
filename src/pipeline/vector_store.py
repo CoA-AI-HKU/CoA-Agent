@@ -307,8 +307,18 @@ class ChromaVectorStore:
         return [document for document in self.all_documents() if _document_chunk_id(document) in requested_set]
 
 
-def get_default_vector_store(persist_directory: Optional[Path] = None, collection_name: str = "ling_rag"):
+def get_default_vector_store(
+    persist_directory: Optional[Path] = None,
+    collection_name: str = "ling_rag",
+    *,
+    require_persistent: bool = False,
+):
     try:
         return ChromaVectorStore(persist_directory=persist_directory, collection_name=collection_name)
-    except Exception:
+    except Exception as exc:
+        if require_persistent:
+            raise RuntimeError(
+                "Persistent Chroma storage is unavailable. Install the chromadb dependency "
+                "and verify that CHROMA_DIR is writable."
+            ) from exc
         return InMemoryVectorStore(persist_directory=persist_directory, collection_name=collection_name)

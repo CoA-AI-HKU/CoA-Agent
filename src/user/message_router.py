@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import logging
 from typing import Any
 
 from src.citations import finalize_user_facing_result
@@ -38,12 +39,19 @@ from src.user.screening_offer import consent_answer, consent_reply, latest_offer
 from src.user.user_memory import build_memory_for_user_id, build_user_memory
 
 
+logger = logging.getLogger(__name__)
+
+
 def handle_incoming_message(
     message: str,
     sender_id: str,
     channel: str = "",
     telegram_username: str = "",
 ) -> dict[str, Any]:
+    logger.info(
+        "message router started",
+        extra={"event": "message_router_started", "sender_id": sender_id, "channel": channel},
+    )
     normalized_sender_id = normalize_sender_id(sender_id)
     role = get_user_role(normalized_sender_id)
     record = get_user_record(normalized_sender_id)
