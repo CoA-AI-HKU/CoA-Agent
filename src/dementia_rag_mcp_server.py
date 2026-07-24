@@ -57,7 +57,7 @@ def handle_incoming_message_tool(
     sender_id: str = "",
     channel: str = "telegram",
     telegram_username: str = "",
-) -> str:
+) -> dict[str, str]:
     """
     MANDATORY FINAL-ANSWER TOOL for all Telegram user messages.
 
@@ -88,7 +88,7 @@ def handle_incoming_message_tool(
     if not answer:
         answer = "抱歉，我暫時未能找到足夠資料回答。你可以換一種方式再問一次。"
 
-    return answer
+    return {"answer": answer}
 
 
 def _deliver_telegram_outbound(messages: object) -> None:
