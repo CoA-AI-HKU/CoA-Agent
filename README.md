@@ -246,7 +246,7 @@ For production cross-language retrieval, use a real multilingual embedding model
 
 Environment variables (optional):
 
-- `CHROMA_DIR` - writable Chroma index directory. Defaults to `/home/aine/.cache/coa-agent/chroma/ling_rag`.
+- `CHROMA_DIR` - writable Chroma index directory. Defaults to `data/private/chroma/ling_rag` under the project root.
 - `DEEPSEEK_URL` — URL of a DeepSeek or compatible generation endpoint that accepts JSON `{ "prompt": "..." }` and returns JSON with `answer` or `text`.
 - `DEEPSEEK_API_KEY` — API key for the remote DeepSeek service.
 
