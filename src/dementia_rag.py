@@ -12,8 +12,15 @@ from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from .pipeline.document import Document
 from .pipeline.markdown_loader import load_markdown_documents
 from .pipeline.prompts import FALLBACK_ANSWER
-from .pipeline.rag_agent import DEFAULT_CHROMA_DIR, RagAgent, answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.rag_agent import (
+    DEFAULT_CHROMA_DIR,
+    RagAgent,
+    answer_question as shared_answer_question,
+    build_default_rag_config,
+    get_runtime_agent,
+)
 from .pipeline.vector_store import get_default_vector_store
+from .rag.runtime_config import load_rag_config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -125,45 +132,7 @@ def _format_search_response(
 
 
 def _build_runtime_agent() -> RagAgent:
-    persist_dir = _resolve_project_path(os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR))
-    collection_name = os.getenv("CHROMA_COLLECTION", "ling_rag")
-    embedder_provider = os.getenv("EMBEDDER_PROVIDER", "dummy")
-    embedder_model = os.getenv("EMBEDDER_MODEL") or None
-    offline_embeddings = os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}
-    data_dir = _resolve_project_path(os.getenv("RAG_DATA_DIR", "data/mds"))
-    top_k = int(os.getenv("RAG_TOP_K", "3"))
-    max_context_chars = int(os.getenv("RAG_MAX_CONTEXT_CHARS", "1800"))
-    per_chunk_chars = int(os.getenv("RAG_PER_CHUNK_CHARS", "500"))
-    min_shared_query_terms = int(os.getenv("RAG_MIN_SHARED_QUERY_TERMS", "1"))
-    retrieve_top_k = int(os.getenv("RAG_RETRIEVE_TOP_K", "8"))
-    answer_top_k = int(os.getenv("RAG_ANSWER_TOP_K", "3"))
-    min_relevance_score = float(os.getenv("RAG_MIN_RELEVANCE_SCORE", "0.35"))
-    chunk_size = int(os.getenv("RAG_CHUNK_SIZE", str(DEFAULT_CHUNK_SIZE)))
-    chunk_overlap = int(os.getenv("RAG_CHUNK_OVERLAP", str(DEFAULT_CHUNK_OVERLAP)))
-
-    vector_store = get_default_vector_store(
-        persist_directory=persist_dir,
-        collection_name=collection_name,
-        require_persistent=True,
-    )
-    _debug(f"using_chroma_dir={persist_dir}")
-    agent = RagAgent(
-        embedder_provider=embedder_provider,
-        embedder_model_name=embedder_model,
-        offline_embeddings=offline_embeddings,
-        vector_store=vector_store,
-        chunk_size=chunk_size,
-        chunk_overlap=chunk_overlap,
-        top_k=top_k,
-        max_context_chars=max_context_chars,
-        per_chunk_chars=per_chunk_chars,
-        min_shared_query_terms=min_shared_query_terms,
-        retrieve_top_k=retrieve_top_k,
-        answer_top_k=answer_top_k,
-        min_relevance_score=min_relevance_score,
-    )
-    _ensure_runtime_index(agent, data_dir, persist_dir, embedder_model, offline_embeddings)
-    return agent
+    return get_runtime_agent(load_rag_config("mcp"))
 
 
 def _ensure_runtime_index(
@@ -200,9 +169,15 @@ def _ensure_runtime_index(
         agent.index_documents(docs)
         _save_runtime_manifest(manifest_path, current_manifest)
     except RuntimeError as exc:
-        if agent.embedder_provider != "auto" or "No real embedding backend is available" not in str(exc):
+        config = load_rag_config("mcp")
+        if (
+            agent.embedder_provider != "auto"
+            or not config["allow_dummy"]
+            or config["rag_env"] == "production"
+            or "No real embedding backend is available" not in str(exc)
+        ):
             raise
-        _debug("auto embedding backend unavailable; rebuilding runtime index with dummy embedder")
+        _debug("explicit dummy fallback enabled; rebuilding runtime index with dummy embedder")
         vector_store = agent.vector_store
         if hasattr(vector_store, "clear"):
             vector_store.clear()

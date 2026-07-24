@@ -10,7 +10,14 @@ from typing import Any, Callable, List
 from .pipeline.chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE
 from .pipeline.document import Document
 from .pipeline.markdown_loader import load_markdown_documents
-from .pipeline.rag_agent import DEFAULT_CHROMA_DIR, answer_question as shared_answer_question, build_default_rag_config
+from .pipeline.rag_agent import (
+    DEFAULT_CHROMA_DIR,
+    answer_question as shared_answer_question,
+    build_default_rag_config,
+    get_runtime_agent,
+    rebuild_runtime_index,
+)
+from .rag.runtime_config import load_rag_config, log_resolved_config, public_config
 from .pipeline.vector_store import get_default_vector_store
 
 
@@ -85,94 +92,21 @@ def build_agent(
     chunk_size: int | None = None,
     chunk_overlap: int | None = None,
 ) -> "RagAgent":
-    # import RagAgent lazily to avoid heavy dependencies at import time
-    from .pipeline.rag_agent import RagAgent
-
-    docs: List[Document] = load_markdown_documents(Path(data_dir))
-    persist_path = Path(persist_dir)
-    agent = RagAgent(
-        embedder_provider=embedder_provider,
-        embedder_model_name=embedder_model,
-        offline_embeddings=offline_embeddings,
-        vector_store=None,
-        chunk_size=chunk_size or DEFAULT_CHUNK_SIZE,
-        chunk_overlap=chunk_overlap or DEFAULT_CHUNK_OVERLAP,
-        min_shared_query_terms=min_shared_query_terms,
-        retrieve_top_k=retrieve_top_k,
-        answer_top_k=answer_top_k,
-        min_relevance_score=min_relevance_score,
-    )
-    manifest_path = _index_manifest_path(persist_path)
-    current_manifest = _document_signature(
-        docs,
-        agent.chunk_size,
-        agent.chunk_overlap,
-        embedder_provider,
-        embedder_model,
-    )
-    saved_manifest = _load_manifest(manifest_path)
-
-    force_clear_before_open = bool(docs) and (force_reindex or saved_manifest != current_manifest)
-    if force_clear_before_open:
-        _clear_persist_dir(persist_path)
-
-    _ensure_directory(persist_path)
-    vector_store = get_default_vector_store(persist_directory=persist_path)
-    agent.vector_store = vector_store
-
-    if skip_index:
-        store_count = vector_store.count() if hasattr(vector_store, "count") else 0
-        if store_count > 0:
-            print("Skipping indexing as requested; agent will use the existing index if one is available.")
-            return agent
-        print("No existing vector index was found, so rebuilding it from markdown documents.")
-
-    if docs:
-        store_count = vector_store.count() if hasattr(vector_store, "count") else 0
-
-        needs_reindex = force_clear_before_open or store_count <= 0
-        if not needs_reindex:
-            print(f"Using existing index with {store_count} chunk(s) from {persist_dir}.")
-            return agent
-
-        print(f"Indexing {len(docs)} markdown document(s) from {data_dir} using provider={embedder_provider}...")
-        try:
-            agent.index_documents(docs)
-        except RuntimeError as exc:
-            if embedder_provider != "auto" or "No real embedding backend is available" not in str(exc):
-                raise
-
-            print(str(exc))
-            print("Falling back to provider=dummy so the local RAG client can still run.")
-            print("For production-quality retrieval, install/cache sentence-transformers or configure OPENAI_API_KEY.")
-            embedder_provider = "dummy"
-            current_manifest = _document_signature(
-                docs,
-                agent.chunk_size,
-                agent.chunk_overlap,
-                embedder_provider,
-                embedder_model,
-            )
-            if hasattr(vector_store, "clear"):
-                vector_store.clear()
-            agent = RagAgent(
-                embedder_provider=embedder_provider,
-                embedder_model_name=embedder_model,
-                offline_embeddings=offline_embeddings,
-                vector_store=vector_store,
-                chunk_size=chunk_size or DEFAULT_CHUNK_SIZE,
-                chunk_overlap=chunk_overlap or DEFAULT_CHUNK_OVERLAP,
-                min_shared_query_terms=min_shared_query_terms,
-                retrieve_top_k=retrieve_top_k,
-                answer_top_k=answer_top_k,
-                min_relevance_score=min_relevance_score,
-            )
-            agent.index_documents(docs)
-        _save_manifest(manifest_path, current_manifest)
-        print("Indexing complete.")
-    else:
-        print(f"No markdown files found under {data_dir}; agent has empty index.")
-    return agent
+    return get_runtime_agent({
+        "docs_dir": data_dir,
+        "chroma_dir": persist_dir,
+        "embedder_provider": embedder_provider,
+        "embedder_model": embedder_model,
+        "offline_embeddings": offline_embeddings,
+        "auto_index": not skip_index,
+        "force_reindex": force_reindex,
+        "min_shared_query_terms": min_shared_query_terms,
+        "retrieve_top_k": retrieve_top_k,
+        "answer_top_k": answer_top_k,
+        "min_relevance_score": min_relevance_score,
+        "chunk_size": chunk_size or DEFAULT_CHUNK_SIZE,
+        "chunk_overlap": chunk_overlap or DEFAULT_CHUNK_OVERLAP,
+    })
 
 
 def interactive_loop(
@@ -194,11 +128,12 @@ def interactive_loop(
         if query == "":
             break
         if query.lower() == "reload":
+            rebuilt = rebuild_runtime_index(runtime_config)
+            print(f"Rebuild complete. chunk_count={rebuilt['chunk_count']}")
+            print(f"Manifest: {json.dumps(rebuilt['manifest'], ensure_ascii=False, indent=2)}")
+            runtime_config["force_reindex"] = False
             if fallback_to_top_chunk:
-                agent = reload_agent() if reload_agent else build_agent(force_reindex=True)
-            else:
-                runtime_config["force_reindex"] = True
-                print("The next question will rebuild the shared RAG index.")
+                agent = reload_agent() if reload_agent else None
             continue
         if fallback_to_top_chunk:
             if agent is None:
@@ -277,7 +212,19 @@ def main() -> None:
     parser.add_argument("--chunk-overlap", type=int, default=int(os.getenv("RAG_CHUNK_OVERLAP", str(DEFAULT_CHUNK_OVERLAP))), help="Maximum paragraph/sentence overlap between chunks")
     parser.add_argument("--show-sources", action="store_true", help="Print retrieved source files with the answer")
     parser.add_argument("--debug-rag", action="store_true", help="Print RAG retrieval and synthesis debug details")
+    parser.add_argument("--diagnose", action="store_true", help="Compare canonical CLI and MCP runtime configuration")
     args = parser.parse_args()
+
+    if args.diagnose:
+        cli_config = load_rag_config("cli")
+        mcp_config = load_rag_config("mcp")
+        fields = ("repository_root", "docs_dir", "chroma_dir", "collection_name", "embedder_model")
+        print(json.dumps({
+            "cli": public_config(cli_config),
+            "mcp": public_config(mcp_config),
+            "same_runtime": all(cli_config[field] == mcp_config[field] for field in fields),
+        }, ensure_ascii=False, indent=2))
+        return
 
     def create_agent(force_reindex: bool = False) -> "RagAgent":
         return build_agent(
@@ -314,6 +261,10 @@ def main() -> None:
         "deepseek_model": args.deepseek_model,
         "force_reindex": args.force_reindex,
     })
+    log_resolved_config(runtime_config, "CLI_RAG_CONFIG")
+    # Validate the real embedding backend and existing index identity before
+    # accepting input; do not defer a broken production configuration.
+    get_runtime_agent({**runtime_config, "auto_index": False})
 
     agent = create_agent(force_reindex=args.force_reindex) if args.fallback_to_top_chunk else None
     if args.fallback_to_top_chunk:

@@ -1,5 +1,6 @@
 beautifulsoup4
 chromadb>=0.5,<2
+sentence-transformers
 fastapi>=0.110,<1
 markdownify
 pandas

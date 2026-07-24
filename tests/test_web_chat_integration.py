@@ -9,6 +9,14 @@ from backend.main import app
 client = TestClient(app)
 
 
+@pytest.fixture(autouse=True)
+def explicit_test_rag_runtime(monkeypatch, tmp_path):
+    monkeypatch.setenv("EMBEDDER_PROVIDER", "dummy")
+    monkeypatch.setenv("RAG_ALLOW_EXTRACTIVE_FALLBACK", "true")
+    monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "chroma"))
+    monkeypatch.setenv("RAG_AUTO_INDEX", "false")
+
+
 @pytest.mark.parametrize(
     "message",
     [

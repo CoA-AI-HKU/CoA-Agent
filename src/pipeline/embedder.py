@@ -158,6 +158,27 @@ class Embedder:
 
         raise RuntimeError("Embedder backend was not initialized.")
 
+    @property
+    def dimension(self) -> int:
+        if self.provider == "dummy":
+            return DUMMY_EMBEDDING_DIMENSIONS
+        if self._local_model is not None:
+            value = self._local_model.get_sentence_embedding_dimension()
+            return int(value)
+        if self._openai_client is not None:
+            return len(self.encode(["dimension probe"])[0])
+        raise RuntimeError("Embedding dimension is unavailable because the backend was not initialized.")
+
+    @property
+    def resolved_provider(self) -> str:
+        if self.provider == "dummy":
+            return "dummy"
+        if self._local_model is not None:
+            return "local"
+        if self._openai_client is not None:
+            return "openai"
+        raise RuntimeError("Embedding provider is unavailable because the backend was not initialized.")
+
     def encode_documents(self, documents: Sequence[Document]) -> List[List[float]]:
         return self.encode([document.text for document in documents])
 
