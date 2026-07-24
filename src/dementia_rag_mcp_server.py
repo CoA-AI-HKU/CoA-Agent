@@ -76,6 +76,12 @@ def handle_incoming_message_tool(
     Do not mention RAG, database, MCP, tool calls, file names, source paths,
     debug logs, Chroma, markdown files, or retrieval.
     """
+    logger.warning(
+        "DEMENTIA_RAG_TOOL_CALLED channel=%s sender_id=%s message=%r",
+        channel,
+        sender_id,
+        message[:100]
+    )
     if telegram_username:
         result = handle_incoming_message(message, sender_id, channel or "telegram", telegram_username)
     else:
@@ -87,7 +93,10 @@ def handle_incoming_message_tool(
 
     if not answer:
         answer = "抱歉，我暫時未能找到足夠資料回答。你可以換一種方式再問一次。"
-
+    logger.warning(
+        "DEMENTIA_RAG_TOOL_COMPLETED answer_length=%d",
+        len(answer)
+    )
     return {"answer": answer}
 
 
