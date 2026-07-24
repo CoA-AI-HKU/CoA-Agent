@@ -217,25 +217,71 @@ def format_user_facing_answer(
     return finalize_user_facing_result(output)
 
 
-def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[str, Any]:
+def guard_user_facing_answer(
+    result: dict[str, Any],
+    message: str = "",
+) -> dict[str, Any]:
     """Replace any user-visible implementation leakage with a safe fallback."""
     output = dict(result)
     answer = str(output.get("answer") or "")
+
     has_internal_leakage = _contains_internal_leakage(answer)
-    has_unsupported_assumption = _contains_unsupported_dementia_assumption(answer, message)
+    has_unsupported_assumption = _contains_unsupported_dementia_assumption(
+        answer,
+        message,
+    )
+
+    logging.warning(
+        "OUTPUT_GUARD_CHECK "
+        "internal_leakage=%s "
+        "unsupported_dementia_assumption=%s "
+        "answer_length=%d "
+        "answer_preview=%r "
+        "message_preview=%r",
+        has_internal_leakage,
+        has_unsupported_assumption,
+        len(answer),
+        answer[:200],
+        str(message or "")[:100],
+    )
+
     if not has_internal_leakage and not has_unsupported_assumption:
         return output
 
     debug = dict(output.get("debug", {}))
+
     if "raw_answer_before_output_guard" not in debug:
         debug["raw_answer_before_output_guard"] = answer
+
     debug["output_guard_applied"] = True
-    debug["unsupported_dementia_assumption_removed"] = has_unsupported_assumption
-    output["answer"] = _fallback_for_route(output, message)
-    output["answer_with_sources"] = output["answer"]
-    output["user_facing_answer"] = output["answer"]
+    debug["unsupported_dementia_assumption_removed"] = (
+        has_unsupported_assumption
+    )
+    debug["internal_leakage_removed"] = has_internal_leakage
+
+    fallback = _fallback_for_route(output, message)
+
+    logging.warning(
+        "OUTPUT_GUARD_REPLACED "
+        "reason=%s "
+        "before_length=%d "
+        "after_length=%d "
+        "fallback_preview=%r",
+        (
+            "internal_leakage"
+            if has_internal_leakage
+            else "unsupported_dementia_assumption"
+        ),
+        len(answer),
+        len(fallback),
+        fallback[:200],
+    )
+
+    output["answer"] = fallback
+    output["answer_with_sources"] = fallback
+    output["user_facing_answer"] = fallback
     output["debug"] = debug
-    logging.warning("Output guard removed internal leakage from user-facing answer")
+
     return output
 
 

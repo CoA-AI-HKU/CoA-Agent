@@ -474,17 +474,73 @@ def _mode_info_result(sender_id: str, role: str, record: dict[str, Any]) -> dict
     }
 
 
-def _finalize_user_output(result: dict[str, Any], message: str) -> dict[str, Any]:
+def _finalize_user_output(
+    result: dict[str, Any],
+    message: str,
+) -> dict[str, Any]:
     output = dict(result)
-    if answer_has_user_visible_source_text(str(output.get("answer") or "")):
-        output = format_user_facing_answer(output, show_sources=False)
+
+    logger.warning(
+        "ROUTER_FINALIZE_START "
+        "answer_length=%d found=%r rag_called=%r route=%r",
+        len(str(output.get("answer") or "")),
+        output.get("found"),
+        output.get("rag_called"),
+        output.get("route"),
+    )
+
+    if answer_has_user_visible_source_text(
+        str(output.get("answer") or "")
+    ):
+        logger.warning("ROUTER_SOURCE_FORMATTING_TRIGGERED")
+        output = format_user_facing_answer(
+            output,
+            show_sources=False,
+        )
+
+    before_guard = str(output.get("answer") or "")
+
     output = guard_user_facing_answer(output, message)
+
+    after_guard = str(output.get("answer") or "")
+
+    logger.warning(
+        "ROUTER_GUARD_RESULT "
+        "before_length=%d after_length=%d changed=%s "
+        "before_preview=%r after_preview=%r",
+        len(before_guard),
+        len(after_guard),
+        before_guard != after_guard,
+        before_guard[:200],
+        after_guard[:200],
+    )
+
     answer = str(output.get("answer") or "")
+
     if answer_has_user_visible_leakage(answer):
+        logger.warning("ROUTER_LEAKAGE_RETRY_TRIGGERED")
+
         debug = dict(output.get("debug", {}))
         debug["router_final_guard_retry"] = True
         output["debug"] = debug
+
+        retry_before = str(output.get("answer") or "")
         output = guard_user_facing_answer(output, message)
-    # This is deliberately unconditional and last: screening text and any
-    # source-appending logic above have already completed.
-    return finalize_user_facing_result(output)
+        retry_after = str(output.get("answer") or "")
+
+        logger.warning(
+            "ROUTER_GUARD_RETRY_RESULT "
+            "before_length=%d after_length=%d changed=%s",
+            len(retry_before),
+            len(retry_after),
+            retry_before != retry_after,
+        )
+
+    finalized = finalize_user_facing_result(output)
+
+    logger.warning(
+        "ROUTER_FINALIZE_COMPLETED answer_length=%d",
+        len(str(finalized.get("answer") or "")),
+    )
+
+    return finalized

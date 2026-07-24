@@ -383,8 +383,18 @@ class RagAgent:
         scored.sort(key=lambda doc: doc.metadata.get("relevance_score", 0.0), reverse=True)
         best_score = float(scored[0].metadata.get("relevance_score", 0.0)) if scored else 0.0
         sufficiency = retrieval.get("sufficiency", {})
+        scores = [doc.metadata.get("relevance_score", 0.0) for doc in scored[:use_k]]
+        logger.info(
+            "rag_diagnostic event=retrieval_completed found=%s retrieved_sources=%d scores=%s",
+            bool(scored), len(scored), scores,
+        )
 
         if not scored or best_score < threshold or not sufficiency.get("sufficient", False):
+            logger.warning(
+                "rag_diagnostic event=fallback_selected reason_code=insufficient_retrieval "
+                "found=%s retrieved_sources=%d scores=%s",
+                bool(scored), len(scored), scores,
+            )
             return {
                 "found": False,
                 "answer": fallback_answer,
@@ -406,12 +416,24 @@ class RagAgent:
         best_chunks = scored[:use_k]
         context = self.format_context(best_chunks)
         prompt = build_answer_prompt(context=context, question=question, answer_language=answer_language)
-        answer = (
-            answer_callable(prompt).strip()
-            if answer_callable
-            else self._extractive_answer(search_query, best_chunks, fallback_answer=fallback_answer)
-        )
+        if answer_callable:
+            logger.info(
+                "rag_diagnostic event=answer_callable_started found=true retrieved_sources=%d scores=%s",
+                len(best_chunks), scores,
+            )
+            answer = answer_callable(prompt).strip()
+            logger.info(
+                "rag_diagnostic event=answer_callable_completed raw_answer_length=%d raw_answer_preview=%r",
+                len(answer), answer[:300],
+            )
+        else:
+            answer = self._extractive_answer(search_query, best_chunks, fallback_answer=fallback_answer)
         if not answer:
+            logger.warning(
+                "rag_diagnostic event=fallback_selected reason_code=empty_llm_response "
+                "found=true retrieved_sources=%d scores=%s",
+                len(best_chunks), scores,
+            )
             answer = fallback_answer
 
         sources = []
@@ -720,11 +742,16 @@ def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
             "temperature": 0.1,
         }
         try:
+            logger.info(
+                "rag_diagnostic event=llm_call_started provider=%s model=%s endpoint=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+            )
             response = requests.post(url, headers=headers, json=payload, timeout=30)
             if response.status_code >= 400:
                 detail = response.text.strip()[:500]
                 logger.error(
-                    "LLM request failed status=%s provider=%s model=%s endpoint=%s error=%s",
+                    "rag_diagnostic event=llm_call_failed reason_code=llm_exception "
+                    "status=%s provider=%s model=%s endpoint=%s exception_type=HTTPError error=%s",
                     response.status_code, config["llm_provider"], model, urlparse(url).hostname, detail,
                 )
                 raise RuntimeError(
@@ -735,11 +762,26 @@ def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
             raise
         except Exception as exc:
             logger.exception(
-                "LLM request error provider=%s model=%s endpoint=%s",
+                "rag_diagnostic event=llm_call_failed reason_code=llm_exception "
+                "provider=%s model=%s endpoint=%s exception_type=%s error=%s",
                 config["llm_provider"], model, urlparse(url).hostname,
+                type(exc).__name__, str(exc),
             )
             raise RuntimeError(f"{config['llm_provider']} upstream API request failed: {exc}") from exc
-        return _extract_model_text(response.json()).strip()
+        generated = _extract_model_text(response.json()).strip()
+        logger.info(
+            "rag_diagnostic event=llm_call_completed provider=%s model=%s endpoint=%s "
+            "raw_answer_length=%d raw_answer_preview=%r",
+            config["llm_provider"], model, urlparse(url).hostname,
+            len(generated), generated[:300],
+        )
+        if not generated:
+            logger.warning(
+                "rag_diagnostic event=fallback_candidate reason_code=empty_llm_response "
+                "provider=%s model=%s endpoint=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+            )
+        return generated
 
     return answer_callable
 
@@ -1144,6 +1186,12 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             route=str((config or {}).get("planner_route") or intent_result.intent),
         )
     except Exception as exc:
+        logger.exception(
+            "rag_diagnostic event=generation_failed reason_code=llm_exception "
+            "provider=%s model=%s exception_type=%s error=%s",
+            runtime_config["llm_provider"], runtime_config["llm_model"],
+            type(exc).__name__, str(exc),
+        )
         runtime_debug["answer_model_error"] = str(exc)
         if runtime_config["rag_env"] == "production" or not runtime_config["allow_extractive_fallback"]:
             raise RuntimeError(
