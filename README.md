@@ -5,7 +5,7 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 ## Project structure
 
 - `backend/` — the single FastAPI application, transport-neutral chat services, and API routers for web and channel clients.
-- `src/reminders/` — reminder persistence, authentication, chat-triggered reminder creation, and the scheduler that delivers them over Telegram; mounted into the unified backend, not a separately deployed service.
+- `src/reminders/` — reminder persistence, chat-triggered reminder creation (including multi-turn "what time?" follow-ups via `src/user/pending_reminder.py`), and the scheduler that delivers them over Telegram. No REST API or caregiver-dashboard login — reminders are set by talking to the bot.
 - `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
 - `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.
 - `src/agents/` — managers, safety, screening, RAG evidence, general-chat, simplification, and user-facing formatting.

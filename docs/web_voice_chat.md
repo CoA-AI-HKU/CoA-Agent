@@ -18,10 +18,9 @@ uvicorn backend.main:app --host 127.0.0.1 --port 8081
 ```
 
 The supported setup uses Nginx so the frontend always requests relative URLs.
-Nginx proxies `/api/chat`, `/health`, and the reminder/auth/patient/emergency
-paths (`/api/reminders`, `/api/auth`, `/api/patients`, `/api/patient`,
-`/api/emergency`) all to the same port-8081 backend — there is only one
-Uvicorn process to run.
+Nginx proxies `/api/chat` and `/health` to the backend — there is only one
+Uvicorn process to run. Reminders have no REST API; they're set by talking
+to the bot (see `docs/backend_api.md`).
 
 The committed frontend uses relative URLs and contains no host-specific IP address.
 
@@ -34,9 +33,8 @@ ssh -L 8080:127.0.0.1:8080 root@DROPLET_IP
 ## Production deployment
 
 Use HTTPS and keep the Uvicorn process bound to `127.0.0.1`. Nginx should
-serve the static page and proxy `/api/chat`, `/health`, `/api/reminders`,
-`/api/auth`, `/api/patients`, `/api/patient`, and `/api/emergency` to that
-one backend. Do not publicly expose the Uvicorn process.
+serve the static page and proxy `/api/chat` and `/health` to that backend.
+Do not publicly expose the Uvicorn process.
 
 If the frontend is hosted separately, the API needs exact-origin CORS and HTTPS.
 Do not use wildcard CORS or call an HTTP API from an HTTPS page.

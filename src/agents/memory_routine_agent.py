@@ -12,11 +12,17 @@ from src.user.user_registry import get_display_name, get_user_record_by_user_id
 logger = logging.getLogger(__name__)
 
 try:
-    from src.reminders.chat_reminders import ONE_TIME, create_reminder_for_user, parse_reminder_request
+    from src.reminders.chat_reminders import (
+        create_reminder_for_user,
+        extract_reminder_text_only,
+        parse_reminder_request,
+        reminder_confirmation_text,
+    )
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
-    ONE_TIME = "once"
     create_reminder_for_user = None
+    extract_reminder_text_only = None
     parse_reminder_request = None
+    reminder_confirmation_text = None
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -109,7 +115,19 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             route="routine",
             safety_level="reminder_needs_time",
             answer_language=answer_language,
-            debug={"agent": "memory_routine", "reason": "no_time_found"},
+            debug={
+                "agent": "memory_routine",
+                "reason": "no_time_found",
+                # message_router.py reads these to arm a short-lived "waiting
+                # for a time" state, so a bare-time follow-up like "3:41"
+                # (which alone wouldn't classify as a reminder request) can
+                # still complete this reminder instead of confusing the user.
+                # The language is carried over from *this* message because a
+                # bare time reply like "3:41" has no CJK characters to detect
+                # a language from on its own.
+                "reminder_pending_text": extract_reminder_text_only(message),
+                "reminder_pending_language": answer_language,
+            },
         )
 
     display_name = get_display_name((get_user_record_by_user_id(user_id)[0]) or "") or ""
@@ -127,7 +145,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
         )
 
     return _placeholder_result(
-        answer=_reminder_confirmation(parsed.time, parsed.text, parsed.days, answer_language),
+        answer=reminder_confirmation_text(parsed.time, parsed.text, parsed.days, answer_language),
         intent="reminder_request",
         route="routine",
         safety_level="reminder_created",
@@ -140,18 +158,6 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             "reminder_days": parsed.days,
         },
     )
-
-
-def _reminder_confirmation(time_str: str, text: str, days: str, answer_language: AnswerLanguage) -> str:
-    one_time = days == ONE_TIME
-    if answer_language == "zh-Hans":
-        cadence = "今天" if one_time else "每日"
-        return f"好的，我会{cadence}{time_str}提醒你「{text}」。如果之后想取消或更改，可以再告诉我。"
-    if answer_language == "en":
-        cadence = "today" if one_time else "every day"
-        return f'Okay, I\'ll remind you {cadence} at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
-    cadence = "今天" if one_time else "每日"
-    return f"好的，我會{cadence}{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"
 
 
 def handle_activity_request(message: str, user_id: str | None = None) -> dict[str, Any]:

@@ -19,6 +19,7 @@ from src.screening.outbox import queue_screening_message
 from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
+from src.user.pending_reminder import consume_pending_reminder_response, store_pending_reminder
 from src.user.security import is_admin_sender
 from src.user.session_preferences import set_avoid_patient_framing
 from src.user.user_registry import (
@@ -73,14 +74,25 @@ def handle_incoming_message(
     registry_user_id = get_registry_user_id(normalized_sender_id) if role == "user" else None
     session_user_id = registry_user_id or normalized_sender_id
     pending_activity_result = consume_pending_activity_response(normalized_sender_id, message)
+    pending_reminder_result = (
+        consume_pending_reminder_response(normalized_sender_id, message)
+        if pending_activity_result is None and role == "user"
+        else None
+    )
     sender_memory = build_user_memory(normalized_sender_id)
     linked_user_id = get_linked_user_id(normalized_sender_id) if role == "caregiver" else None
     linked_user_memory = build_memory_for_user_id(linked_user_id) if linked_user_id else None
 
     event_user_id = linked_user_id or get_registry_user_id(normalized_sender_id) or normalized_sender_id
-    consent = consent_reply(message, event_user_id) if role == "user" and pending_activity_result is None else None
+    consent = (
+        consent_reply(message, event_user_id)
+        if role == "user" and pending_activity_result is None and pending_reminder_result is None
+        else None
+    )
     if pending_activity_result is not None:
         result = pending_activity_result
+    elif pending_reminder_result is not None:
+        result = pending_reminder_result
     elif consent is not None and _is_group_channel(channel):
         result = _screening_privacy_result()
         consent = None
@@ -115,6 +127,17 @@ def handle_incoming_message(
             "name_three_items",
             str(result.get("answer") or ""),
             "three comma-separated item names",
+        )
+    if result.get("safety_level") == "reminder_needs_time":
+        pending_debug = result.get("debug") or {}
+        pending_text = str(pending_debug.get("reminder_pending_text") or "提醒")
+        pending_language = str(pending_debug.get("reminder_pending_language") or "zh-Hant")
+        store_pending_reminder(
+            normalized_sender_id,
+            str(event_user_id or session_user_id),
+            str(record.get("display_name") or ""),
+            pending_text,
+            pending_language,
         )
     if result.get("intent") == "role_correction":
         set_avoid_patient_framing(normalized_sender_id)

@@ -5,7 +5,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from backend.api import auth, caregiver, chat, health, web_chat
-from src.reminders.app import app as reminder_app
 
 
 logger = logging.getLogger(__name__)
@@ -19,7 +18,6 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(auth.router)
     app.include_router(caregiver.router)
-    app.include_router(reminder_app.router)
 
     @app.get("/", include_in_schema=False)
     async def frontend() -> FileResponse:

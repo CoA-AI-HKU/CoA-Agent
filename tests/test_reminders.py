@@ -82,6 +82,45 @@ def test_parse_reminder_request_detects_one_time_phrasing():
     assert "今天" not in parsed.text
 
 
+def test_parse_reminder_request_handles_trailing_pm_marker():
+    # "3:39下午" — the period marker after the time, not before it.
+    parsed = parse_reminder_request("不需要每天提醒，今天3：39下午提醒我給手機充電")
+    assert parsed.time == "15:39"
+    assert parsed.text == "給手機充電"
+    assert parsed.days == chat_reminders.ONE_TIME
+
+
+def test_parse_reminder_request_handles_relative_minutes():
+    from datetime import datetime
+
+    now = datetime(2026, 7, 27, 15, 0)
+    parsed = parse_reminder_request("兩分鐘后提醒我給手機充電", now=now)
+    assert parsed.time == "15:02"
+    assert parsed.text == "給手機充電"
+    assert parsed.days == chat_reminders.ONE_TIME
+
+    parsed2 = parse_reminder_request("一分鐘后提醒我食飯", now=now)
+    assert parsed2.time == "15:01"
+
+
+def test_parse_reminder_request_handles_relative_hours():
+    from datetime import datetime
+
+    now = datetime(2026, 7, 27, 15, 0)
+    parsed = parse_reminder_request("3小時後提醒我食藥", now=now)
+    assert parsed.time == "18:00"
+    assert parsed.days == chat_reminders.ONE_TIME
+
+
+def test_parse_reminder_request_handles_right_now():
+    from datetime import datetime
+
+    now = datetime(2026, 7, 27, 15, 30)
+    parsed = parse_reminder_request("而家提醒我食藥", now=now)
+    assert parsed.time == "15:30"
+    assert parsed.text == "食藥"
+
+
 def test_get_or_create_patient_is_idempotent():
     external_id = "pytest-idempotent-user"
     try:
@@ -202,6 +241,42 @@ def test_scheduler_deactivates_one_time_reminder_after_firing(registered_patient
         assert reminder.last_triggered is not None
     finally:
         db.close()
+
+
+def test_bare_time_reply_completes_a_pending_reminder(registered_patient, tmp_path, monkeypatch):
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("PENDING_REMINDER_STATE_PATH", str(tmp_path / "pending_reminders.json"))
+
+    first = handle_incoming_message("提醒我食藥", "telegram-reminder-test", "telegram")
+    assert first["route"] == "routine"
+    assert "幾點" in first["answer"]
+
+    second = handle_incoming_message("3：41", "telegram-reminder-test", "telegram")
+    assert second["route"] == "routine"
+    assert "03:41" in second["answer"]
+    assert "食藥" in second["answer"]
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        assert patient is not None
+        assert any(r.time == "03:41" and r.text == "食藥" for r in db.query(Reminder).filter(Reminder.patient_id == patient.id))
+    finally:
+        db.close()
+
+
+def test_unrelated_message_after_a_pending_reminder_is_not_swallowed(registered_patient, tmp_path, monkeypatch):
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("PENDING_REMINDER_STATE_PATH", str(tmp_path / "pending_reminders.json"))
+
+    first = handle_incoming_message("提醒我食藥", "telegram-reminder-test", "telegram")
+    assert first["route"] == "routine"
+
+    # No time in this message — pending state must not be force-consumed.
+    second = handle_incoming_message("你好", "telegram-reminder-test", "telegram")
+    assert second["route"] != "routine" or "食藥" not in second["answer"]
 
 
 def test_scheduler_skips_delivery_when_patient_not_linked_to_a_chat_account():

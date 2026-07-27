@@ -1,10 +1,10 @@
 # CoA backend API
 
 The CoA-Agent web API is a single FastAPI app (`backend.main:app`). It wraps
-the existing shared conversation processor used by Nanobot, and also mounts
-the reminder/auth/patient/emergency routes from `src.reminders.app` — there
-is only one backend process, not a separate reminder service. Start it on
-loopback with:
+the existing shared conversation processor used by Nanobot. Reminders are
+set by talking to the bot (see `src.reminders.chat_reminders`) and delivered
+by `src.reminders.scheduler` — there is no reminder REST API or
+caregiver-dashboard login. Start the backend on loopback with:
 
 ```bash
 uvicorn backend.main:app --host 127.0.0.1 --port 8081
@@ -45,7 +45,5 @@ are not included in the dedicated browser app. The browser-safe `POST /api/chat`
 returns only `reply`, `language`, and `session_id`; `GET /health` reports API
 availability.
 
-The reminder, account, patient, and emergency routes the webpage uses are
-served from the same process (port 8081) — no second port to run. Nginx is
-the single browser-facing origin and proxies everything to that one backend.
-See `deploy/nginx/coa-agent.conf`.
+Nginx is the single browser-facing origin and proxies `/api/chat` and
+`/health` to that one backend. See `deploy/nginx/coa-agent.conf`.

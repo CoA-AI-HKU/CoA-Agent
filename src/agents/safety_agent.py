@@ -33,11 +33,12 @@ MEDICATION_UNCERTAINTY_RESPONSES = {
     "zh-Hans": "如果不确定是否已经吃药，先不要自行补吃或多吃一剂。请尽快问家人、照顾者、药剂师或医生。",
     "en": "If you are not sure whether you already took the medicine, do not take an extra dose on your own. Please ask family, a caregiver, pharmacist, or doctor.",
 }
-ASPIRIN_HEADACHE_RESPONSES = {
-    "zh-Hant": "我不能判斷你是否適合吃阿司匹林。頭痛可能有很多原因，而阿司匹林也不適合所有人。請先詢問醫生或藥劑師；如果頭痛突然很嚴重、伴隨胸痛、呼吸困難、說話不清、手腳無力或視力改變，請立即求醫。",
-    "zh-Hans": "我不能判断你是否适合吃阿司匹林。头痛可能有很多原因，而阿司匹林也不适合所有人。请先询问医生或药剂师；如果头痛突然很严重、伴随胸痛、呼吸困难、说话不清、手脚无力或视力改变，请立即求医。",
-    "en": "I cannot judge whether aspirin is suitable for you. Headache can have many causes, and aspirin is not suitable for everyone. Please ask a doctor or pharmacist first; if the headache is sudden or severe, or comes with chest pain, breathing trouble, slurred speech, weakness, or vision changes, seek urgent medical help.",
+MEDICINE_SYMPTOM_QUESTION_TEMPLATES = {
+    "zh-Hant": "我不能判斷你是否適合吃{medicine}。頭痛可能有很多原因，藥物也不適合所有人。請先詢問醫生或藥劑師；如果頭痛突然很嚴重、伴隨胸痛、呼吸困難、說話不清、手腳無力或視力改變，請立即求醫。",
+    "zh-Hans": "我不能判断你是否适合吃{medicine}。头痛可能有很多原因，药物也不适合所有人。请先询问医生或药剂师；如果头痛突然很严重、伴随胸痛、呼吸困难、说话不清、手脚无力或视力改变，请立即求医。",
+    "en": "I cannot judge whether {medicine} is suitable for you. Headache can have many causes, and medicine is not suitable for everyone. Please ask a doctor or pharmacist first; if the headache is sudden or severe, or comes with chest pain, breathing trouble, slurred speech, weakness, or vision changes, seek urgent medical help.",
 }
+MEDICINE_FALLBACK_DISPLAY = {"zh-Hant": "這種藥物", "zh-Hans": "这种药物", "en": "this medicine"}
 MEDICATION_COMPLETION_RESPONSES = {
     "zh-Hant": "收到，你今天已經服藥了。可以在藥盒或服藥記錄上做個記號，方便之後核對。",
     "zh-Hans": "收到，你今天已经服药了。可以在药盒或服药记录上做个记号，方便之后核对。",
@@ -102,11 +103,32 @@ def _is_cognitive_red_flag(message: str) -> bool:
     )
 
 
-def _is_aspirin_headache_question(message: str) -> bool:
+def _is_medicine_symptom_question(message: str, detected_medicines: list[dict]) -> bool:
+    """True for "can I take X for my headache?" for any medicine in data/medicine_aliases.json.
+
+    Previously hardcoded to aspirin only; now driven by whatever
+    normalize_medicine_mentions() actually detected, so it covers all ~150
+    medicines in the alias file instead of duplicating a small subset of
+    aspirin's own aliases.
+    """
+    if not detected_medicines:
+        return False
     normalized = message.lower()
-    aspirin_terms = ["阿司匹林", "亞士匹靈", "阿士匹靈", "阿斯匹靈", "aspirin"]
     headache_terms = ["頭痛", "头疼", "頭疼", "headache"]
-    return any(term in normalized for term in aspirin_terms) and any(term in normalized for term in headache_terms)
+    return any(term in normalized for term in headache_terms)
+
+
+def _medicine_display(detected_medicines: list[dict], answer_language: str) -> str:
+    if detected_medicines:
+        display = detected_medicines[0].get("matched_alias") or detected_medicines[0].get("canonical_name")
+        if display:
+            return str(display)
+    return MEDICINE_FALLBACK_DISPLAY[answer_language]
+
+
+def _medicine_symptom_response(detected_medicines: list[dict], answer_language: str) -> str:
+    medicine = _medicine_display(detected_medicines, answer_language)
+    return MEDICINE_SYMPTOM_QUESTION_TEMPLATES[answer_language].format(medicine=medicine)
 
 
 def _is_medication_completion_statement(message: str) -> bool:
@@ -159,8 +181,8 @@ def handle_medical_boundary(message: str, decision: AgentDecision) -> dict:
         medication_status = "unsure"
     elif medication_status == "taken":
         answer = MEDICATION_COMPLETION_RESPONSES[answer_language]
-    elif _is_aspirin_headache_question(message):
-        answer = ASPIRIN_HEADACHE_RESPONSES[answer_language]
+    elif _is_medicine_symptom_question(message, detected_medicines):
+        answer = _medicine_symptom_response(detected_medicines, answer_language)
     elif red_flags:
         answer = build_short_medication_safety_response(
             patient_profile={},

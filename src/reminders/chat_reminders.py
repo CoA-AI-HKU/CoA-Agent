@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from datetime import datetime, timedelta
 from typing import NamedTuple
 
 try:
@@ -18,17 +19,39 @@ ONE_TIME = "once"
 # Period-of-day markers that disambiguate a bare hour like "2點" into 24-hour
 # time. Chinese doesn't otherwise distinguish 2am from 2pm the way "2:14 PM"
 # does, so without this "下午2:14" (2:14 PM) was parsed as 02:14 (2:14 AM).
+# The marker can come either before ("下午2:14") or after ("2:14下午") the
+# time, and "今天"/"今日" directly next to a time is absorbed into the same
+# match so it doesn't leak into the reminder's own text.
 _PERIOD_KIND = {
     "凌晨": "am", "清晨": "am", "早上": "am", "上午": "am",
     "中午": "noon",
     "下午": "pm", "晚上": "pm", "夜晚": "pm", "夜間": "pm", "夜间": "pm", "傍晚": "pm",
 }
 _PERIOD_ALTERNATION = "|".join(sorted(_PERIOD_KIND, key=len, reverse=True))
+_TODAY_WORD = r"今[天日]"
 
 _TIME_PATTERN = re.compile(
-    rf"(?P<period>{_PERIOD_ALTERNATION})?\s*"
+    rf"(?:{_TODAY_WORD})?\s*(?P<period_before>{_PERIOD_ALTERNATION})?\s*"
     r"(?<!\d)(?P<hour>[01]?\d|2[0-3])[:：時时点點](?P<minute>\d{1,2})?分?(?!\d)"
+    rf"\s*(?P<period_after>{_PERIOD_ALTERNATION})?"
 )
+
+_CHINESE_DIGITS = {
+    "零": 0, "一": 1, "兩": 2, "两": 2, "二": 2, "三": 3, "四": 4,
+    "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
+}
+_NUMBER_WORD = r"[\d一二兩两三四五六七八九十]{1,3}"
+# "N分鐘後"/"N小時後" (in N minutes/hours) — relative durations, resolved
+# against the current time at parse time rather than an absolute clock time.
+# Requires the full "分鐘"/"分钟" word, not bare "分" — "2:14分" is the
+# minutes component of a clock time (2:14), not "in 14 minutes".
+_RELATIVE_MINUTES_PATTERN = re.compile(
+    rf"({_NUMBER_WORD})\s*(分鐘|分钟)\s*(後|后|之後|之后)?"
+)
+_RELATIVE_HOURS_PATTERN = re.compile(
+    rf"({_NUMBER_WORD})\s*(小時|小时|鐘頭|钟头)\s*(後|后|之後|之后)?"
+)
+_RIGHT_NOW_PATTERN = re.compile(r"而家|宜家|依家|現在|现在|馬上|马上|立即|立刻")
 
 _TRIGGER_PATTERNS = [
     re.compile(pattern)
@@ -62,18 +85,34 @@ class ParsedReminder(NamedTuple):
     days: str
 
 
-def parse_reminder_request(message: str) -> ParsedReminder | None:
+def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedReminder | None:
     """Extract a time, reminder text, and recurrence from a chat message.
 
-    Returns None if no explicit time-of-day is present. Only recognizes an
-    explicit time in the message itself (e.g. "12:28", "下午2:14", "9點");
-    it does not infer a time from vague phrasing like "later" or "tonight" —
+    Returns None if no time — explicit ("12:28", "下午2:14", "9點") or
+    relative ("兩分鐘後", "而家") — is present. Does not infer a time from
+    vague phrasing like "later" or "tonight" with no duration attached;
     callers should ask the user for a specific time in that case.
+
+    `now` is the reference clock time for resolving relative durations
+    ("in 5 minutes"); defaults to the real current time and exists mainly so
+    tests can pin it. A relative-time or "right now" request is always
+    treated as one-time — "remind me in 5 minutes" every day forever isn't
+    a sensible default.
     """
+    reference = now or datetime.now()
+
+    relative = _match_relative_time(message, reference)
+    if relative is not None:
+        target, span = relative
+        remainder = message[: span[0]] + message[span[1] :]
+        text = _extract_reminder_text(remainder)
+        return ParsedReminder(time=target.strftime("%H:%M"), text=text, days=ONE_TIME)
+
     match = _TIME_PATTERN.search(message)
     if not match:
         return None
-    hour = _adjust_hour_for_period(int(match.group("hour")), match.group("period"))
+    period = match.group("period_before") or match.group("period_after")
+    hour = _adjust_hour_for_period(int(match.group("hour")), period)
     minute = int(match.group("minute")) if match.group("minute") else 0
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
         return None
@@ -85,6 +124,48 @@ def parse_reminder_request(message: str) -> ParsedReminder | None:
     return ParsedReminder(time=time_str, text=text, days=ONE_TIME if is_one_time else ALL_DAYS)
 
 
+def _match_relative_time(message: str, reference: datetime) -> tuple[datetime, tuple[int, int]] | None:
+    now_match = _RIGHT_NOW_PATTERN.search(message)
+    if now_match:
+        return reference, now_match.span()
+
+    hours_match = _RELATIVE_HOURS_PATTERN.search(message)
+    minutes_match = _RELATIVE_MINUTES_PATTERN.search(message)
+    # "1小時30分鐘後" — both present and adjacent: combine into one offset
+    # and consume the whole span, rather than treating them separately.
+    if hours_match and minutes_match and minutes_match.start() <= hours_match.end() + 1:
+        hours = _number_word_to_int(hours_match.group(1))
+        minutes = _number_word_to_int(minutes_match.group(1))
+        if hours is not None and minutes is not None:
+            span = (min(hours_match.start(), minutes_match.start()), max(hours_match.end(), minutes_match.end()))
+            return reference + timedelta(hours=hours, minutes=minutes), span
+
+    if minutes_match:
+        minutes = _number_word_to_int(minutes_match.group(1))
+        if minutes is not None:
+            return reference + timedelta(minutes=minutes), minutes_match.span()
+
+    if hours_match:
+        hours = _number_word_to_int(hours_match.group(1))
+        if hours is not None:
+            return reference + timedelta(hours=hours), hours_match.span()
+
+    return None
+
+
+def _number_word_to_int(text: str) -> int | None:
+    if text.isdigit():
+        return int(text)
+    if text == "十":
+        return 10
+    if "十" in text:
+        left, _, right = text.partition("十")
+        tens = _CHINESE_DIGITS.get(left, 1) if left else 1
+        ones = _CHINESE_DIGITS.get(right, 0) if right else 0
+        return tens * 10 + ones
+    return _CHINESE_DIGITS.get(text)
+
+
 def _adjust_hour_for_period(hour: int, period: str | None) -> int:
     kind = _PERIOD_KIND.get(period or "")
     if kind == "pm" and hour < 12:
@@ -92,6 +173,16 @@ def _adjust_hour_for_period(hour: int, period: str | None) -> int:
     if kind == "am" and hour == 12:
         return 0
     return hour
+
+
+def extract_reminder_text_only(message: str) -> str:
+    """Strip reminder trigger/recurrence phrasing without requiring a time.
+
+    Used to capture what the user wants to be reminded about when they
+    haven't given a time yet, so a follow-up reply containing only a time
+    (see src/user/pending_reminder.py) can be combined with it.
+    """
+    return _extract_reminder_text(message)
 
 
 def _extract_reminder_text(remainder: str) -> str:
@@ -153,3 +244,15 @@ def create_reminder_for_user(
         return reminder
     finally:
         db.close()
+
+
+def reminder_confirmation_text(time_str: str, text: str, days: str, answer_language: str) -> str:
+    one_time = days == ONE_TIME
+    if answer_language == "zh-Hans":
+        cadence = "今天" if one_time else "每日"
+        return f"好的，我会{cadence}{time_str}提醒你「{text}」。如果之后想取消或更改，可以再告诉我。"
+    if answer_language == "en":
+        cadence = "today" if one_time else "every day"
+        return f'Okay, I\'ll remind you {cadence} at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
+    cadence = "今天" if one_time else "每日"
+    return f"好的，我會{cadence}{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"

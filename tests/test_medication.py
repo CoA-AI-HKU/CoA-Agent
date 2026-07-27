@@ -1,12 +1,18 @@
 
 from __future__ import annotations
 
+from src.agents.safety_agent import handle_medical_boundary
+from src.agents.types import AgentDecision
 from src.pipeline.rag_agent import answer_question
 from src.safety.medication_guard import (
     build_medication_safety_response,
     detect_red_flags,
     is_medication_decision_question,
 )
+
+
+def _decision(intent: str = "medication_or_diagnosis") -> AgentDecision:
+    return AgentDecision(route="medical_boundary", intent=intent, confidence=0.95, reason="test")
 
 
 def test_aspirin_cantonese_triggers_guard() -> None:
@@ -225,3 +231,24 @@ def test_red_flag_response_mentions_emergency() -> None:
 
     assert "999" in response
     assert "突然或嚴重症狀" in response
+
+
+def test_medicine_symptom_question_names_the_actual_medicine_asked_about() -> None:
+    # Previously hardcoded to aspirin only; now driven by the medicine alias
+    # file (data/medicine_aliases.json), so any of its ~150 entries works.
+    result = handle_medical_boundary("頭痛可以食布洛芬嗎？", _decision())
+    assert "布洛芬" in result["answer"]
+    assert "阿司匹林" not in result["answer"]
+
+    result = handle_medical_boundary("頭痛可以食必理痛嗎？", _decision())
+    assert "必理痛" in result["answer"]
+
+
+def test_medicine_symptom_question_still_covers_aspirin() -> None:
+    result = handle_medical_boundary("我有點頭疼該吃阿司匹林嗎？", _decision())
+    assert "不能判斷你是否適合吃阿司匹林" in result["answer"]
+
+
+def test_non_medicine_headache_question_does_not_use_medicine_symptom_response() -> None:
+    result = handle_medical_boundary("頭痛好唔舒服，可唔可以食藥？", _decision())
+    assert "適合吃" not in result["answer"]

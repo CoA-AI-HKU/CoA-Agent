@@ -2,7 +2,6 @@ from fastapi.testclient import TestClient
 
 from backend.api import web_chat as chat_api
 from backend.main import app
-from src.reminders.app import app as reminder_app
 
 
 def test_dedicated_coa_api_exposes_shared_rag_chat_route(monkeypatch):
@@ -34,10 +33,8 @@ def test_dedicated_coa_api_exposes_shared_rag_chat_route(monkeypatch):
     }
 
 
-def test_unified_app_includes_chat_reminder_and_auth_routes():
+def test_unified_app_includes_health_and_chat_routes():
     coa_paths = app.openapi()["paths"]
 
     assert "get" in coa_paths["/health"]
     assert "post" in coa_paths["/api/chat"]
-    assert "get" in coa_paths["/api/reminders"]
-    assert "post" in coa_paths["/api/auth/login"]

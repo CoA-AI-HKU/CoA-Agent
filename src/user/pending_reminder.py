@@ -1,0 +1,131 @@
+from __future__ import annotations
+
+import json
+import os
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any
+
+from src.pipeline.language import detect_answer_language
+
+try:
+    from src.reminders.chat_reminders import create_reminder_for_user, parse_reminder_request, reminder_confirmation_text
+except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
+    create_reminder_for_user = None
+    parse_reminder_request = None
+    reminder_confirmation_text = None
+
+
+DEFAULT_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "pending_reminders.json"
+REMINDER_TTL = timedelta(minutes=30)
+
+
+def store_pending_reminder(
+    sender_id: str, user_id: str, display_name: str, text: str, answer_language: str = "zh-Hant"
+) -> dict[str, str]:
+    """Remember that we just asked this sender what time to set a reminder for.
+
+    Mirrors src/user/pending_activity.py's pattern: a message like "3:41"
+    on its own doesn't contain any reminder trigger word, so classify_intent
+    would never route it to the reminder handler — this lets the *next*
+    message be interpreted as the answer to "what time?" instead of a fresh,
+    unrelated message. answer_language is carried over from the message that
+    triggered the "what time?" prompt, since a bare time reply like "3:41"
+    has no CJK characters to detect a language from on its own.
+    """
+    state = _load_state()
+    pending = {
+        "pending_reminder_text": text,
+        "user_id": user_id,
+        "display_name": display_name,
+        "sender_id": sender_id,
+        "answer_language": answer_language,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    state[sender_id] = pending
+    _save_state(state)
+    return pending
+
+
+def consume_pending_reminder_response(sender_id: str, message: str) -> dict[str, Any] | None:
+    """Complete a pending reminder if this message supplies a time; else None.
+
+    Returning None means "not consumed" — the caller should fall through to
+    normal routing, same convention as consume_pending_activity_response.
+    """
+    if create_reminder_for_user is None or parse_reminder_request is None:
+        return None
+
+    state = _load_state()
+    pending = state.get(sender_id)
+    if not isinstance(pending, dict):
+        return None
+    if _is_expired(pending):
+        state.pop(sender_id, None)
+        _save_state(state)
+        return None
+
+    parsed = parse_reminder_request(message)
+    if parsed is None:
+        return None
+
+    state.pop(sender_id, None)
+    _save_state(state)
+
+    text = str(pending.get("pending_reminder_text") or "").strip() or "提醒"
+    user_id = str(pending.get("user_id") or "")
+    display_name = str(pending.get("display_name") or "")
+    answer_language = str(pending.get("answer_language") or "") or detect_answer_language(message)
+
+    try:
+        reminder = create_reminder_for_user(user_id, display_name, text, parsed.time, days=parsed.days)
+    except Exception:
+        return None
+
+    return {
+        "answer": reminder_confirmation_text(parsed.time, text, parsed.days, answer_language),
+        "route": "routine",
+        "intent": "reminder_request",
+        "sources": [],
+        "found": False,
+        "rag_called": False,
+        "safety_level": "reminder_created",
+        "answer_language": answer_language,
+        "debug": {
+            "agent": "pending_reminder",
+            "reminder_id": reminder.id,
+            "reminder_time": parsed.time,
+            "reminder_text": text,
+            "reminder_days": parsed.days,
+        },
+    }
+
+
+def _is_expired(pending: dict[str, Any]) -> bool:
+    try:
+        created_at = datetime.fromisoformat(str(pending.get("created_at") or "").replace("Z", "+00:00"))
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        return datetime.now(timezone.utc) - created_at > REMINDER_TTL
+    except ValueError:
+        return True
+
+
+def _state_path() -> Path:
+    return Path(os.getenv("PENDING_REMINDER_STATE_PATH", str(DEFAULT_STATE_PATH)))
+
+
+def _load_state() -> dict[str, Any]:
+    try:
+        data = json.loads(_state_path().read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _save_state(state: dict[str, Any]) -> None:
+    path = _state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(f"{path.suffix}.tmp")
+    temporary.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary.replace(path)
