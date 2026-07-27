@@ -590,7 +590,10 @@ def classify_intent(message: str) -> IntentResult:
         )
 
     safety_matches = _matched_terms(normalized, SAFETY_TERMS)
-    if _is_urgent_safety_match(normalized, safety_matches):
+    daily_life_matches = _matched_terms(normalized, DAILY_LIFE_TERMS)
+    if _is_urgent_safety_match(normalized, safety_matches) and not _safety_match_is_a_daily_life_detail(
+        safety_matches, daily_life_matches
+    ):
         return IntentResult(
             intent="urgent_safety",
             confidence=_confidence(0.95, len(safety_matches)),
@@ -598,7 +601,6 @@ def classify_intent(message: str) -> IntentResult:
             reason="Matched urgent or current safety-risk terms.",
         )
 
-    daily_life_matches = _matched_terms(normalized, DAILY_LIFE_TERMS)
     if daily_life_matches:
         return IntentResult(
             intent="daily_life_support",
@@ -742,6 +744,26 @@ def _is_urgent_safety_match(normalized_message: str, matched_terms: list[str]) -
     if _matched_terms(normalized_message, NONURGENT_SAFETY_CONTEXT_TERMS):
         return False
     return bool(_matched_terms(normalized_message, URGENT_SAFETY_CONTEXT_TERMS))
+
+
+def _safety_match_is_a_daily_life_detail(
+    safety_matches: list[str], daily_life_matches: list[str]
+) -> bool:
+    """True when every safety cue is just a substring of a more specific daily-life match.
+
+    Some SAFETY_TERMS entries are short and generic (e.g. "找不到"), so they also
+    fire inside ordinary object-loss phrasing like "找不到鎖匙" that DAILY_LIFE_TERMS
+    already matches more specifically as a single phrase ("找不到鎖匙"). When that
+    happens, treat it as daily-life support rather than an urgent-safety report;
+    a safety cue with no more-specific daily-life match (e.g. a real "走失"/"跌倒"
+    report) still wins.
+    """
+    if not daily_life_matches:
+        return False
+    return all(
+        any(safety_term in daily_life_term for daily_life_term in daily_life_matches)
+        for safety_term in safety_matches
+    )
 
 
 def _is_dementia_definition_question(normalized_message: str) -> bool:
