@@ -99,12 +99,15 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
     # 12:28" request is a scheduling ask, not a decision question, even though
     # it mentions medication by name — let it through to the reminder route
     # instead of the medical boundary. This only applies when the message
-    # explicitly asks for a future reminder (matched via "提醒"/"提我"); it
-    # must not swallow "我唔記得食咗藥未" (did-I-already-take-it uncertainty),
-    # which also matches REMINDER_TERMS via "記得" but is a real medication
-    # safety question that still needs the medical boundary.
+    # explicitly asks for a future reminder (checked against the raw message
+    # text, not intent_result.matched_terms — the semantic router leaves
+    # matched_terms empty, so a text-based check works no matter which path
+    # classified the intent); it must not swallow "我唔記得食咗藥未"
+    # (did-I-already-take-it uncertainty), which can also land on
+    # reminder_request via "記得" but is a real medication safety question
+    # that still needs the medical boundary.
     is_explicit_reminder_request = intent_result.intent == "reminder_request" and any(
-        term in intent_result.matched_terms for term in ("提醒", "提我")
+        term in message for term in ("提醒", "提我")
     )
     if (
         intent_result.intent != "urgent_safety"

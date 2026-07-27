@@ -62,7 +62,10 @@ _RELATIVE_MINUTES_PATTERN = re.compile(
 _RELATIVE_HOURS_PATTERN = re.compile(
     rf"({_NUMBER_WORD})\s*(小時|小时|鐘頭|钟头)\s*(後|后|之後|之后)?"
 )
-_RIGHT_NOW_PATTERN = re.compile(r"而家|宜家|依家|現在|现在|馬上|马上|立即|立刻")
+# Excludes "而家幾點"/"現在是幾點鐘" (what time is it right now) — a time
+# *question*, not a request to be reminded right now — from matching as a
+# "now" relative-time signal.
+_RIGHT_NOW_PATTERN = re.compile(r"(?:而家|宜家|依家|現在|现在|馬上|马上|立即|立刻)(?!\s*是?\s*[幾几]點)")
 
 _TRIGGER_PATTERNS = [
     re.compile(pattern)

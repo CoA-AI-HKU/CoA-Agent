@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
+from src.agents.semantic_intent_router import classify_intent_semantic
+
 
 Intent = Literal[
     "role_correction",
@@ -364,23 +366,13 @@ CAREGIVER_SUPPORT_TERMS = [
 REMINDER_TERMS = [
     "提醒",
     "提我",
-    "記得",
-    "幾點",
+    "記得提醒",
+    "记得提醒",
     "覆診",
     "約了",
     "約咗",
-    "吃藥",
-    "食藥",
-    "飲水",
-    "记得",
-    "几点",
     "复诊",
     "约了",
-    "吃药",
-    "喝水",
-    "喝水",
-    "下午茶",
-    "散步",
     "schedule",
     "remind",
     "reminder",
@@ -652,6 +644,54 @@ def classify_intent(message: str) -> IntentResult:
             confidence=0.95,
             matched_terms=_matched_terms(normalized, KNOWLEDGE_TERMS),
             reason="Matched a dementia definition question.",
+        )
+
+    # NOTE: MEDICATION_DIAGNOSIS_TERMS is deliberately *not* promoted to a
+    # hard gate here, even though medication safety matters — it overlaps
+    # with SELF_MEMORY_CONCERN_TERMS/COGNITIVE_CONCERN_SCREENING_TERMS (both
+    # also contain phrases like "是不是有腦退化症"), and priority_rules below
+    # relies on memory_concern/screening being checked *before*
+    # medication_or_diagnosis so "am I getting dementia?" lands on the caring
+    # memory-concern response rather than the colder medical boundary. An
+    # earlier version of this change promoted it anyway and broke that
+    # ordering (caught by tests/test_routing.py). The real, precedence-proof
+    # safety net for medication questions is coordinator_agent.py's
+    # independent, unconditional is_medication_decision_question override,
+    # which runs regardless of what this function returns — that's what
+    # medication safety should rely on, not this function's internal
+    # ordering.
+
+    # Greeting fast-path: pure latency optimization for the single most
+    # common trivial message, so it doesn't need an LLM round-trip. Not a
+    # safety/correctness concern either way — kept ahead of the semantic
+    # classifier purely for speed.
+    greeting_matches = _matched_terms(normalized, GREETING_TERMS)
+    if greeting_matches:
+        return IntentResult(
+            intent="casual_conversation",
+            confidence=_confidence(0.99, len(greeting_matches)),
+            matched_terms=greeting_matches,
+            reason="Matched greeting terms.",
+        )
+
+    # Everything above this point is deterministic and safety/security
+    # relevant (or a cheap latency win); nothing above ever touches the
+    # network. From here down, try LLM-based semantic classification for the
+    # remaining "soft" categories — the ones that actually had
+    # negation/context bugs under keyword matching (e.g. "別管提醒的事情，
+    # 而家幾點" still matching REMINDER_TERMS via the substring "提醒"). If
+    # the LLM is unavailable, times out, or returns something untrustworthy,
+    # classify_intent_semantic returns None and execution falls through,
+    # unchanged, into the keyword cascade below — so this function's
+    # behavior is byte-identical to before wherever no LLM is configured.
+    semantic_result = classify_intent_semantic(message)
+    if semantic_result is not None:
+        intent, reason = semantic_result
+        return IntentResult(
+            intent=intent,  # type: ignore[arg-type]
+            confidence=0.75,
+            matched_terms=[],
+            reason=f"LLM classification: {reason}" if reason else "LLM classification.",
         )
 
     # ============================================================

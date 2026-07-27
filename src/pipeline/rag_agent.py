@@ -750,7 +750,7 @@ def _extract_model_text(data: dict[str, Any]) -> str:
     return ""
 
 
-def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
+def create_chat_answer(config: dict[str, Any], timeout: int = 30) -> Callable[[str], str] | None:
     try:
         import requests
     except ImportError:
@@ -774,7 +774,7 @@ def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
                 "rag_diagnostic event=llm_call_started provider=%s model=%s endpoint=%s",
                 config["llm_provider"], model, urlparse(url).hostname,
             )
-            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            response = requests.post(url, headers=headers, json=payload, timeout=timeout)
             if response.status_code >= 400:
                 detail = response.text.strip()[:500]
                 logger.error(

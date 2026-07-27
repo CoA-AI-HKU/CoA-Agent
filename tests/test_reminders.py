@@ -305,6 +305,19 @@ def test_unrelated_message_after_a_pending_reminder_is_not_swallowed(registered_
     assert second["route"] != "routine" or "食藥" not in second["answer"]
 
 
+def test_current_time_question_is_not_misrouted_as_a_reminder():
+    from src.agents.coordinator_agent import coordinate_message
+    from src.orchestrator import handle_dementia_user_message
+
+    for message in ("現在是幾點鐘", "而家幾點", "what time is it"):
+        decision = coordinate_message(message)
+        assert decision.route != "routine", f"{message!r} should not be treated as a reminder request"
+
+    result = handle_dementia_user_message("現在是幾點鐘", "test-time-question")
+    assert result["route"] != "routine"
+    assert "提醒" not in result["answer"]
+
+
 def test_scheduler_skips_delivery_when_patient_not_linked_to_a_chat_account():
     external_id = "pytest-unlinked-user"
     try:

@@ -410,13 +410,13 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
 
     compacted = "".join(sentences[:max_sentences]).strip()
 
-    if compacted and compacted[-1] not in "。！？!?":
+    if compacted and compacted[-1] not in "。！？!?.":
         compacted += "。"
 
     return compacted
 
 def _has_terminal_punctuation(text: str) -> bool:
-    return bool(re.search(r"[。！？!?]$", text.rstrip()))
+    return bool(re.search(r"[。！？!?.]$", text.rstrip()))
 
 
 def _ensure_terminal_punctuation(text: str, max_chars: int) -> str:

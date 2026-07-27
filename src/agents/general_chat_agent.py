@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import logging
+import re
+from datetime import datetime
 from typing import Any
 
 from src.agents.types import AgentDecision
@@ -8,7 +10,21 @@ from src.pipeline.language import detect_answer_language, language_name
 from src.pipeline.rag_agent import build_default_rag_config, create_chat_answer
 from src.safety.medication_guard import detect_red_flags, is_medication_decision_question
 
+try:
+    from src.reminders.chat_reminders import LOCAL_TIMEZONE
+except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
+    LOCAL_TIMEZONE = None
+
 logger = logging.getLogger(__name__)
+
+# "What time is it?" is a factual question the LLM cannot reliably answer —
+# it has no clock — so it's answered deterministically here rather than
+# generated, the same reasoning that keeps medication dosing hardcoded
+# rather than left to the model.
+_CURRENT_TIME_QUESTION_PATTERNS = [
+    re.compile(r"(現在|现在|而家|宜家|依家)\s*(係|系|是)?\s*[幾几]點"),
+    re.compile(r"what.?s?\s+the\s+time|what\s+time\s+is\s+it", re.IGNORECASE),
+]
 
 
 EMOTIONAL_SUPPORT_RESPONSE = (
@@ -75,6 +91,10 @@ def answer_general_conversation(message: str, decision: AgentDecision, route: st
     """
     if route == "unknown" and not _is_intelligible(message):
         return _fallback_result(UNKNOWN_RESPONSE, decision, route)
+
+    if _is_current_time_question(message):
+        answer_language = detect_answer_language(message)
+        return _build_result(_current_time_answer(answer_language), decision, route)
 
     answer_callable = create_chat_answer(build_default_rag_config("mcp"))
     if answer_callable is not None:
@@ -208,3 +228,17 @@ def _is_intelligible(message: str) -> bool:
     cjk_count = sum("㐀" <= char <= "鿿" for char in text)
     latin_words = [word for word in text.split() if word.isalpha()]
     return cjk_count >= 3 or len(latin_words) >= 2
+
+
+def _is_current_time_question(message: str) -> bool:
+    return any(pattern.search(message) for pattern in _CURRENT_TIME_QUESTION_PATTERNS)
+
+
+def _current_time_answer(answer_language: str) -> str:
+    now = datetime.now(LOCAL_TIMEZONE) if LOCAL_TIMEZONE is not None else datetime.now()
+    time_str = now.strftime("%H:%M")
+    if answer_language == "zh-Hans":
+        return f"现在是{time_str}。"
+    if answer_language == "en":
+        return f"It is currently {time_str}."
+    return f"現在是{time_str}。"
