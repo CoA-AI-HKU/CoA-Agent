@@ -13,10 +13,10 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 try:
     from .database import NotificationLog, Patient, Reminder, SessionLocal
-    from .chat_reminders import ALL_DAYS, ONE_TIME
+    from .chat_reminders import ALL_DAYS, LOCAL_TIMEZONE, ONE_TIME
 except ImportError:  # Support `cd src/reminders && python scheduler.py`.
     from database import NotificationLog, Patient, Reminder, SessionLocal
-    from chat_reminders import ALL_DAYS, ONE_TIME
+    from chat_reminders import ALL_DAYS, LOCAL_TIMEZONE, ONE_TIME
 
 # Chat-user lookup lives in src.user, which requires the repo root (two
 # levels up from src/reminders/) on sys.path — not automatically the case
@@ -69,7 +69,11 @@ def check_and_send_reminders() -> None:
     """Called every minute to check for, and deliver, due reminders."""
     db = SessionLocal()
     try:
-        now = datetime.now()
+        # Must match the timezone parse_reminder_request() used to compute
+        # reminder.time — the server's own clock is not guaranteed to be in
+        # the user's timezone (the droplet runs in UTC), so naive
+        # datetime.now() would compare against the wrong wall-clock time.
+        now = datetime.now(LOCAL_TIMEZONE)
         current_day = now.strftime("%a").lower()
         current_time = now.strftime("%H:%M")
 

@@ -1,14 +1,25 @@
 from __future__ import annotations
 
+import os
 import re
 from datetime import datetime, timedelta
 from typing import NamedTuple
+from zoneinfo import ZoneInfo
 
 try:
     from .database import Patient, Reminder, SessionLocal
 except ImportError:  # Support running this directory as the application root.
     from database import Patient, Reminder, SessionLocal
 
+
+# The server's system clock is not guaranteed to be set to the user's local
+# timezone (the droplet runs in UTC), so "now" for parsing "in 5 minutes" and
+# for the scheduler matching "is it 12:28 yet" must both be computed
+# explicitly in the user's real timezone, not naive datetime.now(). This
+# defaults to Hong Kong time, matching the Traditional Chinese/Cantonese
+# patient-facing content; override with the REMINDER_TIMEZONE env var for a
+# different deployment locale.
+LOCAL_TIMEZONE = ZoneInfo(os.getenv("REMINDER_TIMEZONE", "Asia/Hong_Kong"))
 
 ALL_DAYS = "mon,tue,wed,thu,fri,sat,sun"
 # Sentinel used in place of a weekday list for a reminder that should fire
@@ -99,7 +110,7 @@ def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedR
     treated as one-time — "remind me in 5 minutes" every day forever isn't
     a sensible default.
     """
-    reference = now or datetime.now()
+    reference = now or datetime.now(LOCAL_TIMEZONE)
 
     relative = _match_relative_time(message, reference)
     if relative is not None:

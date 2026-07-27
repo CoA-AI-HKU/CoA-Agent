@@ -112,6 +112,32 @@ def test_parse_reminder_request_handles_relative_hours():
     assert parsed.days == chat_reminders.ONE_TIME
 
 
+def test_parse_reminder_request_default_now_is_local_timezone_not_naive_server_clock():
+    # Regression test: the droplet's system clock is UTC, but reminders must
+    # be computed and matched in the user's real timezone (Hong Kong,
+    # UTC+8), or "remind me in 1 minute" silently comes out 8 hours off —
+    # confirmed the bot's own confirmation text didn't match the user's
+    # actual wall clock. parse_reminder_request(message) with no explicit
+    # `now` must default to chat_reminders.LOCAL_TIMEZONE, not naive
+    # datetime.now() (which reflects the server's, not the user's, clock).
+    from datetime import datetime, timedelta
+
+    assert str(chat_reminders.LOCAL_TIMEZONE) == "Asia/Hong_Kong"
+
+    expected = datetime.now(chat_reminders.LOCAL_TIMEZONE) + timedelta(minutes=1)
+    parsed = parse_reminder_request("一分鐘后提醒我食藥")
+    actual_hour, actual_minute = (int(part) for part in parsed.time.split(":"))
+    actual_total_minutes = actual_hour * 60 + actual_minute
+    expected_total_minutes = expected.hour * 60 + expected.minute
+    # Allow a 1-minute tolerance for the wall-clock tick between computing
+    # `expected` here and the call inside parse_reminder_request.
+    diff = min(
+        abs(actual_total_minutes - expected_total_minutes),
+        1440 - abs(actual_total_minutes - expected_total_minutes),
+    )
+    assert diff <= 1
+
+
 def test_parse_reminder_request_handles_right_now():
     from datetime import datetime
 
