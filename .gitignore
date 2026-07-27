@@ -11,3 +11,4 @@ data/chroma/
 *.db
 *.sqlite
 events.jsonl
+*.log

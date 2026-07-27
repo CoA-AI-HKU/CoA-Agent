@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from backend.api import web_chat as chat_api
 from backend.main import app
-from reminder_backend.app import app as reminder_app
+from src.reminders.app import app as reminder_app
 
 
 def test_dedicated_coa_api_exposes_shared_rag_chat_route(monkeypatch):

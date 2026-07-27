@@ -17,19 +17,15 @@ python3 -m pip install -r requirements.txt
 uvicorn backend.main:app --host 127.0.0.1 --port 8081
 ```
 
-The supported setup uses Nginx so the frontend always requests the relative URL
-`/api/chat`. Nginx proxies that one endpoint to port 8081 and sends reminder,
-authentication, patient, and emergency paths to the separate reminder service
-on port 8001.
-
-```bash
-uvicorn backend.main:app --host 127.0.0.1 --port 8081
-cd reminder_backend && ../.venv/bin/uvicorn app:app --host 127.0.0.1 --port 8001
-```
+The supported setup uses Nginx so the frontend always requests relative URLs.
+Nginx proxies `/api/chat`, `/health`, and the reminder/auth/patient/emergency
+paths (`/api/reminders`, `/api/auth`, `/api/patients`, `/api/patient`,
+`/api/emergency`) all to the same port-8081 backend — there is only one
+Uvicorn process to run.
 
 The committed frontend uses relative URLs and contains no host-specific IP address.
 
-An SSH tunnel can expose both loopback test ports locally:
+An SSH tunnel can expose the loopback test port locally:
 
 ```bash
 ssh -L 8080:127.0.0.1:8080 root@DROPLET_IP
@@ -37,11 +33,10 @@ ssh -L 8080:127.0.0.1:8080 root@DROPLET_IP
 
 ## Production deployment
 
-Use HTTPS and keep both Uvicorn processes bound to `127.0.0.1`. Nginx should
-serve the static page, proxy only `/api/chat` to the CoA-Agent API, and proxy
-`/api/reminders`, `/api/auth`, `/api/patients`, `/api/patient`, and
-`/api/emergency` to the reminder backend. Do not publicly expose either Uvicorn
-process.
+Use HTTPS and keep the Uvicorn process bound to `127.0.0.1`. Nginx should
+serve the static page and proxy `/api/chat`, `/health`, `/api/reminders`,
+`/api/auth`, `/api/patients`, `/api/patient`, and `/api/emergency` to that
+one backend. Do not publicly expose the Uvicorn process.
 
-If the frontend is hosted separately, both APIs need exact-origin CORS and HTTPS.
+If the frontend is hosted separately, the API needs exact-origin CORS and HTTPS.
 Do not use wildcard CORS or call an HTTP API from an HTTPS page.

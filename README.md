@@ -5,21 +5,20 @@ A safety-aware, privacy-first dementia knowledge and daily-support assistant for
 ## Project structure
 
 - `backend/` — the single FastAPI application, transport-neutral chat services, and API routers for web and channel clients.
-- `reminder_backend/` — reminder persistence, authentication, and route definitions included by the unified backend; it is not a separately deployed agent.
-- `clients/` — thin transport adapters; Telegram is optional and contains no AI logic.
+- `src/reminders/` — reminder persistence, authentication, chat-triggered reminder creation, and the scheduler that delivers them over Telegram; mounted into the unified backend, not a separately deployed service.
 - `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
 - `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.
-- `src/agents/` — managers, safety, screening, RAG evidence, simplification, and user-facing formatting.
+- `src/agents/` — managers, safety, screening, RAG evidence, general-chat, simplification, and user-facing formatting.
 - `src/rag/` — A-RAG retrieval tools, context tracking, route policy, evidence sufficiency, and internal traces.
 - `src/pipeline/` — documents, chunking, embeddings, vector storage, prompts, language selection, and shared RAG runtime.
 - `src/safety/` and `src/meds/` — medication boundaries, red flags, medicine aliases, and normalization.
-- `src/metrics.py`, `src/insights.py`, and `src/dashboard.py` — privacy-filtered events and caregiver analytics.
+- `src/metrics.py` and `src/insights.py` — privacy-filtered events and caregiver analytics, served via `src/web_server.py` to the web dashboard.
 - `src/ingest/` — PDF and website-to-Markdown ingestion.
 - `scripts/` — demo-data and local A-RAG regression evaluation runners.
 - `tests/` — unit, routing, safety, dashboard, leakage, A-RAG policy, evidence, trace, and end-to-end tests.
 - `docs/` — integration and debugging guides, including [A-RAG integration](docs/arag_integration.md).
 - `data/` — source documents, generated corpus, aliases, profiles, and private runtime state.
-- `web/` — caregiver dashboard and screening assets.
+- `web/` — caregiver dashboard and screening assets, served directly by nginx.
 
 See [Backend API](docs/backend_api.md) for the chat contract, authentication, startup, and adapter configuration.
 

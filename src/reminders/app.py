@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 try:
     from .database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
     from .auth import get_password_hash, authenticate_caregiver, create_access_token, get_current_caregiver, verify_password
-except ImportError:  # Support `cd reminder_backend && uvicorn app:app`.
+except ImportError:  # Support `cd src/reminders && uvicorn app:app` for local debugging.
     from database import get_db, Caregiver, Patient, Reminder, EmergencyContact, NotificationLog, engine
     from auth import get_password_hash, authenticate_caregiver, create_access_token, get_current_caregiver, verify_password
 

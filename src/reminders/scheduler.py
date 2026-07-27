@@ -13,13 +13,16 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 try:
     from .database import NotificationLog, Patient, Reminder, SessionLocal
-except ImportError:  # Support `cd reminder_backend && python scheduler.py`.
+    from .chat_reminders import ALL_DAYS, ONE_TIME
+except ImportError:  # Support `cd src/reminders && python scheduler.py`.
     from database import NotificationLog, Patient, Reminder, SessionLocal
+    from chat_reminders import ALL_DAYS, ONE_TIME
 
-# Chat-user lookup lives in the main app (src/), a sibling package to
-# reminder_backend/, not necessarily on sys.path when this file is launched
-# directly (e.g. `cd reminder_backend && python scheduler.py`).
-_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+# Chat-user lookup lives in src.user, which requires the repo root (two
+# levels up from src/reminders/) on sys.path — not automatically the case
+# when this file is launched directly as a standalone script rather than
+# imported as part of the src package.
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(_PROJECT_ROOT))
 
@@ -29,7 +32,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 TELEGRAM_SEND_ENDPOINT = "https://api.telegram.org/bot{token}/sendMessage"
-ALL_DAYS = "mon,tue,wed,thu,fri,sat,sun"
 
 
 def _send_telegram_message(chat_id: str, text: str) -> bool:
@@ -77,8 +79,12 @@ def check_and_send_reminders() -> None:
         ).all()
 
         for reminder in reminders:
-            days_list = [d.strip() for d in reminder.days.split(",")]
-            if current_day not in days_list and reminder.days != ALL_DAYS:
+            if reminder.days == ONE_TIME:
+                day_matches = True
+            else:
+                days_list = [d.strip() for d in reminder.days.split(",")]
+                day_matches = current_day in days_list or reminder.days == ALL_DAYS
+            if not day_matches:
                 continue
             if reminder.last_triggered and reminder.last_triggered.date() == now.date():
                 continue
@@ -96,6 +102,11 @@ def check_and_send_reminders() -> None:
 
             db.add(NotificationLog(patient_id=reminder.patient_id, reminder_id=reminder.id))
             reminder.last_triggered = now
+            if reminder.days == ONE_TIME:
+                # Fired once — deactivate so it doesn't keep matching "any
+                # day" indefinitely (ONE_TIME isn't a real weekday to filter
+                # on, so leaving it active would fire again tomorrow).
+                reminder.active = False
             db.commit()
     except Exception:
         logger.exception("Reminder scheduler error")

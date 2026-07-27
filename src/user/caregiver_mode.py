@@ -6,8 +6,9 @@ from src.metrics import load_events
 from src.user.user_registry import get_user_record_by_user_id
 
 try:
-    from reminder_backend.chat_reminders import create_reminder_for_user, parse_reminder_request
-except ImportError:  # reminder_backend deps (SQLAlchemy etc.) unavailable in this process
+    from src.reminders.chat_reminders import ONE_TIME, create_reminder_for_user, parse_reminder_request
+except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
+    ONE_TIME = "once"
     create_reminder_for_user = None
     parse_reminder_request = None
 
@@ -119,10 +120,11 @@ def _set_reminder_answer(message: str, linked_user_id: str | None) -> str:
     _, record = get_user_record_by_user_id(linked_user_id)
     display_name = str(record.get("display_name") or "").strip()
     try:
-        create_reminder_for_user(linked_user_id, display_name, parsed.text, parsed.time)
+        create_reminder_for_user(linked_user_id, display_name, parsed.text, parsed.time, days=parsed.days)
     except Exception:
         return SET_REMINDER_UNAVAILABLE_RESPONSE
-    return f"已為使用者設定提醒：每日{parsed.time}提醒「{parsed.text}」。系統只會提醒，不會決定藥物劑量或更改醫囑。"
+    cadence = "今天" if parsed.days == ONE_TIME else "每日"
+    return f"已為使用者設定提醒：{cadence}{parsed.time}提醒「{parsed.text}」。系統只會提醒，不會決定藥物劑量或更改醫囑。"
 
 
 def _count_event_types(events: list[dict[str, Any]]) -> dict[str, int]:

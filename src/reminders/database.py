@@ -5,14 +5,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 
-# Anchored to the repo root (this file's grandparent directory) rather than
-# "./coa_agent.db", which resolves relative to the process's CWD. The API
-# (backend/main.py, launched from the repo root — where the existing
-# coa_agent.db already lives) and the scheduler (historically launched from
-# inside reminder_backend/) resolved that relative path differently and could
-# silently read/write two different SQLite files. Anchoring to the repo root
-# keeps every launcher pointed at the same, already-existing database file.
-DATABASE_PATH = Path(__file__).resolve().parents[1] / "coa_agent.db"
+# Anchored to the repo root (this file lives at src/reminders/database.py,
+# so the repo root is two levels up) rather than "./coa_agent.db", which
+# resolves relative to the process's CWD and previously let different
+# launchers silently read/write two different SQLite files depending on
+# their working directory. Anchoring to an absolute path keeps every
+# launcher pointed at the same, already-existing database file.
+DATABASE_PATH = Path(__file__).resolve().parents[2] / "coa_agent.db"
 DATABASE_URL = f"sqlite:///{DATABASE_PATH}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})

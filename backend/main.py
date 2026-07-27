@@ -5,7 +5,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
 from backend.api import auth, caregiver, chat, health, web_chat
-from reminder_backend.app import app as reminder_app
+from src.reminders.app import app as reminder_app
 
 
 logger = logging.getLogger(__name__)

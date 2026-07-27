@@ -12,8 +12,9 @@ from src.user.user_registry import get_display_name, get_user_record_by_user_id
 logger = logging.getLogger(__name__)
 
 try:
-    from reminder_backend.chat_reminders import create_reminder_for_user, parse_reminder_request
-except ImportError:  # reminder_backend deps (SQLAlchemy etc.) unavailable in this process
+    from src.reminders.chat_reminders import ONE_TIME, create_reminder_for_user, parse_reminder_request
+except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
+    ONE_TIME = "once"
     create_reminder_for_user = None
     parse_reminder_request = None
 
@@ -80,7 +81,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
     answer_language = detect_answer_language(message)
 
     if create_reminder_for_user is None or parse_reminder_request is None:
-        logger.warning("reminder_backend unavailable in this process; falling back to placeholder")
+        logger.warning("src.reminders unavailable in this process; falling back to placeholder")
         return _placeholder_result(
             answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
             intent="reminder_request",
@@ -113,7 +114,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
 
     display_name = get_display_name((get_user_record_by_user_id(user_id)[0]) or "") or ""
     try:
-        reminder = create_reminder_for_user(user_id, display_name, parsed.text, parsed.time)
+        reminder = create_reminder_for_user(user_id, display_name, parsed.text, parsed.time, days=parsed.days)
     except Exception:
         logger.exception("Failed to create reminder for user_id=%s", user_id)
         return _placeholder_result(
@@ -126,7 +127,7 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
         )
 
     return _placeholder_result(
-        answer=_reminder_confirmation(parsed.time, parsed.text, answer_language),
+        answer=_reminder_confirmation(parsed.time, parsed.text, parsed.days, answer_language),
         intent="reminder_request",
         route="routine",
         safety_level="reminder_created",
@@ -136,16 +137,21 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
             "reminder_id": reminder.id,
             "reminder_time": parsed.time,
             "reminder_text": parsed.text,
+            "reminder_days": parsed.days,
         },
     )
 
 
-def _reminder_confirmation(time_str: str, text: str, answer_language: AnswerLanguage) -> str:
+def _reminder_confirmation(time_str: str, text: str, days: str, answer_language: AnswerLanguage) -> str:
+    one_time = days == ONE_TIME
     if answer_language == "zh-Hans":
-        return f"好的，我会每日{time_str}提醒你「{text}」。如果之后想取消或更改，可以再告诉我。"
+        cadence = "今天" if one_time else "每日"
+        return f"好的，我会{cadence}{time_str}提醒你「{text}」。如果之后想取消或更改，可以再告诉我。"
     if answer_language == "en":
-        return f'Okay, I\'ll remind you every day at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
-    return f"好的，我會每日{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"
+        cadence = "today" if one_time else "every day"
+        return f'Okay, I\'ll remind you {cadence} at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
+    cadence = "今天" if one_time else "每日"
+    return f"好的，我會{cadence}{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"
 
 
 def handle_activity_request(message: str, user_id: str | None = None) -> dict[str, Any]:
