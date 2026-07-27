@@ -28,6 +28,7 @@ Route = Literal[
     "activity",
     "supportive",
     "general",
+    "daily_life",
     "unknown",
 ]
 

@@ -94,20 +94,9 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
     intent_result = classify_intent(message)
     user_role = infer_user_role(message)
 
-    if user_role == "self_with_cognitive_concern" and intent_result.intent == "self_memory_concern":
-        return AgentDecision(
-            route="rag_qa",
-            intent="knowledge_qa",
-            confidence=max(intent_result.confidence, 0.9),
-            matched_terms=intent_result.matched_terms,
-            reason="Explicit diagnosis context may use dementia support evidence.",
-            rag_required=True,
-            user_role=user_role,
-        )
-
     # An active emergency always wins, even when the same message also asks
     # what to do with medication.
-    if intent_result.intent != "safety_sensitive" and is_medication_decision_question(message):
+    if intent_result.intent != "urgent_safety" and is_medication_decision_question(message):
         return AgentDecision(
             route="medical_boundary",
             intent="medication_or_diagnosis",
@@ -119,22 +108,23 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         )
 
     route_map = {
-        "safety_sensitive": ("safety", False, True),
+        "urgent_safety": ("safety", False, True),
         "medication_or_diagnosis": ("medical_boundary", False, True),
         "role_correction": ("role_correction", False, False),
         "prompt_injection": ("prompt_injection", False, True),
-        "self_memory_concern": ("memory_concern", False, False),
+        "memory_concern": ("memory_concern", False, False),
         "caregiver_support": ("caregiver_guidance", False, False),
         "cognitive_concern_screening": ("screening", False, False),
-        "knowledge_qa": ("rag_qa", True, False),
+        "dementia_knowledge": ("rag_qa", True, False),
+        "daily_life_support": ("daily_life", False, False),
         "emotional_support": ("supportive", False, False),
         "personal_memory": ("memory", False, False),
         "reminder_request": ("routine", False, False),
         "cognitive_activity": ("activity", False, False),
         "unknown": ("unknown", False, False),
-        "general_conversation": ("general", False, False),
+        "casual_conversation": ("general", False, False),
     }
-    route, _, safety_override = route_map.get(intent_result.intent, ("unknown", True, False))
+    route, rag_required, safety_override = route_map.get(intent_result.intent, ("unknown", False, False))
 
     return AgentDecision(
         route=route,
@@ -142,9 +132,7 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         confidence=intent_result.confidence,
         matched_terms=intent_result.matched_terms,
         reason=intent_result.reason,
-        # Commands are consumed by message_router before the orchestrator.
-        # Every message reaching this planner therefore retrieves by default.
-        rag_required=True,
+        rag_required=rag_required,
         safety_override=safety_override,
         user_role=user_role,
     )

@@ -3,6 +3,7 @@ chromadb>=0.5,<2
 sentence-transformers
 fastapi>=0.110,<1
 markdownify
+opencc-python-reimplemented
 pandas
 plotly
 requests

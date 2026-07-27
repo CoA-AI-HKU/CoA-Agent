@@ -2,18 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
 import shutil
 import sys
 from pathlib import Path
 from typing import Any, Callable, List, Optional
+from urllib.parse import urlparse
+from uuid import uuid4
 
 from .chunker import DEFAULT_CHUNK_OVERLAP, DEFAULT_CHUNK_SIZE, chunk_documents
 from .document import Document
 from .embedder import Embedder
 from .language import AnswerLanguage, detect_answer_language
 from .prompts import FALLBACK_ANSWER, build_answer_prompt, get_fallback_answer, get_source_label
+from .query_normalization import log_string_diagnostic, normalize_retrieval_query
 from .vector_store import get_default_vector_store
 from ..intent_router import IntentResult, classify_intent
 from ..rag.runtime_config import (
@@ -30,6 +34,7 @@ from ..safety.medication_guard import (
 
 
 UNKNOWN_ANSWER = FALLBACK_ANSWER
+logger = logging.getLogger(__name__)
 RETRIEVE_TOP_K = 8
 ANSWER_TOP_K = 2
 MIN_RELEVANCE_SCORE = 0.35
@@ -267,19 +272,27 @@ class RagAgent:
         k = k or self.top_k
         if self.vector_store is None:
             self.vector_store = get_default_vector_store()
-        query_embedding = self.embedder.encode([query])[0]
+        retrieval_query = normalize_retrieval_query(query)
+        log_string_diagnostic(
+            logger, "retrieval_query", retrieval_query,
+            original_preview=str(query or "")[:200],
+            retrieval_query_changed=retrieval_query != str(query or ""),
+        )
+        query_embedding = self.embedder.encode([retrieval_query])[0]
         candidate_count = max(k * 10, 25)
-        search_results = self.vector_store.query(query, n_results=candidate_count, query_embedding=query_embedding)
+        search_results = self.vector_store.query(
+            retrieval_query, n_results=candidate_count, query_embedding=query_embedding,
+        )
         documents = []
         for result in search_results:
             metadata = dict(result["metadata"])
             if "distance" in result:
                 metadata["distance"] = result["distance"]
             documents.append(Document(text=result["text"], metadata=metadata))
-        supported_documents = self._filter_supported_documents(query, documents)
+        supported_documents = self._filter_supported_documents(retrieval_query, documents)
         return sorted(
             supported_documents,
-            key=lambda document: _document_relevance_score(query, document),
+            key=lambda document: _document_relevance_score(retrieval_query, document),
             reverse=True,
         )[:k]
 
@@ -354,7 +367,15 @@ class RagAgent:
 
         answer_language = answer_language or detect_answer_language(question)
         fallback_answer = get_fallback_answer(answer_language)
-        search_query = rewrite_query(question)
+        retrieval_query_original = rewrite_query(question)
+        search_query = normalize_retrieval_query(retrieval_query_original)
+        log_string_diagnostic(
+            logger, "retrieval_query_original", retrieval_query_original,
+        )
+        log_string_diagnostic(
+            logger, "retrieval_query_normalized", search_query,
+            retrieval_query_changed=search_query != retrieval_query_original,
+        )
         retrieve_k = retrieve_top_k or self.retrieve_top_k
         use_k = answer_top_k or self.answer_top_k
         threshold = self.min_relevance_score if min_relevance_score is None else min_relevance_score
@@ -379,8 +400,28 @@ class RagAgent:
         scored.sort(key=lambda doc: doc.metadata.get("relevance_score", 0.0), reverse=True)
         best_score = float(scored[0].metadata.get("relevance_score", 0.0)) if scored else 0.0
         sufficiency = retrieval.get("sufficiency", {})
+        scores = [doc.metadata.get("relevance_score", 0.0) for doc in scored[:use_k]]
+        source_identifiers = list(dict.fromkeys(
+            str(doc.metadata.get("source") or "unknown") for doc in scored[:use_k]
+        ))
+        logger.info(
+            "rag_diagnostic event=retrieval_completed found=%s retrieved_sources=%d scores=%s",
+            bool(scored), len(scored), scores,
+        )
+        logger.info(
+            "retrieval_result result_count=%d scores=%r source_identifiers=%r threshold=%s "
+            "sender_id=%r route=%r intent=%r",
+            len(scored), scores, source_identifiers, threshold,
+            str(getattr(self, "diagnostic_sender_id", "")), route,
+            str(getattr(self, "diagnostic_intent", route)),
+        )
 
         if not scored or best_score < threshold or not sufficiency.get("sufficient", False):
+            logger.warning(
+                "rag_diagnostic event=fallback_selected reason_code=insufficient_retrieval "
+                "found=%s retrieved_sources=%d scores=%s",
+                bool(scored), len(scored), scores,
+            )
             return {
                 "found": False,
                 "answer": fallback_answer,
@@ -393,6 +434,7 @@ class RagAgent:
                     "top_k_used": 0,
                     "retrieved_count": len(scored),
                     "best_score": best_score,
+                    "scores": scores,
                     "min_relevance_score": threshold,
                     "retrieval": retrieval.get("retrieval_log", {}),
                     "evidence_sufficiency": sufficiency,
@@ -402,12 +444,24 @@ class RagAgent:
         best_chunks = scored[:use_k]
         context = self.format_context(best_chunks)
         prompt = build_answer_prompt(context=context, question=question, answer_language=answer_language)
-        answer = (
-            answer_callable(prompt).strip()
-            if answer_callable
-            else self._extractive_answer(search_query, best_chunks, fallback_answer=fallback_answer)
-        )
+        if answer_callable:
+            logger.info(
+                "rag_diagnostic event=answer_callable_started found=true retrieved_sources=%d scores=%s",
+                len(best_chunks), scores,
+            )
+            answer = answer_callable(prompt).strip()
+            logger.info(
+                "rag_diagnostic event=answer_callable_completed raw_answer_length=%d raw_answer_preview=%r",
+                len(answer), answer[:300],
+            )
+        else:
+            answer = self._extractive_answer(search_query, best_chunks, fallback_answer=fallback_answer)
         if not answer:
+            logger.warning(
+                "rag_diagnostic event=fallback_selected reason_code=empty_llm_response "
+                "found=true retrieved_sources=%d scores=%s",
+                len(best_chunks), scores,
+            )
             answer = fallback_answer
 
         sources = []
@@ -628,7 +682,7 @@ def _index_manifest(
         "chunk_size": config["chunk_size"],
         "chunk_overlap": config["chunk_overlap"],
         "embedder_provider": embedder_provider,
-        "embedder_model": config["embedder_model"],
+        "embedder_model": "dummy" if embedder_provider == "dummy" else config["embedder_model"],
         "embedding_dimension": embedding_dimension,
         "docs_dir": str(config["docs_dir"].resolve()),
         "collection_name": config["collection_name"],
@@ -660,7 +714,9 @@ def _load_manifest(path: Path) -> dict[str, Any] | None:
 
 def _save_manifest(path: Path, manifest: dict[str, Any]) -> None:
     _ensure_directory(path.parent)
-    path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    temporary.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding="utf-8")
+    temporary.replace(path)
 
 
 def _ensure_directory(path: Path) -> None:
@@ -694,22 +750,18 @@ def _extract_model_text(data: dict[str, Any]) -> str:
     return ""
 
 
-def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | None:
+def create_chat_answer(config: dict[str, Any]) -> Callable[[str], str] | None:
     try:
         import requests
     except ImportError:
         return None
 
-    if config["openrouter_key"] and config["openrouter_model"]:
-        url = str(config["openrouter_base_url"])
-        model = str(config["openrouter_model"])
-        headers = {"Authorization": f"Bearer {config['openrouter_key']}", "Content-Type": "application/json"}
-    elif config["deepseek_url"] and config["deepseek_key"]:
-        url = str(config["deepseek_url"])
-        model = str(config["deepseek_model"])
-        headers = {"Authorization": f"Bearer {config['deepseek_key']}", "Content-Type": "application/json"}
-    else:
+    if config["llm_provider"] == "extractive":
         return None
+    base_url = str(config["llm_base_url"]).rstrip("/")
+    url = base_url if base_url.endswith("/chat/completions") else f"{base_url}/chat/completions"
+    model = str(config["llm_model"])
+    headers = {"Authorization": f"Bearer {config['llm_api_key']}", "Content-Type": "application/json"}
 
     def answer_callable(prompt: str) -> str:
         payload = {
@@ -717,11 +769,47 @@ def _build_answer_callable(config: dict[str, Any]) -> Callable[[str], str] | Non
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
         }
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
-        if response.status_code in {400, 404, 422}:
-            response = requests.post(url, headers=headers, json={"prompt": prompt}, timeout=30)
-        response.raise_for_status()
-        return _extract_model_text(response.json()).strip()
+        try:
+            logger.info(
+                "rag_diagnostic event=llm_call_started provider=%s model=%s endpoint=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+            )
+            response = requests.post(url, headers=headers, json=payload, timeout=30)
+            if response.status_code >= 400:
+                detail = response.text.strip()[:500]
+                logger.error(
+                    "rag_diagnostic event=llm_call_failed reason_code=llm_exception "
+                    "status=%s provider=%s model=%s endpoint=%s exception_type=HTTPError error=%s",
+                    response.status_code, config["llm_provider"], model, urlparse(url).hostname, detail,
+                )
+                raise RuntimeError(
+                    f"{config['llm_provider']} upstream API error (HTTP {response.status_code}): {detail}"
+                )
+            response.raise_for_status()
+        except RuntimeError:
+            raise
+        except Exception as exc:
+            logger.exception(
+                "rag_diagnostic event=llm_call_failed reason_code=llm_exception "
+                "provider=%s model=%s endpoint=%s exception_type=%s error=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+                type(exc).__name__, str(exc),
+            )
+            raise RuntimeError(f"{config['llm_provider']} upstream API request failed: {exc}") from exc
+        generated = _extract_model_text(response.json()).strip()
+        logger.info(
+            "rag_diagnostic event=llm_call_completed provider=%s model=%s endpoint=%s "
+            "raw_answer_length=%d raw_answer_preview=%r",
+            config["llm_provider"], model, urlparse(url).hostname,
+            len(generated), generated[:300],
+        )
+        if not generated:
+            logger.warning(
+                "rag_diagnostic event=fallback_candidate reason_code=empty_llm_response "
+                "provider=%s model=%s endpoint=%s",
+                config["llm_provider"], model, urlparse(url).hostname,
+            )
+        return generated
 
     return answer_callable
 
@@ -747,7 +835,7 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
             ) from exc
     resolved_provider = embedder.resolved_provider
     embedding_dimension = embedder.dimension
-    manifest_path = config["chroma_dir"] / "index_manifest.json"
+    manifest_path = Path(config.get("manifest_path") or config["chroma_dir"] / "index_manifest.json")
     current_manifest = _index_manifest(
         docs,
         config,
@@ -790,6 +878,10 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
     )
 
     store_count = vector_store.count() if hasattr(vector_store, "count") else 0
+    if store_count > 0 and saved_manifest is None and not config["force_reindex"]:
+        raise RuntimeError(
+            "Existing Chroma collection has no valid index_manifest.json. Refusing to query stale vectors; rebuild it."
+        )
     if docs and config["auto_index"] and (store_count <= 0 or config["force_reindex"] or manifest_changed):
         if hasattr(vector_store, "clear"):
             vector_store.clear()
@@ -822,9 +914,42 @@ def _build_runtime_agent(config: dict[str, Any]) -> tuple[RagAgent, dict[str, An
 
 def rebuild_runtime_index(config: dict[str, Any] | None = None) -> dict[str, Any]:
     resolved = _runtime_config({**(config or {}), "force_reindex": True, "auto_index": True})
-    _, debug = _build_runtime_agent(resolved)
-    manifest_path = resolved["chroma_dir"] / "index_manifest.json"
-    manifest = _load_manifest(manifest_path)
+    target_name = str(resolved["collection_name"])
+    temporary_name = f"{target_name}__rebuild_{uuid4().hex}"
+    temporary_manifest = resolved["chroma_dir"] / f"index_manifest.{temporary_name}.json"
+    print(
+        f"Rebuild started: provider={resolved['embedder_provider']} model={resolved['embedder_model']} "
+        f"temporary_collection={temporary_name}", flush=True,
+    )
+    agent.diagnostic_sender_id = str(config.get("sender_id") or "")
+    agent.diagnostic_intent = str(config.get("diagnostic_intent") or config.get("planner_route") or "")
+    staged_agent = None
+    try:
+        staged_agent, debug = _build_runtime_agent({
+            **resolved, "collection_name": temporary_name, "manifest_path": temporary_manifest,
+        })
+        if debug["chunk_count"] <= 0:
+            raise RuntimeError("Rebuild produced an empty collection; the live collection was not replaced.")
+        staged_agent.vector_store.replace_collection(target_name)
+        manifest = _load_manifest(temporary_manifest)
+        if manifest is None:
+            raise RuntimeError("Rebuild did not produce a valid index manifest.")
+        manifest["collection_name"] = target_name
+        manifest_path = resolved["chroma_dir"] / "index_manifest.json"
+        _save_manifest(manifest_path, manifest)
+    except Exception:
+        if staged_agent is not None:
+            try:
+                staged_agent.vector_store.drop_collection()
+            except Exception:
+                pass
+        raise
+    finally:
+        temporary_manifest.unlink(missing_ok=True)
+    print(
+        f"Rebuild complete: chunk_count={debug['chunk_count']} provider={debug['embedder_provider']} "
+        f"model={manifest['embedder_model']} vector_dimension={debug['embedding_dimension']}", flush=True,
+    )
     return {
         "chunk_count": debug["chunk_count"],
         "manifest_path": str(manifest_path),
@@ -888,9 +1013,9 @@ def _boundary_response(intent_result: IntentResult, runtime_config: dict[str, An
     answer_language = runtime_config["resolved_answer_language"]
     if intent_result.intent == "medication_or_diagnosis":
         answer = LOCALIZED_RESPONSES["medication_or_diagnosis"][answer_language]
-    elif intent_result.intent == "safety_sensitive":
+    elif intent_result.intent in {"safety_sensitive", "urgent_safety"}:
         answer = LOCALIZED_RESPONSES["safety_sensitive"][answer_language]
-    elif intent_result.intent == "self_memory_concern":
+    elif intent_result.intent in {"self_memory_concern", "memory_concern"}:
         answer = SELF_MEMORY_CONCERN_RESPONSE
     else:
         return None
@@ -1021,6 +1146,10 @@ def _has_caregiver(patient_profile: Any) -> bool:
 def answer_question(question: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Shared high-level RAG answer pipeline used by CLI and MCP."""
     runtime_config = _runtime_config(config)
+    log_string_diagnostic(
+        logger, "rag_input_question", question,
+        sender_id=str(runtime_config.get("sender_id") or ""),
+    )
     answer_language = detect_answer_language(question, str(runtime_config.get("answer_language", "auto")))
     runtime_config["resolved_answer_language"] = answer_language
     if config:
@@ -1029,6 +1158,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
                 runtime_config[key] = config[key]
     intent_result = classify_intent(question)
     assert intent_result is not None, "ARAG planner is unavailable"
+    runtime_config["diagnostic_intent"] = intent_result.intent
     if not question or not question.strip():
         result = {
             "found": False,
@@ -1043,9 +1173,7 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
                 "embedding_model": runtime_config["embedding_model"],
                 "embedder_provider": runtime_config["embedder_provider"],
                 "llm_model": runtime_config["llm_model"],
-                "llm_provider": "openrouter"
-                if runtime_config["openrouter_key"] and runtime_config["openrouter_model"]
-                else ("deepseek" if runtime_config["deepseek_url"] and runtime_config["deepseek_key"] else "extractive"),
+                "llm_provider": runtime_config["llm_provider"],
                 "mode": runtime_config["mode"],
                 "collection_name": runtime_config["collection_name"],
                 "chunk_count": 0,
@@ -1075,7 +1203,12 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             return boundary_result
 
     agent, runtime_debug = _build_runtime_agent(runtime_config)
-    answer_callable = _build_answer_callable(runtime_config)
+    answer_callable = create_chat_answer(runtime_config)
+    if answer_callable is None and not runtime_config["allow_extractive_fallback"]:
+        raise RuntimeError(
+            "No LLM generation provider is configured and extractive fallback is disabled. "
+            "Configure LLM_PROVIDER or explicitly set RAG_ALLOW_EXTRACTIVE_FALLBACK=true."
+        )
     assert agent is not None and callable(agent.answer_question), "ARAG retriever is unavailable"
     generator = answer_callable or agent._extractive_answer
     assert callable(generator), "ARAG generator is unavailable"
@@ -1088,8 +1221,14 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
             route=str((config or {}).get("planner_route") or intent_result.intent),
         )
     except Exception as exc:
+        logger.exception(
+            "rag_diagnostic event=generation_failed reason_code=llm_exception "
+            "provider=%s model=%s exception_type=%s error=%s",
+            runtime_config["llm_provider"], runtime_config["llm_model"],
+            type(exc).__name__, str(exc),
+        )
         runtime_debug["answer_model_error"] = str(exc)
-        if not runtime_config["allow_extractive_fallback"]:
+        if runtime_config["rag_env"] == "production" or not runtime_config["allow_extractive_fallback"]:
             raise RuntimeError(
                 "Configured LLM generation failed and extractive fallback is disabled."
             ) from exc
@@ -1107,6 +1246,17 @@ def answer_question(question: str, config: dict[str, Any] | None = None) -> dict
     result_debug["fallback_active"] = fallback_active
     result_debug["scores"] = result_debug.get("scores", [])
     result["debug"] = result_debug
+    logger.info(
+        "retrieval_result result_count=%d scores=%r source_identifiers=%r threshold=%s "
+        "sender_id=%r route=%r intent=%r",
+        int(result_debug.get("retrieved_count") or 0),
+        list(result_debug.get("scores") or []),
+        [str(source) for source in (result.get("sources") or [])],
+        result_debug.get("min_relevance_score"),
+        str(runtime_config.get("sender_id") or ""),
+        str((config or {}).get("planner_route") or intent_result.intent),
+        intent_result.intent,
+    )
     _attach_intent_debug(result, intent_result)
     _emit_runtime_debug(result)
     return result

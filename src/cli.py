@@ -195,10 +195,10 @@ def main() -> None:
     parser.add_argument("--force-reindex", action="store_true", help="Rebuild the vector index even if the source files have not changed")
     parser.add_argument("--persist-dir", default=os.getenv("CHROMA_DIR", DEFAULT_CHROMA_DIR), help="Directory for the persistent Chroma index")
     # CHANGE: embedder-provider default from "dummy" to "auto"
-    parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "auto"), help="Embedder provider: auto|local|openai|dummy")
+    parser.add_argument("--embedder-provider", default=os.getenv("EMBEDDER_PROVIDER", "local"), help="Embedder provider: auto|local|openai|dummy")
     parser.add_argument("--embedder-model", default=os.getenv("EMBEDDER_MODEL"), help="Embedding model name or local model directory")
     parser.add_argument("--offline-embeddings", action="store_true", default=os.getenv("EMBEDDINGS_OFFLINE", "").lower() in {"1", "true", "yes"}, help="Load embedding models from local files only")
-    parser.add_argument("--deepseek-url", default=os.getenv("DEEPSEEK_URL"), help="DeepSeek endpoint URL")
+    parser.add_argument("--deepseek-url", default=os.getenv("DEEPSEEK_BASE_URL") or os.getenv("DEEPSEEK_URL"), help="DeepSeek base URL")
     parser.add_argument("--deepseek-key", default=os.getenv("DEEPSEEK_API_KEY"), help="DeepSeek API key")
     parser.add_argument("--deepseek-model", default=os.getenv("DEEPSEEK_MODEL", "deepseek-chat"), help="DeepSeek model name")
     # KEEP THIS ONE (with default=False)
@@ -218,7 +218,10 @@ def main() -> None:
     if args.diagnose:
         cli_config = load_rag_config("cli")
         mcp_config = load_rag_config("mcp")
-        fields = ("repository_root", "docs_dir", "chroma_dir", "collection_name", "embedder_model")
+        fields = (
+            "repository_root", "docs_dir", "chroma_dir", "collection_name",
+            "embedder_provider", "embedder_model", "llm_provider", "llm_model",
+        )
         print(json.dumps({
             "cli": public_config(cli_config),
             "mcp": public_config(mcp_config),

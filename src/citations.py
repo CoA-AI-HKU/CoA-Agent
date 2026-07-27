@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any
 from urllib.parse import urlparse
@@ -13,6 +14,7 @@ DATABASE_PHRASES = (
     "資料庫有提到", "資料庫提到", "资料库有提到", "资料库提到", "資料庫嘅指引", "資料庫的指引",
     "根據文件", "根据文件", "文件提到",
 )
+logger = logging.getLogger(__name__)
 
 
 def classify_source(source: dict[str, Any] | str) -> str:
@@ -93,6 +95,11 @@ def clean_internal_citations_from_text(answer: str) -> str:
 def finalize_user_facing_result(result: dict[str, Any]) -> dict[str, Any]:
     """Enforce the final citation boundary while retaining internal evidence."""
     output = dict(result)
+    answer_before = str(output.get("answer") or "")
+    logger.info(
+        "rag_diagnostic event=citation_finalizer_started answer_before_length=%d answer_before_preview=%r",
+        len(answer_before), answer_before[:300],
+    )
     all_sources = list(output.get("sources") or [])
     internal_sources = [source for source in all_sources if classify_source(source) == "internal"]
     external_sources = [source for source in all_sources if classify_source(source) == "external"]
@@ -116,6 +123,17 @@ def finalize_user_facing_result(result: dict[str, Any]) -> dict[str, Any]:
 
     output["user_facing_sources"] = external_sources
     output["internal_sources_hidden"] = bool(internal_sources or removed_internal_text)
+    answer_after = str(output.get("answer") or "")
+    if answer_before.strip() and not answer_after.strip():
+        logger.warning(
+            "rag_diagnostic event=fallback_candidate reason_code=citation_finalizer_rejected "
+            "answer_before_length=%d answer_after_length=%d",
+            len(answer_before), len(answer_after),
+        )
+    logger.info(
+        "rag_diagnostic event=citation_finalizer_completed answer_after_length=%d answer_after_preview=%r",
+        len(answer_after), answer_after[:300],
+    )
     return output
 
 

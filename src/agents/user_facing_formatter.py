@@ -131,7 +131,6 @@ ADDITIONAL_BLOCKED_TERMS = [
     "來源",
     ".md",
     "資料庫",
-    "根據",
     "根據資料庫",
     "資料庫指出",
     "資料庫講到",
@@ -217,25 +216,74 @@ def format_user_facing_answer(
     return finalize_user_facing_result(output)
 
 
-def guard_user_facing_answer(result: dict[str, Any], message: str = "") -> dict[str, Any]:
+def guard_user_facing_answer(
+    result: dict[str, Any],
+    message: str = "",
+) -> dict[str, Any]:
     """Replace any user-visible implementation leakage with a safe fallback."""
     output = dict(result)
     answer = str(output.get("answer") or "")
+
     has_internal_leakage = _contains_internal_leakage(answer)
-    has_unsupported_assumption = _contains_unsupported_dementia_assumption(answer, message)
+    has_unsupported_assumption = _contains_unsupported_dementia_assumption(
+        answer,
+        message,
+    )
+
+    fallback_reason = (
+        "internal_leakage_and_unsupported_dementia_assumption"
+        if has_internal_leakage and has_unsupported_assumption
+        else "internal_leakage"
+        if has_internal_leakage
+        else "unsupported_dementia_assumption"
+        if has_unsupported_assumption
+        else "none"
+    )
+    logging.getLogger(__name__).info(
+        "output_guard_check has_internal_leakage=%s "
+        "has_unsupported_dementia_assumption=%s answer_length=%d "
+        "safe_answer_preview=%r fallback_reason=%s",
+        has_internal_leakage,
+        has_unsupported_assumption,
+        len(answer),
+        answer[:300],
+        fallback_reason,
+    )
+
     if not has_internal_leakage and not has_unsupported_assumption:
         return output
 
     debug = dict(output.get("debug", {}))
+
     if "raw_answer_before_output_guard" not in debug:
         debug["raw_answer_before_output_guard"] = answer
+
     debug["output_guard_applied"] = True
-    debug["unsupported_dementia_assumption_removed"] = has_unsupported_assumption
-    output["answer"] = _fallback_for_route(output, message)
-    output["answer_with_sources"] = output["answer"]
-    output["user_facing_answer"] = output["answer"]
+    debug["unsupported_dementia_assumption_removed"] = (
+        has_unsupported_assumption
+    )
+    debug["internal_leakage_removed"] = has_internal_leakage
+
+    fallback = _fallback_for_route(output, message)
+
+    logging.getLogger(__name__).warning(
+        "output_guard_replaced has_internal_leakage=%s "
+        "has_unsupported_dementia_assumption=%s fallback_reason=%s "
+        "answer_length=%d safe_answer_preview=%r before_length=%d after_length=%d",
+        has_internal_leakage,
+        has_unsupported_assumption,
+        fallback_reason,
+        len(answer),
+        answer[:300],
+        len(answer),
+        len(fallback),
+    )
+
+    output["answer"] = fallback
+    output["answer_with_sources"] = fallback
+    output["user_facing_answer"] = fallback
     output["debug"] = debug
-    logging.warning("Output guard removed internal leakage from user-facing answer")
+
     return output
 
 
@@ -271,7 +319,7 @@ def _clean_source_text(answer: str) -> str:
     cleaned = "\n".join(kept_lines)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned)
-    return cleaned.strip(" ，,。")
+    return cleaned.strip()
 
 
 def _remove_cited_quote_blocks(answer: str) -> str:
@@ -330,29 +378,61 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
     elif safety_level in {"urgent_boundary", "medical_boundary"}:
         max_chars = 250
     else:
-        max_chars = 120
+        max_chars = 220
     normalized = (
         answer
         if safety_level in {"screening_check_in", "caregiver_observation_guidance"}
         else _remove_excess_numbering(answer)
     )
-    if len(normalized) <= max_chars:
-        return normalized
-
+    normalized = normalized.strip()
+    route_specific_limit = safety_level in {
+        "screening_check_in",
+        "self_memory_concern",
+        "memory_concern",
+        "caregiver_observation_guidance",
+        "urgent_boundary",
+        "medical_boundary",
+    }
     sentences = _split_sentences(normalized)
-    if not sentences:
-        return normalized[:max_chars].rstrip("，,。 .") + "。"
+    if len(normalized) <= max_chars and (route_specific_limit or len(sentences) <= 3):
+        return _ensure_terminal_punctuation(normalized, max_chars)
+
+    complete_sentences = [sentence for sentence in sentences if _has_terminal_punctuation(sentence)]
 
     selected: list[str] = []
     total = 0
-    for sentence in sentences:
-        if selected and total + len(sentence) > max_chars:
+    max_sentences = None if route_specific_limit else 3
+    for sentence in complete_sentences:
+        if max_sentences is not None and len(selected) >= max_sentences:
+            break
+        if total + len(sentence) > max_chars:
             break
         selected.append(sentence)
         total += len(sentence)
-    if not selected:
-        selected = [sentences[0][:max_chars].rstrip("，,。 .") + "。"]
-    return "".join(selected).strip()
+    if selected:
+        return "".join(selected).strip()
+    return _truncate_at_sentence_boundary(normalized, max_chars)
+
+
+def _has_terminal_punctuation(text: str) -> bool:
+    return bool(re.search(r"[。！？!?]$", text.rstrip()))
+
+
+def _ensure_terminal_punctuation(text: str, max_chars: int) -> str:
+    stripped = text.strip()
+    if not stripped or _has_terminal_punctuation(stripped):
+        return stripped
+    stem = stripped.rstrip("，,：:; ")
+    return stem[: max_chars - 1].rstrip("，,：:; ") + "。"
+
+
+def _truncate_at_sentence_boundary(answer: str, max_chars: int) -> str:
+    candidate = answer[:max_chars].strip()
+    punctuation_boundaries = list(re.finditer(r"[。！？!?]", candidate))
+    if punctuation_boundaries:
+        return candidate[: punctuation_boundaries[-1].end()].strip()
+    stem = candidate[: max_chars - 1].rstrip("，,：:; ")
+    return stem + "。"
 
 
 def _remove_excess_numbering(answer: str) -> str:
@@ -391,6 +471,8 @@ def _contains_internal_leakage(answer: str) -> bool:
     lowered = answer.lower()
     if re.search(r"(?<![a-z0-9])[a-z]:[\\/]", answer, flags=re.IGNORECASE):
         return True
+    if re.search(r"(?:^|\s)/(?:home|opt|var|tmp|mnt|etc)/\S+", answer, flags=re.IGNORECASE):
+        return True
     for term in ADDITIONAL_BLOCKED_TERMS:
         haystack = lowered if term.isascii() else answer
         needle = term.lower() if term.isascii() else term
@@ -407,29 +489,37 @@ def _contains_internal_leakage(answer: str) -> bool:
 def _contains_unsupported_dementia_assumption(answer: str, message: str) -> bool:
     user_text = str(message or "").lower()
     answer_text = str(answer or "").lower()
-    explicit_user_terms = (
-        "腦退化",
-        "脑退化",
-        "認知障礙",
-        "认知障碍",
-        "失智",
-        "dementia",
-        "alzheimer",
-        "mci",
+    supported_self_claims = (
+        "我有腦退化", "我有脑退化", "我患有腦退化", "我患有脑退化",
+        "我有失智", "我患有失智", "我被診斷", "我被诊断",
+        "醫生話我有", "醫生說我有", "医生说我有",
+        "i have dementia", "i was diagnosed", "doctor diagnosed me",
     )
-    user_explicitly_raised_topic = any(term in user_text for term in explicit_user_terms)
+    if any(term in user_text for term in supported_self_claims):
+        return False
+
+    # Only direct second-person diagnosis assertions are blocked. General
+    # education about dementia, patients, or people with dementia is allowed.
     unsupported_assertions = (
         "你有腦退化",
         "你有脑退化",
+        "你患有腦退化",
+        "你患有脑退化",
+        "你有失智",
+        "你患有失智",
         "你的腦退化",
         "你的脑退化",
         "you have dementia",
+        "you suffer from dementia",
         "your dementia",
-        "腦退化症人士",
-        "脑退化症人士",
-        "person with dementia",
     )
-    return any(term in answer_text for term in unsupported_assertions) and not user_explicitly_raised_topic
+    symptom_proof_patterns = (
+        r"你的(?:症狀|症状).{0,20}(?:證明|证明|顯示|显示).{0,12}(?:腦退化|脑退化|失智)",
+        r"your symptoms.{0,30}(?:prove|show|confirm).{0,20}(?:dementia|alzheimer)",
+    )
+    return any(term in answer_text for term in unsupported_assertions) or any(
+        re.search(pattern, answer_text, flags=re.IGNORECASE) for pattern in symptom_proof_patterns
+    )
 
 
 def _fallback_for_route(result: dict[str, Any], message: str) -> str:

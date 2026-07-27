@@ -63,7 +63,8 @@ def test_rag_agent_retrieves_and_builds_prompt(tmp_path: Path) -> None:
     prompt = agent.build_prompt("What is this?", retrieved)
     assert "Answer the user's question using ONLY the provided context" in prompt
     assert "Answer only in English." in prompt
-    assert "Answer in 1-2 short sentences" in prompt
+    assert "use 2 to 3 complete sentences" in prompt
+    assert "Do not repeat the same point or end with an incomplete sentence" in prompt
     assert "What is this?" in prompt
 
     simplified_prompt = agent.build_prompt("这是什么？", retrieved)
