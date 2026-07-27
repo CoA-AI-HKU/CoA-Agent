@@ -3,18 +3,27 @@ from __future__ import annotations
 from typing import Any
 
 from src.metrics import load_events
+from src.user.user_registry import get_user_record_by_user_id
+
+try:
+    from reminder_backend.chat_reminders import create_reminder_for_user, parse_reminder_request
+except ImportError:  # reminder_backend deps (SQLAlchemy etc.) unavailable in this process
+    create_reminder_for_user = None
+    parse_reminder_request = None
 
 
 HELP_RESPONSE = """照顧者模式指令：
 \\summary 查看今日摘要
 \\alerts 查看近期安全提醒
 \\set_routine 設定日常安排
-\\set_reminder 設定提醒
+\\set_reminder HH:MM 提醒內容 設定提醒（例如 \\set_reminder 12:30 食藥）
 \\send_screening 建議已配對使用者進行非診斷小檢查"""
 SUMMARY_EMPTY_RESPONSE = "今日暫時沒有足夠記錄生成摘要。"
 ALERTS_EMPTY_RESPONSE = "暫時沒有安全提醒。"
 SET_ROUTINE_RESPONSE = "日常安排功能正在開發中。之後可以由照顧者加入覆診、飲水、活動和休息安排。"
-SET_REMINDER_RESPONSE = "提醒功能正在開發中。之後可以由照顧者加入提醒文字。系統只會提醒，不會決定藥物劑量或更改醫囑。"
+SET_REMINDER_UNAVAILABLE_RESPONSE = "提醒功能暫時未能使用，請稍後再試。系統只會提醒，不會決定藥物劑量或更改醫囑。"
+SET_REMINDER_NEEDS_PATIENT_RESPONSE = "請先與使用者完成配對，才可以為對方設定提醒。"
+SET_REMINDER_USAGE_RESPONSE = "請用格式：\\set_reminder HH:MM 提醒內容，例如 \\set_reminder 12:30 食藥。"
 UNKNOWN_COMMAND_RESPONSE = "我未能理解這個照顧者指令。你可以輸入 \\help 查看可用指令。"
 
 
@@ -37,7 +46,7 @@ def handle_caregiver_message(
         answer = SET_ROUTINE_RESPONSE
         event_counts = {}
     elif command == "\\set_reminder":
-        answer = SET_REMINDER_RESPONSE
+        answer = _set_reminder_answer(message, linked_user_id)
         event_counts = {}
     else:
         answer = UNKNOWN_COMMAND_RESPONSE
@@ -93,6 +102,27 @@ def _alerts_answer(linked_user_id: str | None) -> tuple[str, dict[str, int]]:
         f"- 走失或失聯相關：{counts.get('wandering_or_lost', 0)}"
     )
     return answer, counts
+
+
+def _set_reminder_answer(message: str, linked_user_id: str | None) -> str:
+    if create_reminder_for_user is None or parse_reminder_request is None:
+        return SET_REMINDER_UNAVAILABLE_RESPONSE
+    if not linked_user_id:
+        return SET_REMINDER_NEEDS_PATIENT_RESPONSE
+
+    argument = (message or "").strip().split(maxsplit=1)
+    remainder = argument[1] if len(argument) == 2 else ""
+    parsed = parse_reminder_request(remainder)
+    if parsed is None:
+        return SET_REMINDER_USAGE_RESPONSE
+
+    _, record = get_user_record_by_user_id(linked_user_id)
+    display_name = str(record.get("display_name") or "").strip()
+    try:
+        create_reminder_for_user(linked_user_id, display_name, parsed.text, parsed.time)
+    except Exception:
+        return SET_REMINDER_UNAVAILABLE_RESPONSE
+    return f"已為使用者設定提醒：每日{parsed.time}提醒「{parsed.text}」。系統只會提醒，不會決定藥物劑量或更改醫囑。"
 
 
 def _count_event_types(events: list[dict[str, Any]]) -> dict[str, int]:

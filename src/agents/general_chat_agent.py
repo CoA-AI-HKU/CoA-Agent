@@ -24,7 +24,7 @@ SAFETY_SOFT_NOTICE = (
 
 PERSONA_INSTRUCTIONS = (
     "你係小安，一個幫助長者（包括可能有腦退化症或輕度認知障礙嘅人士）嘅助手。"
-    "用簡單、清晰、有耐性嘅語氣回覆，每次回覆盡量精簡（大約2-4句）。"
+    "用簡單、清晰、有耐性嘅語氣回覆，每次回覆用2至3句説話講清楚，唔好講到一半就停。"
     "唔好作出醫療診斷，唔好建議任何藥物劑量或者係咪應該食藥、停藥或轉藥，"
     "呢啲問題一定要建議佢搵醫生、藥劑師或者家人幫手。"
     "如果你唔確定啲資訊係咪啱，就老實講，唔好靠估。"
@@ -55,9 +55,13 @@ ROUTE_TASK_FRAMING = {
 ROUTE_SAFETY_LEVEL = {
     "daily_life": "conditional_daily_life_safety",
     "supportive": "supportive_non_clinical",
-    "general": "normal",
-    "unknown": "normal",
+    "general": "casual_conversation",
+    "unknown": "general_conversation",
 }
+# Safety levels used by this module, kept distinct from RAG's "normal" so the
+# formatter's sentence cap (see user_facing_formatter._compact_answer) can
+# give these routes more room without loosening the cap on RAG answers.
+GENERAL_CHAT_SAFETY_LEVELS = frozenset(ROUTE_SAFETY_LEVEL.values())
 
 
 def answer_general_conversation(message: str, decision: AgentDecision, route: str) -> dict[str, Any]:
@@ -86,7 +90,7 @@ def _generate(message: str, route: str, answer_callable) -> str:
     task_framing = ROUTE_TASK_FRAMING.get(route, ROUTE_TASK_FRAMING["general"])
     prompt = (
         f"{PERSONA_INSTRUCTIONS}\n\n{task_framing}\n\n"
-        f"請用{language_name(answer_language)}回覆，回覆大約2-4句。\n\n"
+        f"請用{language_name(answer_language)}回覆，用2至3句完整、自然收尾嘅句子回答，唔好突然斷句。\n\n"
         f"使用者：{message}"
     )
     try:

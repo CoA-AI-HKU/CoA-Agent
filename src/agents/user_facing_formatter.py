@@ -384,6 +384,16 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
         max_sentences = 5
     elif safety_level in {"urgent_boundary", "medical_boundary"}:
         max_sentences = 3
+    elif safety_level in {
+        "conditional_daily_life_safety",
+        "supportive_non_clinical",
+        "casual_conversation",
+        "general_conversation",
+    }:
+        # General-chat routes (src/agents/general_chat_agent.py): the LLM is
+        # asked for 2-3 natural sentences, plus room for an appended safety
+        # notice, so give this bucket more headroom than the default.
+        max_sentences = 4
     else:
         max_sentences = 2
 

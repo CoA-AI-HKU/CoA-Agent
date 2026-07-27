@@ -1,18 +1,30 @@
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from src.agents.types import AgentResult
 from src.pipeline.language import AnswerLanguage, detect_answer_language
+from src.user.user_registry import get_display_name, get_user_record_by_user_id
+
+logger = logging.getLogger(__name__)
+
+try:
+    from reminder_backend.chat_reminders import create_reminder_for_user, parse_reminder_request
+except ImportError:  # reminder_backend deps (SQLAlchemy etc.) unavailable in this process
+    create_reminder_for_user = None
+    parse_reminder_request = None
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 USER_DATA_ROOT = PROJECT_ROOT / "data" / "users"
 
 PERSONAL_MEMORY_RESPONSE = "個人記憶功能正在開發中。之後可以由照顧者加入日常安排、家人稱呼和喜好。"
-REMINDER_RESPONSE = "提醒功能正在開發中。現在你可以請照顧者先幫你記錄這個提醒。"
+REMINDER_UNAVAILABLE_RESPONSE = "提醒功能暫時未能使用。現在你可以請照顧者先幫你記錄這個提醒。"
+REMINDER_NEEDS_ACCOUNT_RESPONSE = "設定提醒需要先完成登記，請輸入 \\register 開始，或請照顧者幫忙。"
+REMINDER_NEEDS_TIME_RESPONSE = "好呀，可以話我知幾點提醒你嗎？例如「12:30提醒我食藥」。"
 ACTIVITY_RESPONSE = "我們可以做一個簡單小活動。你可以慢慢說出三種水果嗎？不用急，我會等你。"
 LOCALIZED_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
     "memory": {
@@ -20,10 +32,20 @@ LOCALIZED_RESPONSES: dict[str, dict[AnswerLanguage, str]] = {
         "zh-Hans": "个人记忆功能正在开发中。之后可以由照顾者加入日常安排、家人称呼和喜好。",
         "en": "The personal memory feature is still being developed. Later, a caregiver can add routines, family names, and preferences.",
     },
-    "routine": {
-        "zh-Hant": REMINDER_RESPONSE,
-        "zh-Hans": "提醒功能正在开发中。现在你可以请照顾者先帮你记录这个提醒。",
-        "en": "The reminder feature is still being developed. For now, please ask a caregiver to help write down this reminder.",
+    "routine_unavailable": {
+        "zh-Hant": REMINDER_UNAVAILABLE_RESPONSE,
+        "zh-Hans": "提醒功能暂时未能使用。现在你可以请照顾者先帮你记录这个提醒。",
+        "en": "The reminder feature isn't available right now. For now, please ask a caregiver to help write down this reminder.",
+    },
+    "routine_needs_account": {
+        "zh-Hant": REMINDER_NEEDS_ACCOUNT_RESPONSE,
+        "zh-Hans": "设定提醒需要先完成登记，请输入 \\register 开始，或请照顾者帮忙。",
+        "en": "Setting a reminder needs a registered account first — send \\register to begin, or ask a caregiver for help.",
+    },
+    "routine_needs_time": {
+        "zh-Hant": REMINDER_NEEDS_TIME_RESPONSE,
+        "zh-Hans": "好呀，可以话我知几点提醒你吗？例如「12:30提醒我食药」。",
+        "en": "Sure — what time should I remind you? For example, \"remind me to take medicine at 12:30\".",
     },
     "activity": {
         "zh-Hant": ACTIVITY_RESPONSE,
@@ -55,16 +77,75 @@ def handle_personal_memory(message: str, user_id: str | None = None) -> dict[str
 
 
 def handle_routine_request(message: str, user_id: str | None = None) -> dict[str, Any]:
-    routines = load_user_routines(user_id)
     answer_language = detect_answer_language(message)
+
+    if create_reminder_for_user is None or parse_reminder_request is None:
+        logger.warning("reminder_backend unavailable in this process; falling back to placeholder")
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_placeholder",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reminder_backend_available": False},
+        )
+
+    if not user_id:
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_needs_account"][answer_language],
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_needs_account",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "no_user_id"},
+        )
+
+    parsed = parse_reminder_request(message)
+    if parsed is None:
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_needs_time"][answer_language],
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_needs_time",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "no_time_found"},
+        )
+
+    display_name = get_display_name((get_user_record_by_user_id(user_id)[0]) or "") or ""
+    try:
+        reminder = create_reminder_for_user(user_id, display_name, parsed.text, parsed.time)
+    except Exception:
+        logger.exception("Failed to create reminder for user_id=%s", user_id)
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_placeholder",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "create_failed"},
+        )
+
     return _placeholder_result(
-        answer=LOCALIZED_RESPONSES["routine"][answer_language],
+        answer=_reminder_confirmation(parsed.time, parsed.text, answer_language),
         intent="reminder_request",
         route="routine",
-        safety_level="reminder_placeholder",
+        safety_level="reminder_created",
         answer_language=answer_language,
-        debug={"agent": "memory_routine", "routines_loaded": bool(routines)},
+        debug={
+            "agent": "memory_routine",
+            "reminder_id": reminder.id,
+            "reminder_time": parsed.time,
+            "reminder_text": parsed.text,
+        },
     )
+
+
+def _reminder_confirmation(time_str: str, text: str, answer_language: AnswerLanguage) -> str:
+    if answer_language == "zh-Hans":
+        return f"好的，我会每日{time_str}提醒你「{text}」。如果之后想取消或更改，可以再告诉我。"
+    if answer_language == "en":
+        return f'Okay, I\'ll remind you every day at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
+    return f"好的，我會每日{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"
 
 
 def handle_activity_request(message: str, user_id: str | None = None) -> dict[str, Any]:
