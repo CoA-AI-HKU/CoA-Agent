@@ -589,15 +589,6 @@ def classify_intent(message: str) -> IntentResult:
             reason="Message is empty after normalization.",
         )
 
-    daily_life_matches = _matched_terms(normalized, DAILY_LIFE_TERMS)
-    if daily_life_matches:
-        return IntentResult(
-            intent="daily_life_support",
-            confidence=_confidence(0.94, len(daily_life_matches)),
-            matched_terms=daily_life_matches,
-            reason="Matched an ordinary daily-life support request.",
-        )
-
     safety_matches = _matched_terms(normalized, SAFETY_TERMS)
     if _is_urgent_safety_match(normalized, safety_matches):
         return IntentResult(
@@ -605,6 +596,15 @@ def classify_intent(message: str) -> IntentResult:
             confidence=_confidence(0.95, len(safety_matches)),
             matched_terms=safety_matches,
             reason="Matched urgent or current safety-risk terms.",
+        )
+
+    daily_life_matches = _matched_terms(normalized, DAILY_LIFE_TERMS)
+    if daily_life_matches:
+        return IntentResult(
+            intent="daily_life_support",
+            confidence=_confidence(0.94, len(daily_life_matches)),
+            matched_terms=daily_life_matches,
+            reason="Matched an ordinary daily-life support request.",
         )
 
     role_correction_matches = _matched_terms(normalized, ROLE_CORRECTION_TERMS)

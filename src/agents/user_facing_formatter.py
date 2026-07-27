@@ -370,49 +370,40 @@ def _looks_like_quote_block(line: str) -> bool:
 
 
 def _compact_answer(answer: str, safety_level: str | None) -> str:
-    if not answer:
-        return answer
+    """Keep answers concise without cutting sentences unnaturally."""
+    normalized = str(answer or "").strip()
+    if not normalized:
+        return normalized
 
-    if safety_level in {"screening_check_in", "self_memory_concern", "memory_concern", "caregiver_observation_guidance"}:
-        max_chars = 650
-    elif safety_level in {"urgent_boundary", "medical_boundary"}:
-        max_chars = 250
-    else:
-        max_chars = 220
-    normalized = (
-        answer
-        if safety_level in {"screening_check_in", "caregiver_observation_guidance"}
-        else _remove_excess_numbering(answer)
-    )
-    normalized = normalized.strip()
-    route_specific_limit = safety_level in {
+    if safety_level in {
         "screening_check_in",
         "self_memory_concern",
         "memory_concern",
         "caregiver_observation_guidance",
-        "urgent_boundary",
-        "medical_boundary",
-    }
+    }:
+        max_sentences = 5
+    elif safety_level in {"urgent_boundary", "medical_boundary"}:
+        max_sentences = 3
+    else:
+        max_sentences = 2
+
+    if safety_level not in {
+        "screening_check_in",
+        "caregiver_observation_guidance",
+    }:
+        normalized = _remove_excess_numbering(normalized)
+
     sentences = _split_sentences(normalized)
-    if len(normalized) <= max_chars and (route_specific_limit or len(sentences) <= 3):
-        return _ensure_terminal_punctuation(normalized, max_chars)
 
-    complete_sentences = [sentence for sentence in sentences if _has_terminal_punctuation(sentence)]
+    if not sentences:
+        return normalized
 
-    selected: list[str] = []
-    total = 0
-    max_sentences = None if route_specific_limit else 3
-    for sentence in complete_sentences:
-        if max_sentences is not None and len(selected) >= max_sentences:
-            break
-        if total + len(sentence) > max_chars:
-            break
-        selected.append(sentence)
-        total += len(sentence)
-    if selected:
-        return "".join(selected).strip()
-    return _truncate_at_sentence_boundary(normalized, max_chars)
+    compacted = "".join(sentences[:max_sentences]).strip()
 
+    if compacted and compacted[-1] not in "。！？!?":
+        compacted += "。"
+
+    return compacted
 
 def _has_terminal_punctuation(text: str) -> bool:
     return bool(re.search(r"[。！？!?]$", text.rstrip()))
