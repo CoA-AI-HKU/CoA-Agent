@@ -29,9 +29,24 @@ def log_reminder_checkpoint(event: str, **fields: Any) -> None:
     Callers must only pass identifiers (user_id, reminder_id, channel,
     normalized times, booleans) in `fields` — never the raw message or
     reminder text, so reminder content never reaches logs.
+
+    `fields` are baked directly into the log message text (not just passed
+    via `extra=`) — in production, `extra=` fields turned out to be silently
+    dropped by whatever formatter/handler is actually configured (rich,
+    plain `logging.basicConfig`, etc. all vary), which repeatedly hid the
+    one thing being debugged (a `reason=` or `route=` value) behind a bare
+    event name. `extra=` is still populated too, for any log pipeline that
+    does parse structured fields. Static per-process context (service user,
+    cwd, db path, timezone) is deliberately left out of every line — it's
+    already logged once at scheduler startup (see `reminder_scheduler_startup`
+    in scheduler.py) — to keep these lines short and to the one thing that
+    actually changes per call.
     """
+    details = " ".join(f"{key}={value!r}" for key, value in fields.items())
     logger.info(
+        "%s%s",
         event,
+        f" {details}" if details else "",
         extra={
             "event": event,
             "service_user": _SERVICE_USER,
