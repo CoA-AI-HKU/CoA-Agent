@@ -70,6 +70,38 @@ def test_parse_reminder_request_handles_am_and_evening_markers():
     assert parse_reminder_request("晚上8點提醒我食藥").time == "20:00"
 
 
+def test_parse_reminder_request_accepts_chinese_numeral_hour():
+    # Regression test: "五點" uses the Chinese numeral 五 ("five"), not the
+    # digit 5, for the hour. _TIME_PATTERN's hour group only matched \d, so
+    # this previously fell through to "no time found" and the bot asked the
+    # user to repeat a time they'd already given — reproduced live in
+    # production ("下午五點提醒我喝水號碼" got "可以話我知幾點提醒你嗎？"
+    # instead of setting the 17:00 reminder).
+    parsed = parse_reminder_request("下午五點提醒我喝水")
+    assert parsed.time == "17:00"
+    assert parsed.text == "喝水"
+
+    assert parse_reminder_request("五點提醒我食藥").time == "05:00"
+    assert parse_reminder_request("十二點提醒我食藥").time == "12:00"
+    assert parse_reminder_request("上午十一點提醒我食藥").time == "11:00"
+
+
+def test_parse_reminder_request_accepts_chinese_numeral_24_hour_and_minute():
+    parsed = parse_reminder_request("十七點提醒我食藥")
+    assert parsed.time == "17:00"
+
+    parsed2 = parse_reminder_request("下午五點三十分提醒我食飯")
+    assert parsed2.time == "17:30"
+    assert parsed2.text == "食飯"
+
+
+def test_parse_reminder_request_chinese_numerals_elsewhere_are_not_mistaken_for_a_time():
+    # A Chinese numeral not immediately followed by 點/点 is not a time —
+    # only digit-based clock times and relative durations should match.
+    assert parse_reminder_request("我有三個蘋果") is None
+    assert parse_reminder_request("而家幾點") is None
+
+
 def test_parse_reminder_request_detects_one_time_phrasing():
     parsed = parse_reminder_request(
         "可以下午2：14分提醒我吃飯嗎，不需要以後每天都提醒，今天提一下就行了"

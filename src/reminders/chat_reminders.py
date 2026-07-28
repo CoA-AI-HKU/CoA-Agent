@@ -54,6 +54,23 @@ _CHINESE_DIGITS = {
     "五": 5, "六": 6, "七": 7, "八": 8, "九": 9,
 }
 _NUMBER_WORD = r"[\d一二兩两三四五六七八九十]{1,3}"
+
+# "五點"/"下午五點三十分" — a Chinese-numeral hour ("五" for "5"), not an
+# Arabic digit. _TIME_PATTERN's hour group only matches \d, so a message
+# like "下午五點提醒我喝水" previously fell through to "no time found" and
+# the bot asked the user to repeat themselves with a digit time instead of
+# understanding the one they'd already given. Kept as a second pattern
+# (tried only when _TIME_PATTERN finds nothing, in parse_reminder_request)
+# rather than merged into _TIME_PATTERN, since the two use unrelated hour
+# grammars (digit run vs. Chinese numeral word) and the digit path is
+# already anchored on punctuation ":：時时点點" while this one only makes
+# sense anchored on "點"/"点" — a bare Chinese numeral elsewhere in the
+# message must not be mistaken for a time.
+_CHINESE_TIME_PATTERN = re.compile(
+    rf"(?:{_TODAY_WORD})?\s*(?P<period_before>{_PERIOD_ALTERNATION})?\s*"
+    rf"(?P<hour>{_NUMBER_WORD})[點点]\s*(?:(?P<minute>{_NUMBER_WORD})分)?"
+    rf"\s*(?P<period_after>{_PERIOD_ALTERNATION})?"
+)
 # "N分鐘後"/"N小時後" (in N minutes/hours) — relative durations, resolved
 # against the current time at parse time rather than an absolute clock time.
 # Requires the full "分鐘"/"分钟" word, not bare "分" — "2:14分" is the
@@ -104,8 +121,8 @@ class ParsedReminder(NamedTuple):
 def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedReminder | None:
     """Extract a time, reminder text, and recurrence from a chat message.
 
-    Returns None if no time — explicit ("12:28", "下午2:14", "9點") or
-    relative ("兩分鐘後", "而家") — is present. Does not infer a time from
+    Returns None if no time — explicit ("12:28", "下午2:14", "9點", "下午五點",
+    "十七點三十分") or relative ("兩分鐘後", "而家") — is present. Does not infer a time from
     vague phrasing like "later" or "tonight" with no duration attached;
     callers should ask the user for a specific time in that case.
 
@@ -125,16 +142,30 @@ def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedR
         return ParsedReminder(time=target.strftime("%H:%M"), text=text, days=ONE_TIME)
 
     match = _TIME_PATTERN.search(message)
-    if not match:
-        return None
-    period = match.group("period_before") or match.group("period_after")
-    hour = _adjust_hour_for_period(int(match.group("hour")), period)
-    minute = int(match.group("minute")) if match.group("minute") else 0
+    if match:
+        period = match.group("period_before") or match.group("period_after")
+        hour = _adjust_hour_for_period(int(match.group("hour")), period)
+        minute = int(match.group("minute")) if match.group("minute") else 0
+        span = (match.start(), match.end())
+    else:
+        chinese_match = _CHINESE_TIME_PATTERN.search(message)
+        if not chinese_match:
+            return None
+        hour_value = _number_word_to_int(chinese_match.group("hour"))
+        minute_text = chinese_match.group("minute")
+        minute_value = _number_word_to_int(minute_text) if minute_text else 0
+        if hour_value is None or minute_value is None:
+            return None
+        period = chinese_match.group("period_before") or chinese_match.group("period_after")
+        hour = _adjust_hour_for_period(hour_value, period)
+        minute = minute_value
+        span = (chinese_match.start(), chinese_match.end())
+
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
         return None
     time_str = f"{hour:02d}:{minute:02d}"
 
-    remainder = message[: match.start()] + message[match.end() :]
+    remainder = message[: span[0]] + message[span[1] :]
     is_one_time = any(pattern.search(remainder) for pattern in _ONE_TIME_PATTERNS)
     text = _extract_reminder_text(remainder)
     return ParsedReminder(time=time_str, text=text, days=ONE_TIME if is_one_time else ALL_DAYS)
