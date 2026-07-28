@@ -38,14 +38,33 @@ TELEGRAM_SEND_ENDPOINT = "https://api.telegram.org/bot{token}/sendMessage"
 
 def _send_telegram_message(chat_id: str, text: str) -> bool:
     bot_token = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-    if not bot_token or not chat_id:
+    if not bot_token:
+        log_reminder_checkpoint("reminder_telegram_send_failed", reason="missing_bot_token")
+        return False
+    if not chat_id:
+        log_reminder_checkpoint("reminder_telegram_send_failed", reason="missing_chat_id")
         return False
     endpoint = TELEGRAM_SEND_ENDPOINT.format(token=bot_token)
     try:
         response = requests.post(endpoint, json={"chat_id": chat_id, "text": text}, timeout=8)
-        return response.status_code < 400
-    except requests.RequestException:
+        ok = response.status_code < 400
+        if not ok:
+            # Telegram error bodies are small structured JSON like
+            # {"ok":false,"description":"..."} describing Telegram's own
+            # rejection reason (bad token, bot blocked by user, chat not
+            # found, etc.) — safe to log, contains no reminder/message text.
+            log_reminder_checkpoint(
+                "reminder_telegram_send_failed",
+                reason="telegram_api_rejected",
+                status_code=response.status_code,
+                response_body=response.text[:300],
+            )
+        return ok
+    except requests.RequestException as exc:
         logger.exception("Failed to deliver reminder via Telegram")
+        log_reminder_checkpoint(
+            "reminder_telegram_send_failed", reason="request_exception", error=str(exc)[:300],
+        )
         return False
 
 
@@ -56,12 +75,19 @@ def _deliver_reminder(patient: Patient, reminder: Reminder) -> bool:
             "Reminder %s for patient %s has no linked chat account; cannot deliver",
             reminder.id, patient.id,
         )
+        log_reminder_checkpoint(
+            "reminder_delivery_blocked", reminder_id=reminder.id, reason="no_external_user_id",
+        )
         return False
     sender_id, _ = get_user_record_by_user_id(patient.external_user_id)
     if not sender_id:
         logger.warning(
             "No chat account found for external_user_id=%s (reminder %s)",
             patient.external_user_id, reminder.id,
+        )
+        log_reminder_checkpoint(
+            "reminder_delivery_blocked", reminder_id=reminder.id,
+            user_id=patient.external_user_id, reason="no_chat_record_for_external_user_id",
         )
         return False
     return _send_telegram_message(sender_id, f"⏰ 提醒：{reminder.text}")
