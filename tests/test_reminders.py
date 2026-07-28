@@ -8,7 +8,9 @@ import pytest
 from src.reminders import chat_reminders, scheduler as reminder_scheduler
 from src.reminders.chat_reminders import create_reminder_for_user, parse_reminder_request
 from src.reminders.database import Patient, Reminder, SessionLocal
+from src.reminders.llm_reminder_extractor import ReminderDecision
 from src.agents.coordinator_agent import coordinate_message
+from src.agents.memory_routine_agent import handle_routine_request
 from src.orchestrator import handle_dementia_user_message
 
 
@@ -348,6 +350,87 @@ def test_current_time_question_is_not_misrouted_as_a_reminder():
     result = handle_dementia_user_message("現在是幾點鐘", "test-time-question")
     assert result["route"] != "routine"
     assert "提醒" not in result["answer"]
+
+
+def test_llm_fallback_creates_reminder_when_regex_finds_no_time(registered_patient, monkeypatch):
+    # Regression coverage for the fallback added after regex kept missing
+    # real phrasings in production ("食完飯後", "遲啲", odd constructions) —
+    # only exercised because the message below has no time the regex parser
+    # can find at all.
+    decision = ReminderDecision(
+        is_reminder=True, time="18:45", days=chat_reminders.ONE_TIME, task="食藥", response=None,
+    )
+    monkeypatch.setattr(
+        "src.agents.memory_routine_agent.decide_reminder_via_llm",
+        lambda message, now, answer_language: decision,
+    )
+
+    result = handle_routine_request("食完飯之後幫我記得食藥呀", registered_patient)
+
+    assert result["route"] == "routine"
+    assert "18:45" in result["answer"]
+    assert "食藥" in result["answer"]
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+        assert any(r.time == "18:45" and r.text == "食藥" for r in reminders)
+    finally:
+        db.close()
+
+
+def test_llm_fallback_declines_without_creating_a_reminder(registered_patient, monkeypatch):
+    # The LLM gets the final say on whether this is really a reminder — it
+    # must be able to say no and reply in its own words, not be forced to
+    # create something just because some time-shaped text was nearby.
+    decision = ReminderDecision(
+        is_reminder=False, time=None, days=None, task="", response="這聽起來不像是要設定提醒，我理解錯了嗎？",
+    )
+    monkeypatch.setattr(
+        "src.agents.memory_routine_agent.decide_reminder_via_llm",
+        lambda message, now, answer_language: decision,
+    )
+
+    result = handle_routine_request("提醒我要記得喝水好重要", registered_patient)
+
+    assert result["route"] == "routine"
+    assert result["safety_level"] == "reminder_declined_by_model"
+    assert result["answer"] == "這聽起來不像是要設定提醒，我理解錯了嗎？"
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all() if patient else []
+        assert not reminders
+    finally:
+        db.close()
+
+
+def test_llm_fallback_can_ask_its_own_clarifying_question(registered_patient, monkeypatch):
+    decision = ReminderDecision(is_reminder=True, time=None, days=None, task="食藥", response="請問想幾點提醒你呢？")
+    monkeypatch.setattr(
+        "src.agents.memory_routine_agent.decide_reminder_via_llm",
+        lambda message, now, answer_language: decision,
+    )
+
+    result = handle_routine_request("提醒我食藥好唔好", registered_patient)
+
+    assert result["route"] == "routine"
+    assert result["safety_level"] == "reminder_needs_time"
+    assert result["answer"] == "請問想幾點提醒你呢？"
+
+
+def test_llm_fallback_is_never_consulted_when_regex_already_found_a_time(registered_patient, monkeypatch):
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("LLM fallback must not run when the regex parser already found a time")
+
+    monkeypatch.setattr("src.agents.memory_routine_agent.decide_reminder_via_llm", fail_if_called)
+
+    result = handle_routine_request("12：28可以提醒我吃藥嗎", registered_patient)
+
+    assert result["route"] == "routine"
+    assert "12:28" in result["answer"]
 
 
 def test_scheduler_skips_delivery_when_patient_not_linked_to_a_chat_account():

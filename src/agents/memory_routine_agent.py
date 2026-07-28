@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,16 +15,22 @@ logger = logging.getLogger(__name__)
 
 try:
     from src.reminders.chat_reminders import (
+        LOCAL_TIMEZONE,
+        ParsedReminder,
         create_reminder_for_user,
         extract_reminder_text_only,
         parse_reminder_request,
         reminder_confirmation_text,
     )
+    from src.reminders.llm_reminder_extractor import decide_reminder_via_llm
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
+    LOCAL_TIMEZONE = None
+    ParsedReminder = None
     create_reminder_for_user = None
     extract_reminder_text_only = None
     parse_reminder_request = None
     reminder_confirmation_text = None
+    decide_reminder_via_llm = None
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -119,9 +126,41 @@ def handle_routine_request(
         )
 
     parsed = parse_reminder_request(message)
+    llm_decision = None
+    if parsed is None and decide_reminder_via_llm is not None:
+        # The regex parser only recognizes fixed phrasings ("5:25", "五點",
+        # "兩分鐘後"...) — real messages drift outside those ("食完飯後",
+        # "遲啲", typos, unseen constructions). Rather than keep hand-patching
+        # every new phrasing as it's found in production, fall back to asking
+        # the LLM to make the actual judgment call: is this really a
+        # reminder, what's the time, what's the recurrence, and — if it
+        # can't tell — compose its own clarifying reply instead of the fixed
+        # template below. Only reached when the fast deterministic path
+        # already found nothing, so well-formed messages never pay this
+        # latency/cost.
+        llm_decision = decide_reminder_via_llm(message, datetime.now(LOCAL_TIMEZONE), answer_language)
+
+    if llm_decision is not None and not llm_decision.is_reminder:
+        return _placeholder_result(
+            answer=llm_decision.response or LOCALIZED_RESPONSES["routine_needs_time"][answer_language],
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_declined_by_model",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "llm_declined"},
+        )
+
+    if llm_decision is not None and llm_decision.time is not None:
+        parsed = ParsedReminder(
+            time=llm_decision.time,
+            text=llm_decision.task or extract_reminder_text_only(message),
+            days=llm_decision.days,
+        )
+
     if parsed is None:
         return _placeholder_result(
-            answer=LOCALIZED_RESPONSES["routine_needs_time"][answer_language],
+            answer=(llm_decision.response if llm_decision is not None and llm_decision.response
+                    else LOCALIZED_RESPONSES["routine_needs_time"][answer_language]),
             intent="reminder_request",
             route="routine",
             safety_level="reminder_needs_time",

@@ -68,7 +68,7 @@ _NUMBER_WORD = r"[\d一二兩两三四五六七八九十]{1,3}"
 # message must not be mistaken for a time.
 _CHINESE_TIME_PATTERN = re.compile(
     rf"(?:{_TODAY_WORD})?\s*(?P<period_before>{_PERIOD_ALTERNATION})?\s*"
-    rf"(?P<hour>{_NUMBER_WORD})[點点]\s*(?:(?P<minute>{_NUMBER_WORD})分)?"
+    rf"(?P<hour>{_NUMBER_WORD})[點点]\s*(?P<minute>{_NUMBER_WORD})?分?"
     rf"\s*(?P<period_after>{_PERIOD_ALTERNATION})?"
 )
 # "N分鐘後"/"N小時後" (in N minutes/hours) — relative durations, resolved
