@@ -7,6 +7,7 @@ from typing import Any
 
 from src.agents.types import AgentResult
 from src.pipeline.language import AnswerLanguage, detect_answer_language
+from src.reminders.trace_logging import log_reminder_checkpoint
 from src.user.user_registry import get_display_name, get_user_record_by_user_id
 
 logger = logging.getLogger(__name__)
@@ -83,10 +84,20 @@ def handle_personal_memory(message: str, user_id: str | None = None) -> dict[str
     )
 
 
-def handle_routine_request(message: str, user_id: str | None = None) -> dict[str, Any]:
+def handle_routine_request(
+    message: str,
+    user_id: str | None = None,
+    channel: str = "",
+    message_id: str = "",
+) -> dict[str, Any]:
     answer_language = detect_answer_language(message)
 
-    if create_reminder_for_user is None or parse_reminder_request is None:
+    tool_available = create_reminder_for_user is not None and parse_reminder_request is not None
+    log_reminder_checkpoint(
+        "reminder_tool_available",
+        user_id=user_id, channel=channel, message_id=message_id, available=tool_available,
+    )
+    if not tool_available:
         logger.warning("src.reminders unavailable in this process; falling back to placeholder")
         return _placeholder_result(
             answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
@@ -131,8 +142,16 @@ def handle_routine_request(message: str, user_id: str | None = None) -> dict[str
         )
 
     display_name = get_display_name((get_user_record_by_user_id(user_id)[0]) or "") or ""
+    log_reminder_checkpoint(
+        "reminder_tool_invoked",
+        user_id=user_id, channel=channel, message_id=message_id,
+        normalized_due_time=parsed.time, days=parsed.days,
+    )
     try:
-        reminder = create_reminder_for_user(user_id, display_name, parsed.text, parsed.time, days=parsed.days)
+        reminder = create_reminder_for_user(
+            user_id, display_name, parsed.text, parsed.time, days=parsed.days,
+            channel=channel, message_id=message_id,
+        )
     except Exception:
         logger.exception("Failed to create reminder for user_id=%s", user_id)
         return _placeholder_result(

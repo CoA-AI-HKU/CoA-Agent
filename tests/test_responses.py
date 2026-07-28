@@ -151,6 +151,24 @@ def test_wandering_answer_is_concise_and_has_no_source_filename() -> None:
     assert "debug" in result
 
 
+def test_self_reported_wandering_gets_self_oriented_advice_not_caregiver_advice() -> None:
+    # Regression test: this used to always answer as if it were the
+    # caregiver's mother who was lost, even when the speaker was reporting
+    # being lost themselves — the response told a lost person to "call
+    # police and prepare mom's photo", which doesn't help them.
+    for message in ("我現在找不到回家的路了怎麽辦", "我自己找不到回家的路", "不是媽媽，是我自己找不到路"):
+        result = handle_dementia_user_message(message)
+        assert "企定" in result["answer"] or "站定" in result["answer"] or "stay where you are" in result["answer"]
+        assert "媽媽" not in result["answer"]
+        assert "妈妈" not in result["answer"]
+
+
+def test_third_party_wandering_still_gets_caregiver_oriented_advice() -> None:
+    result = handle_dementia_user_message("媽媽走失了，我找不到她")
+    assert "報警" in result["answer"]
+    assert "近照" in result["answer"]
+
+
 def test_medication_uncertainty_answer_is_safe_and_has_no_source_dump() -> None:
     result = handle_dementia_user_message("我忘記了我有沒有吃過藥怎麼辦？")
 

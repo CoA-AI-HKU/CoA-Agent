@@ -15,6 +15,7 @@ from src.agents.user_facing_formatter import (
 )
 from src.metrics import clear_user_events, detect_concern_signal, infer_event_type, log_event
 from src.pipeline.query_normalization import log_string_diagnostic
+from src.reminders.trace_logging import log_reminder_checkpoint
 from src.screening.outbox import queue_screening_message
 from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
@@ -58,6 +59,7 @@ def handle_incoming_message(
         "message router started",
         extra={"event": "message_router_started", "sender_id": sender_id, "channel": channel},
     )
+    log_reminder_checkpoint("reminder_trace_message_received", sender_id=sender_id, channel=channel)
     normalized_sender_id = normalize_sender_id(sender_id)
     role = get_user_role(normalized_sender_id)
     record = get_user_record(normalized_sender_id)
@@ -75,7 +77,7 @@ def handle_incoming_message(
     session_user_id = registry_user_id or normalized_sender_id
     pending_activity_result = consume_pending_activity_response(normalized_sender_id, message)
     pending_reminder_result = (
-        consume_pending_reminder_response(normalized_sender_id, message)
+        consume_pending_reminder_response(normalized_sender_id, message, channel)
         if pending_activity_result is None and role == "user"
         else None
     )
@@ -120,6 +122,11 @@ def handle_incoming_message(
         result = handle_patient_user_message(message, normalized_sender_id, user_id, channel)
         event_user_id = user_id
 
+    log_reminder_checkpoint(
+        "reminder_trace_route_selected",
+        user_id=event_user_id, sender_id=normalized_sender_id, channel=channel,
+        route=result.get("route"), intent=result.get("intent"),
+    )
     if result.get("route") == "activity" and "三種水果" in str(result.get("answer") or ""):
         store_pending_activity(
             normalized_sender_id,

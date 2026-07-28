@@ -14,9 +14,11 @@ from apscheduler.triggers.interval import IntervalTrigger
 try:
     from .database import NotificationLog, Patient, Reminder, SessionLocal
     from .chat_reminders import ALL_DAYS, LOCAL_TIMEZONE, ONE_TIME
+    from .trace_logging import check_reminder_db_write_access, log_reminder_checkpoint
 except ImportError:  # Support `cd src/reminders && python scheduler.py`.
     from database import NotificationLog, Patient, Reminder, SessionLocal
     from chat_reminders import ALL_DAYS, LOCAL_TIMEZONE, ONE_TIME
+    from trace_logging import check_reminder_db_write_access, log_reminder_checkpoint
 
 # Chat-user lookup lives in src.user, which requires the repo root (two
 # levels up from src/reminders/) on sys.path — not automatically the case
@@ -97,7 +99,24 @@ def check_and_send_reminders() -> None:
             if not patient:
                 continue
 
+            log_reminder_checkpoint(
+                "reminder_triggered",
+                reminder_id=reminder.id,
+                user_id=patient.external_user_id,
+                channel="telegram",  # scheduler delivery is Telegram-only today
+                normalized_due_time=reminder.time,
+                current_time=current_time,
+                current_day=current_day,
+                days=reminder.days,
+            )
             delivered = _deliver_reminder(patient, reminder)
+            log_reminder_checkpoint(
+                "reminder_delivery_result",
+                reminder_id=reminder.id,
+                user_id=patient.external_user_id,
+                channel="telegram",
+                delivered=delivered,
+            )
             logger.info(
                 "%s REMINDER: Patient '%s' - '%s' at %s",
                 "delivered" if delivered else "undelivered",
@@ -119,6 +138,18 @@ def check_and_send_reminders() -> None:
 
 
 def start_scheduler() -> BackgroundScheduler:
+    write_access = check_reminder_db_write_access()
+    if not write_access["writable"]:
+        logger.error(
+            "Reminder DB path is not writable by this service user — reminders will "
+            "silently fail to persist or update: %s",
+            write_access["path_checked"],
+        )
+    log_reminder_checkpoint(
+        "reminder_scheduler_startup",
+        telegram_bot_token_configured=bool(os.getenv("TELEGRAM_BOT_TOKEN", "").strip()),
+        **write_access,
+    )
     scheduler = BackgroundScheduler()
     scheduler.add_job(
         check_and_send_reminders,

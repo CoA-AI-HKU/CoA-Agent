@@ -36,6 +36,7 @@ from .pipeline.language import detect_answer_language
 from .pipeline.rag_agent import answer_question, build_default_rag_config
 from .pipeline.query_normalization import log_string_diagnostic
 from .rag.execution_metrics import record_retrieval
+from .reminders.trace_logging import log_reminder_checkpoint
 
 
 logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ def handle_dementia_user_message(
     message: str,
     user_id: str | None = None,
     show_sources: bool = False,
+    channel: str = "",
 ) -> dict[str, Any]:
     log_string_diagnostic(
         logger, "orchestrator_input_message", message,
@@ -65,6 +67,7 @@ def handle_dementia_user_message(
         extra={
             "event": "orchestrator_route_selected",
             "user_id": user_id,
+            "channel": channel,
             "route": decision.route,
             "intent": decision.intent,
         },
@@ -96,7 +99,12 @@ def handle_dementia_user_message(
     elif decision.route == "memory":
         result = handle_personal_memory(message, user_id)
     elif decision.route == "routine":
-        result = handle_routine_request(message, user_id)
+        log_reminder_checkpoint(
+            "reminder_intent_detected",
+            user_id=user_id, channel=channel, message_id=message_id,
+            intent=decision.intent, confidence=decision.confidence,
+        )
+        result = handle_routine_request(message, user_id, channel=channel, message_id=message_id)
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":

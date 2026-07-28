@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from src.pipeline.language import detect_answer_language
+from src.reminders.trace_logging import log_reminder_checkpoint
 
 try:
     from src.reminders.chat_reminders import create_reminder_for_user, parse_reminder_request, reminder_confirmation_text
@@ -47,13 +48,18 @@ def store_pending_reminder(
     return pending
 
 
-def consume_pending_reminder_response(sender_id: str, message: str) -> dict[str, Any] | None:
+def consume_pending_reminder_response(sender_id: str, message: str, channel: str = "") -> dict[str, Any] | None:
     """Complete a pending reminder if this message supplies a time; else None.
 
     Returning None means "not consumed" — the caller should fall through to
     normal routing, same convention as consume_pending_activity_response.
     """
-    if create_reminder_for_user is None or parse_reminder_request is None:
+    tool_available = create_reminder_for_user is not None and parse_reminder_request is not None
+    if not tool_available:
+        log_reminder_checkpoint(
+            "reminder_tool_available",
+            user_id=sender_id, channel=channel, available=False, flow="pending_reminder_followup",
+        )
         return None
 
     state = _load_state()
@@ -77,8 +83,19 @@ def consume_pending_reminder_response(sender_id: str, message: str) -> dict[str,
     display_name = str(pending.get("display_name") or "")
     answer_language = str(pending.get("answer_language") or "") or detect_answer_language(message)
 
+    log_reminder_checkpoint(
+        "reminder_tool_available",
+        user_id=user_id, channel=channel, available=True, flow="pending_reminder_followup",
+    )
+    log_reminder_checkpoint(
+        "reminder_tool_invoked",
+        user_id=user_id, channel=channel, flow="pending_reminder_followup",
+        normalized_due_time=parsed.time, days=parsed.days,
+    )
     try:
-        reminder = create_reminder_for_user(user_id, display_name, text, parsed.time, days=parsed.days)
+        reminder = create_reminder_for_user(
+            user_id, display_name, text, parsed.time, days=parsed.days, channel=channel,
+        )
     except Exception:
         return None
 

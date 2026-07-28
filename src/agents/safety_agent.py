@@ -11,9 +11,20 @@ SAFETY_RESPONSES = {
     "zh-Hans": "这个情况可能需要即时协助。请先确保安全，并尽快联系照顾者、医护人员或紧急服务。",
     "en": "This situation may need immediate help. Please make sure everyone is safe and contact a caregiver, clinician, or emergency services as soon as possible.",
 }
-WANDERING_RESPONSES = {
-    "zh-Hant": "如果媽媽現在走失或失去聯絡，請立即報警，並聯絡家人或管理處協助尋找。準備她的近照、衣著特徵、常去地點和定位資料。尋回後先安撫情緒，不要責怪，並檢查有沒有受傷。",
-    "zh-Hans": "如果妈妈现在走失或失去联络，请立即报警，并联系家人或管理处协助寻找。准备她的近照、衣着特征、常去地点和定位资料。寻回后先安抚情绪，不要责怪，并检查有没有受伤。",
+# Two versions: whether it's the speaker themselves who's lost, or a family
+# member they're reporting about — these need opposite advice (stay put and
+# call for help vs. call police and prepare a description), and it used to
+# always answer as if it were the caregiver's mother who was lost, even when
+# the speaker was reporting being lost themselves. See
+# _is_self_reported_wandering below for the disambiguation.
+WANDERING_SELF_RESPONSES = {
+    "zh-Hant": "唔使太驚，先企定或者坐低留喺而家嘅位置，唔好再周圍走。打電話俾家人或者朋友，話俾佢哋知你而家大約喺邊度（例如附近嘅街道、店舖或者明顯嘅地標）。如果一時聯絡唔到人，可以問下附近嘅人幫手，或者去附近嘅警署、港鐵站或者商店求助。",
+    "zh-Hans": "不用太紧张，先站定或者坐低留在现在的位置，不要再到处走。打电话给家人或者朋友，告诉他们你现在大约在哪里（例如附近的街道、店铺或者明显的地标）。如果一时联系不到人，可以问附近的人帮忙，或者去附近的警署、地铁站或者商店求助。",
+    "en": "Try not to worry — stay where you are and don't keep walking around. Call a family member or friend and tell them roughly where you are (a nearby street, shop, or landmark). If you can't reach anyone right away, ask someone nearby for help, or go to a nearby police station, train station, or shop.",
+}
+WANDERING_OTHER_RESPONSES = {
+    "zh-Hant": "如果家人現在走失或失去聯絡，請立即報警，並聯絡其他家人或管理處協助尋找。準備佢嘅近照、衣著特徵、常去地點和定位資料。尋回後先安撫情緒，不要責怪，並檢查有沒有受傷。",
+    "zh-Hans": "如果家人现在走失或失去联络，请立即报警，并联系其他家人或管理处协助寻找。准备他的近照、衣着特征、常去地点和定位资料。寻回后先安抚情绪，不要责怪，并检查有没有受伤。",
     "en": "If your family member is missing or cannot be reached, call emergency services now and ask family or building staff to help search. Prepare a recent photo, clothing details, usual places, and location data. When found, reassure them first, do not blame them, and check for injuries.",
 }
 COGNITIVE_RED_FLAG_RESPONSES = {
@@ -68,7 +79,34 @@ def _is_medication_uncertainty(message: str) -> bool:
 
 
 def _is_wandering_now(message: str) -> bool:
-    return any(term in message for term in ["走失", "失蹤", "失踪", "失去聯絡", "失去联络", "找不到", "不見"])
+    return any(
+        term in message
+        for term in ["走失", "失蹤", "失踪", "失去聯絡", "失去联络", "找不到", "不見", "搵唔到", "揾唔到"]
+    )
+
+
+_SELF_REFERENCE_WANDERING_TERMS = ("我自己", "係我", "系我", "是我", "myself", "it's me", "it is me")
+_THIRD_PARTY_WANDERING_TERMS = (
+    "媽媽", "妈妈", "爸爸", "父親", "母親", "父亲", "母亲", "婆婆", "公公",
+    "嫲嫲", "爺爺", "爷爷", "奶奶", "老婆", "老公", "太太", "先生", "家人",
+    "my mother", "my father", "my mom", "my dad", "my wife", "my husband",
+)
+
+
+def _is_self_reported_wandering(message: str) -> bool:
+    """True when the speaker themselves is lost, not a family member.
+
+    Checked in this order because a correction like "不是媽媽，是我自己"
+    (not mom, it's me) contains a third-party term too — the explicit
+    self-reference must win over the mere presence of "媽媽". With neither
+    signal present, default to self: a bare "我現在找不到回家的路了" (I can't
+    find my way home) names no one else, so "我" is the natural subject.
+    """
+    if any(term in message for term in _SELF_REFERENCE_WANDERING_TERMS):
+        return True
+    if any(term in message for term in _THIRD_PARTY_WANDERING_TERMS):
+        return False
+    return True
 
 
 def _is_cognitive_red_flag(message: str) -> bool:
@@ -156,7 +194,11 @@ def handle_safety(message: str, decision: AgentDecision) -> dict:
     if _is_cognitive_red_flag(message):
         answer = COGNITIVE_RED_FLAG_RESPONSES[answer_language]
     elif _is_wandering_now(message):
-        answer = WANDERING_RESPONSES[answer_language]
+        answer = (
+            WANDERING_SELF_RESPONSES[answer_language]
+            if _is_self_reported_wandering(message)
+            else WANDERING_OTHER_RESPONSES[answer_language]
+        )
     else:
         answer = SAFETY_RESPONSES[answer_language]
     return AgentResult(

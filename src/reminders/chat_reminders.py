@@ -8,8 +8,10 @@ from zoneinfo import ZoneInfo
 
 try:
     from .database import Patient, Reminder, SessionLocal
+    from .trace_logging import log_reminder_checkpoint
 except ImportError:  # Support running this directory as the application root.
     from database import Patient, Reminder, SessionLocal
+    from trace_logging import log_reminder_checkpoint
 
 
 # The server's system clock is not guaranteed to be set to the user's local
@@ -241,6 +243,8 @@ def create_reminder_for_user(
     text: str,
     time_str: str,
     days: str = ALL_DAYS,
+    channel: str = "",
+    message_id: str = "",
 ) -> Reminder:
     db = SessionLocal()
     try:
@@ -255,6 +259,30 @@ def create_reminder_for_user(
         db.add(reminder)
         db.commit()
         db.refresh(reminder)
+        log_reminder_checkpoint(
+            "reminder_persisted",
+            reminder_id=reminder.id,
+            user_id=external_user_id,
+            channel=channel,
+            message_id=message_id,
+            normalized_due_time=time_str,
+            days=days,
+        )
+        # This scheduler polls (see scheduler.py: an every-minute query for
+        # active reminders matching the current time), rather than
+        # registering a discrete per-reminder job — so "registered" here
+        # means the persisted row is now active and will match that query,
+        # not that a scheduler job object was created.
+        log_reminder_checkpoint(
+            "reminder_scheduler_registered",
+            reminder_id=reminder.id,
+            user_id=external_user_id,
+            channel=channel,
+            message_id=message_id,
+            normalized_due_time=time_str,
+            days=days,
+            active=reminder.active,
+        )
         return reminder
     finally:
         db.close()
