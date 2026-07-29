@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from backend.api import auth, caregiver, chat, health, web_chat
+from backend.api import auth, caregiver, chat, health, web_account, web_chat
 
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ def create_app() -> FastAPI:
     app.include_router(chat.router)
     app.include_router(auth.router)
     app.include_router(caregiver.router)
+    app.include_router(web_account.router)
 
     if REMINDER_SCHEDULER_AUTOSTART:
         @app.on_event("startup")
