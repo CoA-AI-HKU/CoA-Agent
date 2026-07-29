@@ -12,3 +12,7 @@ data/chroma/
 *.sqlite
 events.jsonl
 *.log
+
+# Runtime reminder state
+data/last_created_reminders.json
+data/pending_reminders.json
