@@ -529,9 +529,14 @@
     <!-- ========== ACCOUNT PAGE ========== -->
     <section id="accountPage" class="page subpage" hidden>
       <h1>👤 賬戶</h1>
-      <p class="subpage-intro">用電話號碼登入，儲存你嘅聯絡人。聊天本身唔需要登入。</p>
+      <p class="subpage-intro">用電話號碼或電郵登入，儲存你嘅聯絡人。聊天本身唔需要登入。</p>
 
       <div id="accountSignedOut">
+        <div class="mode-buttons">
+          <button id="showPhoneSignInButton" class="action-button send-button" type="button">電話號碼</button>
+          <button id="showEmailSignInButton" class="action-button secondary-button" type="button">電郵</button>
+        </div>
+
         <form id="phoneForm" class="account-form">
           <div class="form-field">
             <label for="phoneNumber">電話號碼（例如：+85212345678）</label>
@@ -548,11 +553,31 @@
           <button id="verifyCodeButton" class="action-button send-button" type="submit">驗證</button>
         </form>
 
+        <form id="emailForm" class="account-form" hidden>
+          <div class="form-field">
+            <label for="emailAddress">電郵地址</label>
+            <input id="emailAddress" name="emailAddress" type="email" autocomplete="email" required>
+          </div>
+          <div class="form-field">
+            <label for="emailPassword">密碼</label>
+            <input id="emailPassword" name="emailPassword" type="password" autocomplete="current-password" required>
+          </div>
+          <div class="mode-buttons">
+            <button id="emailSignInButton" class="action-button send-button" type="submit">登入</button>
+            <button id="emailRegisterButton" class="action-button secondary-button" type="button">建立新賬戶</button>
+          </div>
+        </form>
+
         <div id="recaptchaContainer"></div>
       </div>
 
       <div id="accountSignedIn" hidden>
         <p id="accountSignedInMessage"></p>
+        <div id="linkAccountSection">
+          <p class="subpage-intro">連結多一種登入方式，方便下次登入。</p>
+          <button id="linkPhoneButton" class="action-button secondary-button" type="button" hidden>連結電話號碼</button>
+          <button id="linkEmailButton" class="action-button secondary-button" type="button" hidden>連結電郵</button>
+        </div>
         <button id="signOutButton" class="action-button secondary-button" type="button">登出</button>
       </div>
 
@@ -645,7 +670,7 @@
     <!-- ========== CONTACTS PAGE ========== -->
     <section id="contactsPage" class="page subpage" hidden>
       <h1>📞聯絡人</h1>
-      <p class="subpage-intro">新增或修改聯絡人。資料只會在本次開啟網頁期間保留。</p>
+      <p class="subpage-intro">聯絡人會儲存喺你嘅賬戶入面。請先喺「賬戶」頁面用電話號碼登入。</p>
       <form id="contactForm">
         <div class="form-field">
           <label for="contactName">姓名</label>
@@ -694,8 +719,23 @@
     const menuPanel = document.getElementById("menuPanel");
     const menuOverlay = document.getElementById("menuOverlay");
     const pages = document.querySelectorAll(".page");
-    const loginForm = document.getElementById("loginForm");
-    const registerForm = document.getElementById("registerForm");
+    const showPhoneSignInButton = document.getElementById("showPhoneSignInButton");
+    const showEmailSignInButton = document.getElementById("showEmailSignInButton");
+    const phoneForm = document.getElementById("phoneForm");
+    const phoneNumberInput = document.getElementById("phoneNumber");
+    const sendCodeButton = document.getElementById("sendCodeButton");
+    const codeForm = document.getElementById("codeForm");
+    const verificationCodeInput = document.getElementById("verificationCode");
+    const emailForm = document.getElementById("emailForm");
+    const emailAddressInput = document.getElementById("emailAddress");
+    const emailPasswordInput = document.getElementById("emailPassword");
+    const emailRegisterButton = document.getElementById("emailRegisterButton");
+    const accountSignedOut = document.getElementById("accountSignedOut");
+    const accountSignedIn = document.getElementById("accountSignedIn");
+    const accountSignedInMessage = document.getElementById("accountSignedInMessage");
+    const linkPhoneButton = document.getElementById("linkPhoneButton");
+    const linkEmailButton = document.getElementById("linkEmailButton");
+    const signOutButton = document.getElementById("signOutButton");
     const accountMessage = document.getElementById("accountMessage");
     const contactForm = document.getElementById("contactForm");
     const contactList = document.getElementById("contactList");
@@ -1081,9 +1121,18 @@
     });
 
     // ===== AUTH STATE =====
-    let authToken = localStorage.getItem("reminder_token");
-    let contacts = [];
-    let editingContactIndex = -1;
+    // The Firebase ID token is intentionally not persisted to localStorage
+    // ourselves — the Firebase SDK already persists its own sign-in state
+    // (IndexedDB, by default) and re-delivers the signed-in user via
+    // onAuthStateChanged on page load; getIdToken() from that user then
+    // silently refreshes an expired token rather than needing our own copy.
+    let firebaseIdToken = null;
+    // Bridge for the Firebase module script (see the <script type="module">
+    // block at the end of <body>) to update this variable: `let` bindings in
+    // a classic script's top-level scope are not properties of `window`, so
+    // the module (a separate scope) can't assign to `firebaseIdToken`
+    // directly — only call a function that does.
+    window.__setFirebaseIdToken = function (token) { firebaseIdToken = token; };
     let recognition = null;
     let recognitionActive = false;
     let finalTranscript = "";
@@ -1116,21 +1165,11 @@
     }
 
     function getAuthHeaders() {
-      return { "Authorization": "Bearer " + authToken };
+      return { "Authorization": "Bearer " + firebaseIdToken };
     }
 
     function isAuthenticated() {
-      return !!authToken;
-    }
-
-    function setAuthToken(token) {
-      authToken = token;
-      localStorage.setItem("reminder_token", token);
-    }
-
-    function clearAuth() {
-      authToken = null;
-      localStorage.removeItem("reminder_token");
+      return !!firebaseIdToken;
     }
 
     // ===== AUDIO STATE =====
@@ -1247,6 +1286,9 @@
       if (pageId === "remindersPage") {
         loadReminders();
       }
+      if (pageId === "contactsPage") {
+        loadContacts();
+      }
       if (pageId === "cognitivePage") {
         // 重置認知訓練狀態
         if (!gameActive) {
@@ -1260,40 +1302,67 @@
       }
     }
 
-    function showAccountForm(mode) {
-      const showLogin = mode === "login";
-      loginForm.hidden = !showLogin;
-      registerForm.hidden = showLogin;
-      document.getElementById("showLoginButton").className = "action-button " + (showLogin ? "send-button" : "secondary-button");
-      document.getElementById("showRegisterButton").className = "action-button " + (showLogin ? "secondary-button" : "send-button");
-      accountMessage.textContent = "";
-      (showLogin ? document.getElementById("loginName") : document.getElementById("registerName")).focus();
-    }
-
-    function renderContacts() {
+    // Contacts are stored server-side, keyed to the signed-in Firebase
+    // account (see backend/api/web_account.py) — editing in place isn't
+    // supported by that API, only add/delete, so the UI offers just those.
+    function renderContacts(contactsData) {
       contactList.replaceChildren();
-      contacts.forEach(function (contact, index) {
+      if (!contactsData.length) {
+        const empty = document.createElement("li");
+        empty.className = "contact-item";
+        empty.textContent = "未有聯絡人。";
+        contactList.append(empty);
+        return;
+      }
+      contactsData.forEach(function (contact) {
         const item = document.createElement("li");
         const details = document.createElement("span");
-        const editButton = document.createElement("button");
+        const deleteButton = document.createElement("button");
 
         item.className = "contact-item";
         details.textContent = contact.name + "：" + contact.detail;
-        editButton.className = "action-button secondary-button small-button";
-        editButton.type = "button";
-        editButton.textContent = "修改";
-        editButton.addEventListener("click", function () {
-          editingContactIndex = index;
-          document.getElementById("contactName").value = contact.name;
-          document.getElementById("contactDetail").value = contact.detail;
-          saveContactButton.textContent = "儲存修改";
-          contactMessage.textContent = "正在修改「" + contact.name + "」。";
-          document.getElementById("contactName").focus();
-        });
+        deleteButton.className = "action-button danger-button small-button";
+        deleteButton.type = "button";
+        deleteButton.textContent = "刪除";
+        deleteButton.addEventListener("click", function () { deleteContact(contact.id); });
 
-        item.append(details, editButton);
+        item.append(details, deleteButton);
         contactList.append(item);
       });
+    }
+
+    async function loadContacts() {
+      if (!isAuthenticated()) {
+        contactList.replaceChildren();
+        const notice = document.createElement("li");
+        notice.className = "contact-item";
+        notice.textContent = "請先喺「賬戶」頁面用電話號碼登入，先可以查看聯絡人。";
+        contactList.append(notice);
+        return;
+      }
+      try {
+        const res = await fetch(API_BASE_URL + "/api/account/contacts", { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error("Failed to load contacts");
+        renderContacts(await res.json());
+      } catch (err) {
+        console.error(err);
+        contactMessage.textContent = "無法載入聯絡人，請稍後再試。";
+      }
+    }
+
+    async function deleteContact(contactId) {
+      if (!confirm("確定要刪除呢個聯絡人嗎？")) return;
+      try {
+        const res = await fetch(API_BASE_URL + "/api/account/contacts/" + contactId, {
+          method: "DELETE",
+          headers: getAuthHeaders()
+        });
+        if (!res.ok) throw new Error("delete failed");
+        contactMessage.textContent = "聯絡人已刪除。";
+        loadContacts();
+      } catch (err) {
+        contactMessage.textContent = "刪除失敗，請稍後再試。";
+      }
     }
 
     // ===== REMINDER FUNCTIONS =====
@@ -1496,44 +1565,66 @@
 
     showTextReply.addEventListener("change", updateTextReplyVisibility);
 
-    // ===== AUTH =====
-    document.getElementById("showLoginButton").addEventListener("click", function () { showAccountForm("login"); });
-    document.getElementById("showRegisterButton").addEventListener("click", function () { showAccountForm("register"); });
+    // ===== AUTH (Firebase phone + email sign-in, and linking) =====
+    // See the <script type="module"> block near the end of <body> for the
+    // Firebase SDK setup — kept as a separate module script since Firebase's
+    // browser SDK is only distributed as ES modules. These wrappers exist so
+    // this classic (non-module) script, evaluated first, can still define
+    // the click handlers; the module script attaches the real
+    // implementations to window before any of these can actually run,
+    // since modules are always deferred until after document parsing.
+    showPhoneSignInButton.addEventListener("click", function () { window.setAuthFormMode("signin-phone"); });
+    showEmailSignInButton.addEventListener("click", function () { window.setAuthFormMode("signin-email"); });
+    linkPhoneButton.addEventListener("click", function () { window.setAuthFormMode("link-phone"); });
+    linkEmailButton.addEventListener("click", function () { window.setAuthFormMode("link-email"); });
 
-    // Web account login/register is not built yet: the backend's real
-    // /v1/auth endpoints identify accounts by sender_id/role (the same
-    // identity used by Telegram/WhatsApp), not username/password — there is
-    // no password concept anywhere in this system. Rather than call a
-    // mismatched or non-existent endpoint and show a confusing "connection
-    // error", these forms say so plainly. Chat itself needs no login.
-    registerForm.addEventListener("submit", function (event) {
+    phoneForm.addEventListener("submit", function (event) {
       event.preventDefault();
-      accountMessage.textContent = "網頁帳戶登入功能仍在開發中。你可以直接喺主頁同小安傾偈，唔需要登入。";
+      window.submitPhoneForm(phoneNumberInput.value.trim());
     });
 
-    loginForm.addEventListener("submit", function (event) {
+    codeForm.addEventListener("submit", function (event) {
       event.preventDefault();
-      accountMessage.textContent = "網頁帳戶登入功能仍在開發中。你可以直接喺主頁同小安傾偈，唔需要登入。";
+      window.submitCodeForm(verificationCodeInput.value.trim());
+    });
+
+    emailForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      window.submitEmailForm(emailAddressInput.value.trim(), emailPasswordInput.value, false);
+    });
+
+    emailRegisterButton.addEventListener("click", function () {
+      window.submitEmailForm(emailAddressInput.value.trim(), emailPasswordInput.value, true);
+    });
+
+    signOutButton.addEventListener("click", function () {
+      window.signOutOfFirebase();
     });
 
     // ===== CONTACTS =====
-    contactForm.addEventListener("submit", function (event) {
+    contactForm.addEventListener("submit", async function (event) {
       event.preventDefault();
-      const contact = {
-        name: document.getElementById("contactName").value.trim(),
-        detail: document.getElementById("contactDetail").value.trim()
-      };
-      if (editingContactIndex >= 0) {
-        contacts[editingContactIndex] = contact;
-        contactMessage.textContent = "聯絡人已修改。";
-      } else {
-        contacts.push(contact);
-        contactMessage.textContent = "聯絡人已新增。";
+      if (!isAuthenticated()) {
+        contactMessage.textContent = "請先喺「賬戶」頁面用電話號碼登入。";
+        showPage("accountPage");
+        return;
       }
-      editingContactIndex = -1;
-      saveContactButton.textContent = "新增聯絡人";
-      contactForm.reset();
-      renderContacts();
+      const name = document.getElementById("contactName").value.trim();
+      const detail = document.getElementById("contactDetail").value.trim();
+      if (!name || !detail) return;
+      try {
+        const res = await fetch(API_BASE_URL + "/api/account/contacts", {
+          method: "POST",
+          headers: Object.assign({ "Content-Type": "application/json" }, getAuthHeaders()),
+          body: JSON.stringify({ name: name, detail: detail })
+        });
+        if (!res.ok) throw new Error("save failed");
+        contactMessage.textContent = "聯絡人已新增。";
+        contactForm.reset();
+        loadContacts();
+      } catch (err) {
+        contactMessage.textContent = "新增失敗，請稍後再試。";
+      }
     });
 
     // ===== MENU & NAVIGATION =====
@@ -1586,6 +1677,247 @@
     console.log("   - 語音辨識: " + (SpeechRecognition ? "✅ 支援" : "❌ 不支援"));
     console.log("   - 提醒功能: " + (isAuthenticated() ? "✅ 已登入" : "❌ 未登入"));
     console.log("   - 認知訓練: ✅ 已載入");
+  </script>
+
+  <!-- Firebase's browser SDK is distributed as ES modules only, so this is
+       a separate <script type="module"> rather than part of the classic
+       script above. Modules are always deferred (run after the document is
+       parsed), which is why the classic script above can safely reference
+       window.submitPhoneForm / window.submitCodeForm / window.submitEmailForm /
+       window.setAuthFormMode / window.signOutOfFirebase in event listeners
+       it registers earlier in the file — those listeners only run later, on
+       user interaction, by which point this module has finished executing
+       and defined them.
+
+       firebaseConfig identifies which Firebase project this is; it is not
+       a secret and is meant to be embedded in client-side code exactly like
+       this — access is controlled server-side by verifying ID tokens (see
+       backend/services/firebase_auth.py), not by hiding this object. -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
+    import {
+      getAuth,
+      RecaptchaVerifier,
+      signInWithPhoneNumber,
+      linkWithPhoneNumber,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      EmailAuthProvider,
+      linkWithCredential,
+      onAuthStateChanged,
+      signOut,
+    } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyD3Q4sS8LHbrV0LYJ60-SRI-pMTpJ9-jjc",
+      authDomain: "coa-agent-1a5d1.firebaseapp.com",
+      projectId: "coa-agent-1a5d1",
+      storageBucket: "coa-agent-1a5d1.firebasestorage.app",
+      messagingSenderId: "685968591966",
+      appId: "1:685968591966:web:e3a1ed21693d6b90abf8cf",
+      // measurementId intentionally omitted — Google Analytics isn't used
+      // here, consistent with this project's local-first/privacy-first
+      // design everywhere else (local RAG, local event storage, no other
+      // third-party analytics).
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const firebaseAuthInstance = getAuth(firebaseApp);
+    let confirmationResult = null;
+    let recaptchaVerifier = null;
+    // Which flow the phone/email forms are currently serving — decided by
+    // setAuthFormMode (called from the mode buttons and the two "連結"
+    // buttons), and read by submitPhoneForm/submitEmailForm to choose
+    // between signing in fresh vs. linking a second provider onto the
+    // already-signed-in user. See backend/services/firebase_auth.py for how
+    // either provider resolves to the same uid server-side once linked.
+    let authFormMode = "signin-phone";
+
+    function getRecaptchaVerifier() {
+      if (!recaptchaVerifier) {
+        recaptchaVerifier = new RecaptchaVerifier(firebaseAuthInstance, "recaptchaContainer", {
+          size: "invisible",
+        });
+      }
+      return recaptchaVerifier;
+    }
+
+    function describeAuthError(err) {
+      const code = err && err.code;
+      const known = {
+        "auth/invalid-email": "電郵地址格式不正確。",
+        "auth/user-not-found": "搵唔到呢個帳戶，請確認電郵或先建立新賬戶。",
+        "auth/wrong-password": "密碼不正確，請再試一次。",
+        "auth/invalid-credential": "登入資料不正確，請再試一次。",
+        "auth/email-already-in-use": "呢個電郵已經有賬戶，請直接登入。",
+        "auth/weak-password": "密碼太簡單，請用最少 6 個字符。",
+        "auth/credential-already-in-use": "呢個電郵或電話號碼已經連結咗另一個賬戶。",
+        "auth/invalid-phone-number": "電話號碼格式不正確，請包括國碼，例如 +852。",
+        "auth/too-many-requests": "嘗試次數太多，請稍後再試。",
+      };
+      return known[code] || "操作失敗，請稍後再試。";
+    }
+
+    window.setAuthFormMode = function (mode) {
+      authFormMode = mode;
+      const phoneFormEl = document.getElementById("phoneForm");
+      const codeFormEl = document.getElementById("codeForm");
+      const emailFormEl = document.getElementById("emailForm");
+      const accountSignedOutEl = document.getElementById("accountSignedOut");
+      const modeButtonsEl = accountSignedOutEl.querySelector(".mode-buttons");
+      const accountMessageEl = document.getElementById("accountMessage");
+
+      accountMessageEl.textContent = "";
+      codeFormEl.hidden = true;
+      confirmationResult = null;
+
+      const usingPhone = mode === "signin-phone" || mode === "link-phone";
+      phoneFormEl.hidden = !usingPhone;
+      emailFormEl.hidden = usingPhone;
+      document.getElementById("showPhoneSignInButton").className =
+        "action-button " + (usingPhone ? "send-button" : "secondary-button");
+      document.getElementById("showEmailSignInButton").className =
+        "action-button " + (usingPhone ? "secondary-button" : "send-button");
+
+      const linking = mode === "link-phone" || mode === "link-email";
+      // Linking happens while already signed in, so accountSignedOut (which
+      // holds these forms) must be shown alongside accountSignedIn rather
+      // than replacing it — normally the two are mutually exclusive, driven
+      // by onAuthStateChanged below.
+      if (linking) accountSignedOutEl.hidden = false;
+      if (modeButtonsEl) modeButtonsEl.hidden = linking;
+    };
+
+    window.submitPhoneForm = async function (phoneNumber) {
+      const accountMessageEl = document.getElementById("accountMessage");
+      const sendCodeButtonEl = document.getElementById("sendCodeButton");
+      if (!phoneNumber) {
+        accountMessageEl.textContent = "請輸入電話號碼，例如 +85212345678。";
+        return;
+      }
+      sendCodeButtonEl.disabled = true;
+      accountMessageEl.textContent = "正在發送驗證碼……";
+      try {
+        if (authFormMode === "link-phone") {
+          const user = firebaseAuthInstance.currentUser;
+          if (!user) throw new Error("not signed in");
+          confirmationResult = await linkWithPhoneNumber(user, phoneNumber, getRecaptchaVerifier());
+        } else {
+          confirmationResult = await signInWithPhoneNumber(firebaseAuthInstance, phoneNumber, getRecaptchaVerifier());
+        }
+        document.getElementById("codeForm").hidden = false;
+        document.getElementById("verificationCode").focus();
+        accountMessageEl.textContent = "已發送驗證碼，請檢查你嘅短訊。";
+      } catch (err) {
+        console.error(err);
+        accountMessageEl.textContent = describeAuthError(err);
+      } finally {
+        sendCodeButtonEl.disabled = false;
+      }
+    };
+
+    window.submitCodeForm = async function (code) {
+      const accountMessageEl = document.getElementById("accountMessage");
+      const verifyCodeButtonEl = document.getElementById("verifyCodeButton");
+      if (!confirmationResult) {
+        accountMessageEl.textContent = "請先發送驗證碼。";
+        return;
+      }
+      if (!code) {
+        accountMessageEl.textContent = "請輸入驗證碼。";
+        return;
+      }
+      verifyCodeButtonEl.disabled = true;
+      accountMessageEl.textContent = "正在驗證……";
+      try {
+        await confirmationResult.confirm(code);
+        const wasLinking = authFormMode === "link-phone";
+        accountMessageEl.textContent = wasLinking ? "已連結電話號碼！" : "登入成功！";
+        authFormMode = "signin-phone";
+        // Linking a provider doesn't reliably re-fire onAuthStateChanged
+        // (the uid doesn't change) — refresh the signed-in view directly so
+        // the newly-linked phone number and updated link-buttons show up.
+        if (wasLinking) await refreshSignedInView(firebaseAuthInstance.currentUser);
+      } catch (err) {
+        console.error(err);
+        accountMessageEl.textContent = "驗證碼不正確或已過期，請重新發送。";
+      } finally {
+        verifyCodeButtonEl.disabled = false;
+      }
+    };
+
+    window.submitEmailForm = async function (email, password, isRegister) {
+      const accountMessageEl = document.getElementById("accountMessage");
+      if (!email || !password) {
+        accountMessageEl.textContent = "請輸入電郵同密碼。";
+        return;
+      }
+      accountMessageEl.textContent = isRegister ? "正在建立賬戶……" : "正在登入……";
+      try {
+        if (authFormMode === "link-email") {
+          const user = firebaseAuthInstance.currentUser;
+          if (!user) throw new Error("not signed in");
+          await linkWithCredential(user, EmailAuthProvider.credential(email, password));
+          accountMessageEl.textContent = "已連結電郵！";
+          await refreshSignedInView(firebaseAuthInstance.currentUser);
+        } else if (isRegister) {
+          await createUserWithEmailAndPassword(firebaseAuthInstance, email, password);
+          accountMessageEl.textContent = "賬戶已建立，登入成功！";
+        } else {
+          await signInWithEmailAndPassword(firebaseAuthInstance, email, password);
+          accountMessageEl.textContent = "登入成功！";
+        }
+      } catch (err) {
+        console.error(err);
+        accountMessageEl.textContent = describeAuthError(err);
+      }
+    };
+
+    window.signOutOfFirebase = async function () {
+      await signOut(firebaseAuthInstance);
+    };
+
+    async function refreshSignedInView(user) {
+      const accountSignedOutEl = document.getElementById("accountSignedOut");
+      const accountSignedInEl = document.getElementById("accountSignedIn");
+      const accountSignedInMessageEl = document.getElementById("accountSignedInMessage");
+      const linkPhoneButtonEl = document.getElementById("linkPhoneButton");
+      const linkEmailButtonEl = document.getElementById("linkEmailButton");
+      const phoneFormEl = document.getElementById("phoneForm");
+      const codeFormEl = document.getElementById("codeForm");
+      const emailFormEl = document.getElementById("emailForm");
+
+      if (!user) {
+        window.__setFirebaseIdToken(null);
+        accountSignedOutEl.hidden = false;
+        accountSignedInEl.hidden = true;
+        return;
+      }
+      window.__setFirebaseIdToken(await user.getIdToken());
+      accountSignedOutEl.hidden = true;
+      accountSignedInEl.hidden = false;
+      const identifiers = [user.phoneNumber, user.email].filter(Boolean).join(" / ");
+      accountSignedInMessageEl.textContent = "已登入：" + identifiers;
+      linkPhoneButtonEl.hidden = !!user.phoneNumber;
+      linkEmailButtonEl.hidden = !!user.email;
+      phoneFormEl.reset();
+      codeFormEl.reset();
+      emailFormEl.reset();
+      codeFormEl.hidden = true;
+      confirmationResult = null;
+      authFormMode = "signin-phone";
+    }
+
+    onAuthStateChanged(firebaseAuthInstance, async function (user) {
+      await refreshSignedInView(user);
+      // Refresh the contacts list if it's the page currently on screen —
+      // covers both a page-load restore of a previous session and a fresh
+      // sign-in/out while already viewing this page. Harmless no-op call
+      // otherwise (loadContacts is only ever rendering into a hidden page).
+      if (!document.getElementById("contactsPage").hidden && typeof window.loadContacts === "function") {
+        window.loadContacts();
+      }
+    });
   </script>
 </body>
 </html>

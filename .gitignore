@@ -16,3 +16,11 @@ events.jsonl
 # Runtime reminder state
 data/last_created_reminders.json
 data/pending_reminders.json
+
+# Committed by accident in an earlier commit — the web frontend loads
+# Firebase from a CDN <script type="module"> (no bundler, matching the
+# rest of this project's self-contained-static-HTML approach), so npm
+# packages aren't needed at runtime; package.json is kept only as a record
+# of what version was tested against.
+node_modules/
+node_modules
