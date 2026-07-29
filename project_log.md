@@ -124,18 +124,6 @@ Testing:
 
 Outcome: privacy-first, ethics-compliant onboarding flow committed under `/frontend`; ready to deploy once pointed at a permanent public URL.
 
-## LightRAG Integration Testing & Evaluation (2026-07-15)
-
-Tested the LightRAG framework (HKU Nanobot team's RAG solution) as a potential pipeline upgrade.
-
-- Reindexed `World-Alzheimer-Report-2023.md` from scratch. Retrieval quality is strong, but initial indexing is slow even for a moderate document.
-- Hit an `Embedding dimension mismatch` (3840 not evenly divisible by 1024) during storage flush.
-- Root cause: `.env` had `EMBEDDING_DIM=1024`, but the `all-minilm` embedding model actually produces 384. Fixed by setting `EMBEDDING_DIM=384`, deleting `rag_storage`, and reindexing.
-
-Status: promising retrieval, but indexing time is a real concern for production document updates.
-
-Open questions: how to speed up indexing (cheaper LLM for entity extraction, parallelization, or just accept the trade-off); embedding model/dimension must be documented explicitly to avoid repeat config errors.
-
 ### Dashboard, LightRAG & Frontend Debugging (2026-07-16)
 
 #### Dashboard & Logging Fixes
