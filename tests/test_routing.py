@@ -91,7 +91,7 @@ def test_caregiver_summary_routes_to_caregiver_manager(tmp_path, monkeypatch) ->
 def test_user_normal_question_routes_to_patient_user_manager(tmp_path, monkeypatch) -> None:
     _setup_registry(tmp_path, monkeypatch)
 
-    def fake_handle(message, user_id=None, show_sources=False, channel=""):
+    def fake_handle(message, user_id=None, show_sources=False, channel="", sender_id=""):
         return {
             "answer": "短回答",
             "route": "rag_qa",
@@ -125,7 +125,7 @@ def test_unknown_normal_question_routes_to_patient_user_manager(tmp_path, monkey
 def test_caregiver_free_text_can_get_guidance(tmp_path, monkeypatch) -> None:
     _setup_registry(tmp_path, monkeypatch)
 
-    def fake_handle(message, user_id=None, show_sources=False, channel=""):
+    def fake_handle(message, user_id=None, show_sources=False, channel="", sender_id=""):
         return {
             "answer": "家人重複提問時，可以先保持平靜，簡短回應，並留意是否影響生活或安全。",
             "route": "rag_qa",
@@ -203,7 +203,7 @@ def test_user_routes_to_user_mode(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("USER_REGISTRY_PATH", str(registry_path))
     monkeypatch.setenv("EVENTS_LOG_PATH", str(events_path))
 
-    def fake_handle(message, user_id=None, show_sources=False, channel=""):
+    def fake_handle(message, user_id=None, show_sources=False, channel="", sender_id=""):
         return {
             "answer": "短回答",
             "route": "rag_qa",

@@ -21,6 +21,7 @@ from src.user.mode_info import format_mode_info
 from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
 from src.user.pending_reminder import consume_pending_reminder_response, store_pending_reminder
+from src.user.pending_reminder_correction import consume_reminder_correction, store_last_created_reminder
 from src.user.security import is_admin_sender
 from src.user.session_preferences import set_avoid_patient_framing
 from src.user.user_registry import (
@@ -75,10 +76,26 @@ def handle_incoming_message(
         return _finalize_user_output(onboarding_result, message)
     registry_user_id = get_registry_user_id(normalized_sender_id) if role == "user" else None
     session_user_id = registry_user_id or normalized_sender_id
+    # Patients don't have to run \register for normal chat or reminder
+    # creation/delivery to work (see handle_patient_user_message below,
+    # taken by both "user" and "unknown" roles) — these two reminder
+    # follow-up flows must accept the same unregistered "unknown" role,
+    # not just "user", or they silently no-op for exactly the accounts most
+    # likely to need them.
     pending_activity_result = consume_pending_activity_response(normalized_sender_id, message)
     pending_reminder_result = (
         consume_pending_reminder_response(normalized_sender_id, message, channel)
-        if pending_activity_result is None and role == "user"
+        if pending_activity_result is None and role != "caregiver"
+        else None
+    )
+    # Tried only once neither the "what time?" follow-up nor an activity
+    # reply consumed this message — a bare correction like "抱歉，我的意思是
+    # 下午一點二十一" has no reminder-trigger phrase of its own, so without
+    # this it would fall through to a generic reply and silently leave the
+    # just-created reminder wrong.
+    reminder_correction_result = (
+        consume_reminder_correction(normalized_sender_id, message, channel)
+        if pending_activity_result is None and pending_reminder_result is None and role != "caregiver"
         else None
     )
     sender_memory = build_user_memory(normalized_sender_id)
@@ -88,13 +105,18 @@ def handle_incoming_message(
     event_user_id = linked_user_id or get_registry_user_id(normalized_sender_id) or normalized_sender_id
     consent = (
         consent_reply(message, event_user_id)
-        if role == "user" and pending_activity_result is None and pending_reminder_result is None
+        if role == "user"
+        and pending_activity_result is None
+        and pending_reminder_result is None
+        and reminder_correction_result is None
         else None
     )
     if pending_activity_result is not None:
         result = pending_activity_result
     elif pending_reminder_result is not None:
         result = pending_reminder_result
+    elif reminder_correction_result is not None:
+        result = reminder_correction_result
     elif consent is not None and _is_group_channel(channel):
         result = _screening_privacy_result()
         consent = None
@@ -146,6 +168,16 @@ def handle_incoming_message(
             pending_text,
             pending_language,
         )
+    if result.get("safety_level") == "reminder_created":
+        created_debug = result.get("debug") or {}
+        reminder_id = created_debug.get("reminder_id")
+        if reminder_id is not None:
+            store_last_created_reminder(
+                normalized_sender_id,
+                int(reminder_id),
+                str(created_debug.get("reminder_text") or "提醒"),
+                str(result.get("answer_language") or "zh-Hant"),
+            )
     if result.get("intent") == "role_correction":
         set_avoid_patient_framing(normalized_sender_id)
 

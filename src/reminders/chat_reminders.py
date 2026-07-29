@@ -250,19 +250,34 @@ def _extract_reminder_text(remainder: str) -> str:
     return text or "提醒"
 
 
-def get_or_create_patient(db, external_user_id: str, display_name: str = "") -> Patient:
+def get_or_create_patient(
+    db, external_user_id: str, display_name: str = "", chat_sender_id: str = "",
+) -> Patient:
     """Find the Patient row linked to this chat user, creating one if needed.
 
     external_user_id is the main app's registry_user_id
     (src/user/user_registry.py), not a reminders-native identity — this is
     the bridge between the two previously-separate identity systems.
+
+    chat_sender_id is the actual Telegram/WhatsApp chat identifier, captured
+    directly from the message-handling call chain (message_router.py always
+    has it) rather than reconstructed later by reverse-searching the user
+    registry — see the Patient.chat_sender_id column comment. Refreshed on
+    every call (not just at creation) so it stays correct if someone's
+    external_user_id gets linked to a different chat later.
     """
     patient = (
         db.query(Patient).filter(Patient.external_user_id == external_user_id).first()
     )
     if patient is not None:
+        changed = False
         if display_name and patient.name != display_name:
             patient.name = display_name
+            changed = True
+        if chat_sender_id and patient.chat_sender_id != chat_sender_id:
+            patient.chat_sender_id = chat_sender_id
+            changed = True
+        if changed:
             db.commit()
         return patient
 
@@ -270,6 +285,7 @@ def get_or_create_patient(db, external_user_id: str, display_name: str = "") -> 
         external_user_id=external_user_id,
         name=display_name or external_user_id,
         caregiver_id=None,
+        chat_sender_id=chat_sender_id or None,
     )
     db.add(patient)
     db.commit()
@@ -285,10 +301,11 @@ def create_reminder_for_user(
     days: str = ALL_DAYS,
     channel: str = "",
     message_id: str = "",
+    chat_sender_id: str = "",
 ) -> Reminder:
     db = SessionLocal()
     try:
-        patient = get_or_create_patient(db, external_user_id, display_name)
+        patient = get_or_create_patient(db, external_user_id, display_name, chat_sender_id)
         reminder = Reminder(
             patient_id=patient.id,
             text=text,
@@ -338,3 +355,50 @@ def reminder_confirmation_text(time_str: str, text: str, days: str, answer_langu
         return f'Okay, I\'ll remind you {cadence} at {time_str} to "{text}". Let me know if you want to change or cancel it later.'
     cadence = "今天" if one_time else "每日"
     return f"好的，我會{cadence}{time_str}提醒你「{text}」。如果之後想取消或更改，可以再告訴我。"
+
+
+def has_reminder_trigger_phrase(message: str) -> bool:
+    """True if the message itself asks for a reminder, independent of a time being present.
+
+    Used to tell a genuinely new reminder request ("提醒我...") apart from a
+    bare follow-up correction ("抱歉，我的意思是下午一點二十一") that only
+    makes sense in the context of a reminder just confirmed — the latter
+    should update that reminder rather than being treated as a fresh request
+    or falling through to a generic reply.
+    """
+    return any(pattern.search(message) for pattern in _TRIGGER_PATTERNS)
+
+
+def update_reminder_time(reminder_id: int, time_str: str, days: str) -> Reminder | None:
+    """Update an existing reminder's time/recurrence in place, keeping its text.
+
+    Returns None if the reminder no longer exists (e.g. already fired and
+    cleaned up) rather than raising, so callers can fall back gracefully.
+    """
+    db = SessionLocal()
+    try:
+        reminder = db.query(Reminder).filter(Reminder.id == reminder_id).first()
+        if reminder is None:
+            return None
+        reminder.time = time_str
+        reminder.days = days
+        db.commit()
+        db.refresh(reminder)
+        log_reminder_checkpoint(
+            "reminder_corrected", reminder_id=reminder.id, normalized_due_time=time_str, days=days,
+        )
+        return reminder
+    finally:
+        db.close()
+
+
+def reminder_correction_text(time_str: str, text: str, days: str, answer_language: str) -> str:
+    one_time = days == ONE_TIME
+    if answer_language == "zh-Hans":
+        cadence = "今天" if one_time else "每日"
+        return f"好的，已经帮你改成{cadence}{time_str}提醒你「{text}」。"
+    if answer_language == "en":
+        cadence = "today" if one_time else "every day"
+        return f'Got it, I\'ve updated it — I\'ll remind you {cadence} at {time_str} to "{text}".'
+    cadence = "今天" if one_time else "每日"
+    return f"好的，已經幫你改成{cadence}{time_str}提醒你「{text}」。"

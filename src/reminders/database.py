@@ -42,6 +42,15 @@ class Patient(Base):
     # table); uniqueness is instead enforced in chat_reminders.py's
     # find-or-create lookup.
     external_user_id = Column(String, nullable=True)
+    # The Telegram/WhatsApp chat identifier this patient last talked to the
+    # bot from, captured directly at reminder-creation time. Delivery used
+    # to reconstruct this by reverse-searching the user registry for a
+    # "user" account whose registry-assigned user_id matched
+    # external_user_id — which only worked for accounts that had completed
+    # \register, and silently failed delivery (with no user-visible error)
+    # for anyone who hadn't. Storing it here removes that dependency:
+    # delivery no longer needs registration state to exist or stay correct.
+    chat_sender_id = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     caregiver = relationship("Caregiver", backref="patients")
@@ -93,6 +102,9 @@ def _migrate_add_missing_columns() -> None:
         }
         if "external_user_id" not in existing_columns:
             connection.exec_driver_sql("ALTER TABLE patients ADD COLUMN external_user_id VARCHAR")
+            connection.commit()
+        if "chat_sender_id" not in existing_columns:
+            connection.exec_driver_sql("ALTER TABLE patients ADD COLUMN chat_sender_id VARCHAR")
             connection.commit()
 
 

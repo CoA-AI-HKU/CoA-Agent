@@ -16,7 +16,7 @@ def handle_patient_user_message(
     resolved_user_id = user_id or sender_id
     sender_memory = build_user_memory(sender_id)
     user_memory = build_memory_for_user_id(resolved_user_id)
-    result = handle_dementia_user_message(message, user_id=resolved_user_id, channel=channel)
+    result = handle_dementia_user_message(message, user_id=resolved_user_id, channel=channel, sender_id=sender_id)
     output = dict(result)
     output["manager"] = "patient_user_manager"
     output["role"] = output.get("role") or "user"

@@ -95,6 +95,7 @@ def consume_pending_reminder_response(sender_id: str, message: str, channel: str
     try:
         reminder = create_reminder_for_user(
             user_id, display_name, text, parsed.time, days=parsed.days, channel=channel,
+            chat_sender_id=sender_id,
         )
     except Exception:
         return None

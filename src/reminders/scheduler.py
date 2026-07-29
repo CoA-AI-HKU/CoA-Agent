@@ -69,25 +69,31 @@ def _send_telegram_message(chat_id: str, text: str) -> bool:
 
 
 def _deliver_reminder(patient: Patient, reminder: Reminder) -> bool:
-    """Resolve the patient's chat identity and push the reminder over Telegram."""
-    if not patient.external_user_id:
+    """Resolve the patient's chat identity and push the reminder over Telegram.
+
+    Prefers patient.chat_sender_id — captured directly at reminder-creation
+    time, present regardless of whether the account ever completed
+    \\register. Falls back to the older registry reverse-lookup only for
+    reminders created before this column existed, so those keep working
+    without needing a data migration; that path only ever worked for
+    registered accounts anyway.
+    """
+    sender_id = patient.chat_sender_id
+    if not sender_id and patient.external_user_id:
+        sender_id, _ = get_user_record_by_user_id(patient.external_user_id)
+        if sender_id:
+            log_reminder_checkpoint(
+                "reminder_delivery_used_legacy_lookup", reminder_id=reminder.id,
+                user_id=patient.external_user_id,
+            )
+    if not sender_id:
         logger.warning(
-            "Reminder %s for patient %s has no linked chat account; cannot deliver",
+            "Reminder %s for patient %s has no resolvable chat identity; cannot deliver",
             reminder.id, patient.id,
         )
         log_reminder_checkpoint(
-            "reminder_delivery_blocked", reminder_id=reminder.id, reason="no_external_user_id",
-        )
-        return False
-    sender_id, _ = get_user_record_by_user_id(patient.external_user_id)
-    if not sender_id:
-        logger.warning(
-            "No chat account found for external_user_id=%s (reminder %s)",
-            patient.external_user_id, reminder.id,
-        )
-        log_reminder_checkpoint(
             "reminder_delivery_blocked", reminder_id=reminder.id,
-            user_id=patient.external_user_id, reason="no_chat_record_for_external_user_id",
+            user_id=patient.external_user_id, reason="no_resolvable_chat_identity",
         )
         return False
     return _send_telegram_message(sender_id, f"⏰ 提醒：{reminder.text}")

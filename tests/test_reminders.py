@@ -465,3 +465,162 @@ def test_scheduler_skips_delivery_when_patient_not_linked_to_a_chat_account():
         assert delivered is False
     finally:
         _cleanup_patient(external_id)
+
+
+def test_unregistered_sender_still_gets_reminder_delivered(tmp_path, monkeypatch):
+    # Regression test: delivery used to require a completed \register (it
+    # reverse-searched the registry for a "user" account whose assigned
+    # user_id matched the reminder's external_user_id), so an unregistered
+    # sender's reminder was created and confirmed normally but silently
+    # never delivered — reproduced live in production. chat_sender_id is
+    # now captured directly at creation time, independent of registration.
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    external_id = "unregistered-delivery-test"
+    try:
+        result = handle_incoming_message("12:50提醒我食藥", external_id, "telegram")
+        assert result["route"] == "routine"
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            assert patient is not None
+            assert patient.chat_sender_id == external_id
+            reminder = db.query(Reminder).filter(Reminder.patient_id == patient.id).first()
+
+            sent = {}
+
+            def fake_post(url, json=None, timeout=None):
+                sent["json"] = json
+
+                class Response:
+                    status_code = 200
+
+                return Response()
+
+            with mock.patch.object(reminder_scheduler.requests, "post", fake_post):
+                monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-token")
+                delivered = reminder_scheduler._deliver_reminder(patient, reminder)
+        finally:
+            db.close()
+
+        assert delivered is True
+        assert sent["json"]["chat_id"] == external_id
+    finally:
+        _cleanup_patient(external_id)
+
+
+def test_delivery_falls_back_to_registry_lookup_for_legacy_rows_without_chat_sender_id(registered_patient, monkeypatch):
+    # A reminder created before chat_sender_id existed (or by any other path
+    # that didn't pass it) has patient.chat_sender_id == None — delivery
+    # must still work for those via the original registry reverse-lookup.
+    reminder = create_reminder_for_user(registered_patient, "Test Ling", "食藥", "08:00")
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        assert patient.chat_sender_id is None  # not passed by this call
+
+        sent = {}
+
+        def fake_post(url, json=None, timeout=None):
+            sent["json"] = json
+
+            class Response:
+                status_code = 200
+
+            return Response()
+
+        with mock.patch.object(reminder_scheduler.requests, "post", fake_post):
+            monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-token")
+            delivered = reminder_scheduler._deliver_reminder(patient, reminder)
+    finally:
+        db.close()
+
+    assert delivered is True
+    assert sent["json"]["chat_id"] == "telegram-reminder-test"
+
+
+def test_reminder_correction_updates_time_and_keeps_task_text(tmp_path, monkeypatch):
+    # Regression test: "抱歉，我的意思是下午一點二十一" (a follow-up
+    # correcting the time) has no reminder-trigger phrase of its own, so it
+    # used to fall through to a generic "I don't understand" reply and leave
+    # the wrongly-timed reminder untouched — reproduced live in production.
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
+    external_id = "correction-flow-test"
+    try:
+        first = handle_incoming_message("一點二十分提醒我喝水好嗎", external_id, "telegram")
+        assert first["route"] == "routine"
+        assert first["safety_level"] == "reminder_created"
+        assert "01:20" in first["answer"]
+
+        second = handle_incoming_message("抱歉，我的意思是下午一點二十一", external_id, "telegram")
+        assert second["route"] == "routine"
+        assert second["safety_level"] == "reminder_corrected"
+        assert "13:21" in second["answer"]
+        assert "喝水" in second["answer"]
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+            # Corrected in place — still exactly one reminder, not a second one.
+            assert len(reminders) == 1
+            assert reminders[0].time == "13:21"
+            assert reminders[0].text == "喝水"
+        finally:
+            db.close()
+    finally:
+        _cleanup_patient(external_id)
+
+
+def test_reminder_correction_does_not_apply_when_followup_is_a_new_request(tmp_path, monkeypatch):
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
+    external_id = "correction-not-hijacked-test"
+    try:
+        first = handle_incoming_message("一點二十分提醒我喝水", external_id, "telegram")
+        assert first["safety_level"] == "reminder_created"
+
+        # Has its own "提醒我" trigger phrase — a genuinely new request, must
+        # not be swallowed as a correction of the first reminder.
+        second = handle_incoming_message("五點提醒我食藥", external_id, "telegram")
+        assert second["safety_level"] == "reminder_created"
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+            assert len(reminders) == 2
+        finally:
+            db.close()
+    finally:
+        _cleanup_patient(external_id)
+
+
+def test_reminder_correction_expires_after_its_ttl(tmp_path, monkeypatch):
+    from src.user import pending_reminder_correction
+
+    state_path = tmp_path / "last_created_reminders.json"
+    monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(state_path))
+
+    from datetime import datetime, timedelta, timezone
+    stale_entry = {
+        "reminder_id": 999999,
+        "text": "食藥",
+        "answer_language": "zh-Hant",
+        "created_at": (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat(),
+    }
+    state_path.write_text(json.dumps({"stale-correction-test": stale_entry}), encoding="utf-8")
+
+    result = pending_reminder_correction.consume_reminder_correction("stale-correction-test", "下午一點二十一")
+    assert result is None

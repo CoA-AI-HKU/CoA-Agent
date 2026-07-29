@@ -96,6 +96,7 @@ def handle_routine_request(
     user_id: str | None = None,
     channel: str = "",
     message_id: str = "",
+    sender_id: str = "",
 ) -> dict[str, Any]:
     answer_language = detect_answer_language(message)
 
@@ -189,7 +190,7 @@ def handle_routine_request(
     try:
         reminder = create_reminder_for_user(
             user_id, display_name, parsed.text, parsed.time, days=parsed.days,
-            channel=channel, message_id=message_id,
+            channel=channel, message_id=message_id, chat_sender_id=sender_id,
         )
     except Exception:
         logger.exception("Failed to create reminder for user_id=%s", user_id)

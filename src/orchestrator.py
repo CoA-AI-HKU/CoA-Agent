@@ -55,6 +55,7 @@ def handle_dementia_user_message(
     user_id: str | None = None,
     show_sources: bool = False,
     channel: str = "",
+    sender_id: str = "",
 ) -> dict[str, Any]:
     log_string_diagnostic(
         logger, "orchestrator_input_message", message,
@@ -104,7 +105,9 @@ def handle_dementia_user_message(
             user_id=user_id, channel=channel, message_id=message_id,
             intent=decision.intent, confidence=decision.confidence,
         )
-        result = handle_routine_request(message, user_id, channel=channel, message_id=message_id)
+        result = handle_routine_request(
+            message, user_id, channel=channel, message_id=message_id, sender_id=sender_id,
+        )
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":
