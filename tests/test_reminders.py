@@ -442,6 +442,55 @@ def test_llm_fallback_can_ask_its_own_clarifying_question(registered_patient, mo
     assert result["answer"] == "請問想幾點提醒你呢？"
 
 
+def test_llm_fallback_resolves_ambiguous_bare_hour_using_context(registered_patient, monkeypatch):
+    # The LLM is now also consulted when regex parses a time but can't tell
+    # AM/PM from the bare hour alone — it can use surrounding context the
+    # regex can't ("食完晚飯" implies evening) instead of always falling
+    # back to asking the user directly.
+    decision = ReminderDecision(
+        is_reminder=True, time="21:00", days=chat_reminders.ALL_DAYS, task="食藥", response=None,
+    )
+    monkeypatch.setattr(
+        "src.agents.memory_routine_agent.decide_reminder_via_llm",
+        lambda message, now, answer_language: decision,
+    )
+
+    result = handle_routine_request("食完晚飯九點提醒我食藥", registered_patient)
+
+    assert result["route"] == "routine"
+    assert result["safety_level"] == "reminder_created"
+    assert "21:00" in result["answer"]
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+        assert any(r.time == "21:00" and r.text == "食藥" for r in reminders)
+    finally:
+        db.close()
+
+
+def test_llm_fallback_still_asks_canned_period_question_when_it_also_cant_tell(registered_patient, monkeypatch):
+    # If the LLM is consulted for an ambiguous bare hour but also can't
+    # resolve AM/PM (time still None), fall back to the specific, structured
+    # period question rather than the LLM's own generic "what time?" reply —
+    # the regex already extracted the hour, so re-asking for the whole time
+    # from scratch would be a worse follow-up than asking just AM/PM.
+    decision = ReminderDecision(
+        is_reminder=True, time=None, days=None, task="食藥", response="唔知道你想幾點呀，可以講清楚啲嗎？",
+    )
+    monkeypatch.setattr(
+        "src.agents.memory_routine_agent.decide_reminder_via_llm",
+        lambda message, now, answer_language: decision,
+    )
+
+    result = handle_routine_request("九點提醒我食藥", registered_patient)
+
+    assert result["route"] == "routine"
+    assert result["safety_level"] == "reminder_needs_period"
+    assert "上午" in result["answer"] and "下午" in result["answer"]
+
+
 def test_llm_fallback_is_never_consulted_when_regex_already_found_a_time(registered_patient, monkeypatch):
     def fail_if_called(*args, **kwargs):
         raise AssertionError("LLM fallback must not run when the regex parser already found a time")
@@ -648,6 +697,41 @@ def test_parse_reminder_request_marked_or_24_hour_times_are_not_ambiguous():
     assert parse_reminder_request("0點提醒我食藥").period_ambiguous is False
 
 
+def test_parse_reminder_request_recognizes_wu_hou_and_wu_qian():
+    # Regression test: "午後"/"午前" (formal/Japanese-influenced "after
+    # noon"/"before noon") weren't in the recognized period-marker set, so
+    # "午後兩點十五分提醒我喝水" fell through as ambiguous and asked AM/PM
+    # unnecessarily — reproduced live in production.
+    parsed = parse_reminder_request("午後兩點十五分提醒我喝水")
+    assert parsed.time == "14:15"
+    assert parsed.period_ambiguous is False
+
+    parsed2 = parse_reminder_request("午前七點提醒我食藥")
+    assert parsed2.time == "07:00"
+    assert parsed2.period_ambiguous is False
+
+    assert parse_reminder_request("午后兩點提醒我喝水").time == "14:00"
+
+
+def test_parse_reminder_request_strips_zhong_filler_after_hour():
+    # Regression test: "九點鐘" ("nine o'clock", 鐘 is a filler with no
+    # meaning of its own) left "鐘" stuck onto the reminder text ("鐘喝水")
+    # because the time pattern stopped matching right after "點" — reproduced
+    # live in production.
+    parsed = parse_reminder_request("晚上九點鐘提醒我喝水")
+    assert parsed.time == "21:00"
+    assert parsed.text == "喝水"
+
+    parsed2 = parse_reminder_request("下午5點鐘提醒我食藥")
+    assert parsed2.time == "17:00"
+    assert parsed2.text == "食藥"
+
+
+def test_parse_reminder_request_strips_trailing_ho_a_and_ho_ho():
+    parsed = parse_reminder_request("下午五點提醒我喝水可以啊")
+    assert parsed.text == "喝水"
+
+
 def test_ambiguous_reminder_asks_am_or_pm_instead_of_guessing(tmp_path, monkeypatch):
     # This is the exact case that bit Ling in production: "一點二十分提醒我
     # 喝水好嗎" silently became 01:20 when 13:20 was meant, discovered only
@@ -739,3 +823,41 @@ def test_pending_period_response_expires_after_its_ttl(tmp_path, monkeypatch):
 
     result = pending_reminder_period.consume_pending_period_response("stale-period-test", "下午")
     assert result is None
+
+
+def test_pending_period_question_does_not_hijack_a_new_complete_request(tmp_path, monkeypatch):
+    # Regression test: while an AM/PM question was pending for one reminder,
+    # a completely separate, well-formed new request ("晚上九點提醒我喝水
+    # 可以啊") was swallowed as if it were just answering "PM" for the
+    # *earlier* reminder — silently discarding the new request's own time
+    # and task and corrupting the earlier reminder's time instead.
+    # Reproduced live in production.
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    monkeypatch.setenv("PENDING_REMINDER_PERIOD_STATE_PATH", str(tmp_path / "pending_reminder_periods.json"))
+    monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
+    external_id = "period-not-hijacked-test"
+    try:
+        first = handle_incoming_message("兩點十五分提醒我喝水", external_id, "telegram")
+        assert first["safety_level"] == "reminder_needs_period"
+
+        second = handle_incoming_message("晚上九點提醒我食藥可以啊", external_id, "telegram")
+        assert second["safety_level"] == "reminder_created"
+        assert "21:00" in second["answer"]
+        assert "食藥" in second["answer"]
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+            # Only the second, complete reminder exists — the first never
+            # got created since its AM/PM question was never answered.
+            assert len(reminders) == 1
+            assert reminders[0].time == "21:00"
+            assert reminders[0].text == "食藥"
+        finally:
+            db.close()
+    finally:
+        _cleanup_patient(external_id)

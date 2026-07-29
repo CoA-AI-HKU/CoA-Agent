@@ -36,16 +36,20 @@ ONE_TIME = "once"
 # time, and "今天"/"今日" directly next to a time is absorbed into the same
 # match so it doesn't leak into the reminder's own text.
 _PERIOD_KIND = {
-    "凌晨": "am", "清晨": "am", "早上": "am", "上午": "am",
+    "凌晨": "am", "清晨": "am", "早上": "am", "上午": "am", "午前": "am",
     "中午": "noon",
     "下午": "pm", "晚上": "pm", "夜晚": "pm", "夜間": "pm", "夜间": "pm", "傍晚": "pm",
+    "午後": "pm", "午后": "pm",
 }
 _PERIOD_ALTERNATION = "|".join(sorted(_PERIOD_KIND, key=len, reverse=True))
 _TODAY_WORD = r"今[天日]"
 
 _TIME_PATTERN = re.compile(
     rf"(?:{_TODAY_WORD})?\s*(?P<period_before>{_PERIOD_ALTERNATION})?\s*"
-    r"(?<!\d)(?P<hour>[01]?\d|2[0-3])[:：時时点點](?P<minute>\d{1,2})?分?(?!\d)"
+    # "鐘"/"钟" is an optional colloquial "o'clock" filler ("9點鐘" = "nine
+    # o'clock") with no meaning of its own — absorbed here so it doesn't leak
+    # into the reminder's own text (previously produced text like "鐘喝水").
+    r"(?<!\d)(?P<hour>[01]?\d|2[0-3])[:：時时点點][鐘钟]?(?P<minute>\d{1,2})?分?(?!\d)"
     rf"\s*(?P<period_after>{_PERIOD_ALTERNATION})?"
 )
 
@@ -68,7 +72,7 @@ _NUMBER_WORD = r"[\d一二兩两三四五六七八九十]{1,3}"
 # message must not be mistaken for a time.
 _CHINESE_TIME_PATTERN = re.compile(
     rf"(?:{_TODAY_WORD})?\s*(?P<period_before>{_PERIOD_ALTERNATION})?\s*"
-    rf"(?P<hour>{_NUMBER_WORD})[點点]\s*(?P<minute>{_NUMBER_WORD})?分?"
+    rf"(?P<hour>{_NUMBER_WORD})[點点][鐘钟]?\s*(?P<minute>{_NUMBER_WORD})?分?"
     rf"\s*(?P<period_after>{_PERIOD_ALTERNATION})?"
 )
 # "N分鐘後"/"N小時後" (in N minutes/hours) — relative durations, resolved
@@ -114,7 +118,7 @@ _ONE_TIME_PATTERNS = [
 # only the question particle and leaves "好"/"可以" stuck onto the
 # reminder's own text (e.g. "喝水好嗎" -> "喝水好" instead of "喝水").
 _TRAILING_PARTICLES = re.compile(
-    r"(得唔得|好唔好|可唔可以|好嗎|好吗|可以嗎|可以吗|OK嗎|OK吗|嗎|吗|呀|啊|喇|啦|呢)\s*$",
+    r"(得唔得|好唔好|可唔可以|好嗎|好吗|好啊|可以嗎|可以吗|可以啊|OK嗎|OK吗|嗎|吗|呀|啊|喇|啦|呢)\s*$",
     re.IGNORECASE,
 )
 _ENGLISH_FILLER = re.compile(r"^(to)\b|\b(at|on|by)$", re.IGNORECASE)

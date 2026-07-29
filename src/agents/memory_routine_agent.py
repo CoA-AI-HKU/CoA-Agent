@@ -130,17 +130,19 @@ def handle_routine_request(
 
     parsed = parse_reminder_request(message)
     llm_decision = None
-    if parsed is None and decide_reminder_via_llm is not None:
+    if (parsed is None or parsed.period_ambiguous) and decide_reminder_via_llm is not None:
         # The regex parser only recognizes fixed phrasings ("5:25", "五點",
         # "兩分鐘後"...) — real messages drift outside those ("食完飯後",
-        # "遲啲", typos, unseen constructions). Rather than keep hand-patching
-        # every new phrasing as it's found in production, fall back to asking
-        # the LLM to make the actual judgment call: is this really a
-        # reminder, what's the time, what's the recurrence, and — if it
-        # can't tell — compose its own clarifying reply instead of the fixed
-        # template below. Only reached when the fast deterministic path
-        # already found nothing, so well-formed messages never pay this
-        # latency/cost.
+        # "遲啲", typos, unseen constructions), and even when it does find a
+        # bare hour, it has no way to use surrounding context to resolve
+        # AM/PM. Rather than keep hand-patching every new phrasing and every
+        # ambiguous case as it's found in production, let the LLM make the
+        # actual judgment call: is this really a reminder, what's the time,
+        # what's the recurrence, and — if it genuinely can't tell — compose
+        # its own clarifying reply instead of the fixed templates below.
+        # Only reached when the fast deterministic path already found
+        # nothing usable or an ambiguous bare hour, so a clean, explicit
+        # time ("下午5:30", "17:00") never pays this latency/cost.
         llm_decision = decide_reminder_via_llm(message, datetime.now(LOCAL_TIMEZONE), answer_language)
 
     if llm_decision is not None and not llm_decision.is_reminder:
