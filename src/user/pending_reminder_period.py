@@ -13,12 +13,14 @@ try:
     from src.reminders.chat_reminders import (
         adjust_hour_for_period_kind,
         create_reminder_for_user,
+        has_reminder_trigger_phrase,
         reminder_confirmation_text,
         resolve_period_word,
     )
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
     adjust_hour_for_period_kind = None
     create_reminder_for_user = None
+    has_reminder_trigger_phrase = None
     reminder_confirmation_text = None
     resolve_period_word = None
 
@@ -74,6 +76,7 @@ def consume_pending_period_response(sender_id: str, message: str, channel: str =
     tool_available = (
         adjust_hour_for_period_kind is not None
         and create_reminder_for_user is not None
+        and has_reminder_trigger_phrase is not None
         and resolve_period_word is not None
     )
     if not tool_available:
@@ -86,6 +89,15 @@ def consume_pending_period_response(sender_id: str, message: str, channel: str =
     if _is_expired(pending):
         state.pop(sender_id, None)
         _save_state(state)
+        return None
+
+    # A message with its own reminder-trigger phrase ("提醒我...") is a
+    # genuinely new, complete request, not an answer to the pending AM/PM
+    # question — even if it happens to also contain a period word.
+    # Reproduced live: "晚上九點提醒我喝水可以啊" (a full separate request)
+    # was swallowed as if it were "PM" for the *earlier* ambiguous reminder,
+    # silently discarding the new one's own time and task.
+    if has_reminder_trigger_phrase(message):
         return None
 
     kind = resolve_period_word(message)

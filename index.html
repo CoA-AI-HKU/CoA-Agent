@@ -1303,128 +1303,24 @@
     }
 
     // ===== REMINDER FUNCTIONS =====
-    async function loadReminders() {
-      if (!isAuthenticated()) {
-        reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">請先登入以查看提醒。</li>';
-        return;
-      }
-
-      try {
-        const res = await fetch(API_BASE_URL + "/api/reminders", {
-          headers: { "Authorization": "Bearer " + authToken }
-        });
-        if (!res.ok) {
-          if (res.status === 401) {
-            clearAuth();
-            reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">登入已過期，請重新登入。</li>';
-            return;
-          }
-          throw new Error("Failed to load reminders");
-        }
-        const reminders = await res.json();
-        if (reminders.length === 0) {
-          reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#61767b;">暫無提醒，新增一個吧！</li>';
-          return;
-        }
-        reminderList.innerHTML = reminders.map(function (reminder) {
-          const daysDisplay = formatDays(reminder.days);
-          return `<li class="reminder-item">
-            <div>
-              <strong>💊 ${reminder.text}</strong>
-              <div style="font-size:0.9rem; color:#61767b;">🕐 ${reminder.time} · ${daysDisplay}</div>
-            </div>
-            <button class="action-button danger-button small-button" data-reminder-id="${reminder.id}">刪除</button>
-          </li>`;
-        }).join("");
-
-        document.querySelectorAll("#reminderList .danger-button").forEach(function (btn) {
-          btn.addEventListener("click", function () {
-            const id = parseInt(btn.dataset.reminderId);
-            deleteReminder(id);
-          });
-        });
-      } catch (err) {
-        console.error(err);
-        reminderList.innerHTML = '<li class="reminder-item" style="justify-content:center; color:#b42318;">無法載入提醒，請稍後再試。</li>';
-      }
+    // Reminders have no REST API by design (see docs/backend_api.md) —
+    // they're created, listed, and cancelled entirely by talking to the
+    // agent, the same way as Telegram, so the schedule stays correct
+    // without a second, separately-maintained copy. This form used to call
+    // a /api/reminders endpoint that never existed; rather than build a
+    // parallel reminders API, point users at the already-working chat path.
+    function loadReminders() {
+      reminderList.innerHTML =
+        '<li class="reminder-item" style="justify-content:center; color:#61767b;">請直接同小安傾偈設定提醒，例如「下午5點提醒我食藥」。</li>';
     }
 
-    function formatDays(days) {
-      const map = {
-        'mon,tue,wed,thu,fri,sat,sun': '每日',
-        'mon,tue,wed,thu,fri': '平日 (一至五)',
-        'sat,sun': '週末',
-        'mon,wed,fri': '一三五',
-        'tue,thu': '二四'
-      };
-      return map[days] || days;
-    }
-
-    async function addReminder() {
-      if (!isAuthenticated()) {
-        accountMessage.textContent = "請先登入以新增提醒。";
-        showPage("accountPage");
-        return;
-      }
-
-      const text = medNameInput.value.trim();
-      const time = medTimeInput.value;
-      const days = medRepeatSelect.value;
-
-      if (!text) {
-        alert("請輸入藥物名稱");
-        medNameInput.focus();
-        return;
-      }
-      if (!time) {
-        alert("請選擇時間");
-        medTimeInput.focus();
-        return;
-      }
-
-      try {
-        const res = await fetch(API_BASE_URL + "/api/reminders", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + authToken
-          },
-          body: JSON.stringify({
-            patient_id: 1,
-            text: text,
-            time: time,
-            days: days
-          })
-        });
-        if (!res.ok) {
-          const err = await res.json();
-          alert("新增失敗：" + (err.detail || "未知錯誤"));
-          return;
-        }
-        medNameInput.value = "";
-        medTimeInput.value = "08:00";
-        medRepeatSelect.selectedIndex = 0;
-        loadReminders();
-      } catch (err) {
-        alert("連線錯誤：" + err.message);
-      }
-    }
-
-    async function deleteReminder(reminderId) {
-      if (!confirm("確定要刪除這個提醒嗎？")) return;
-      try {
-        const res = await fetch(API_BASE_URL + "/api/reminders/" + reminderId, {
-          method: "DELETE",
-          headers: { "Authorization": "Bearer " + authToken }
-        });
-        if (!res.ok) {
-          alert("刪除失敗");
-          return;
-        }
-        loadReminders();
-      } catch (err) {
-        alert("連線錯誤：" + err.message);
-      }
+    function addReminder() {
+      appendConversationMessage(
+        "系統",
+        "而家可以直接喺對話入面同小安講你想幾點提醒你做咩，例如「下午5點提醒我食藥」，唔使用呢個表格。",
+        "assistant",
+      );
+      showPage("homePage");
     }
 
     // ===== RECOGNITION =====
@@ -1610,66 +1506,20 @@
     document.getElementById("showLoginButton").addEventListener("click", function () { showAccountForm("login"); });
     document.getElementById("showRegisterButton").addEventListener("click", function () { showAccountForm("register"); });
 
-    registerForm.addEventListener("submit", async function (event) {
+    // Web account login/register is not built yet: the backend's real
+    // /v1/auth endpoints identify accounts by sender_id/role (the same
+    // identity used by Telegram/WhatsApp), not username/password — there is
+    // no password concept anywhere in this system. Rather than call a
+    // mismatched or non-existent endpoint and show a confusing "connection
+    // error", these forms say so plainly. Chat itself needs no login.
+    registerForm.addEventListener("submit", function (event) {
       event.preventDefault();
-      const username = document.getElementById("registerName").value.trim();
-      const password = document.getElementById("registerPassword").value;
-      const display_name = document.getElementById("registerDisplayName").value.trim();
-
-      if (!username || !password || !display_name) {
-        accountMessage.textContent = "請填寫所有欄位。";
-        return;
-      }
-
-      try {
-        const res = await fetch(API_BASE_URL + "/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password, display_name })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          accountMessage.textContent = "註冊失敗：" + (data.detail || "未知錯誤");
-          return;
-        }
-        setAuthToken(data.access_token);
-        accountMessage.textContent = "註冊成功！已自動登入。";
-        showPage("homePage");
-        loadReminders();
-      } catch (err) {
-        accountMessage.textContent = "連線錯誤：" + err.message;
-      }
+      accountMessage.textContent = "網頁帳戶登入功能仍在開發中。你可以直接喺主頁同小安傾偈，唔需要登入。";
     });
 
-    loginForm.addEventListener("submit", async function (event) {
+    loginForm.addEventListener("submit", function (event) {
       event.preventDefault();
-      const username = document.getElementById("loginName").value.trim();
-      const password = document.getElementById("loginPassword").value;
-
-      if (!username || !password) {
-        accountMessage.textContent = "請輸入用戶名稱和密碼。";
-        return;
-      }
-
-      try {
-        const res = await fetch(API_BASE_URL + "/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          accountMessage.textContent = "登入失敗：" + (data.detail || "用戶名稱或密碼不正確");
-          return;
-        }
-        setAuthToken(data.access_token);
-        accountMessage.textContent = "登入成功！歡迎你，" + data.display_name + "。";
-        loginForm.reset();
-        showPage("homePage");
-        loadReminders();
-      } catch (err) {
-        accountMessage.textContent = "連線錯誤：" + err.message;
-      }
+      accountMessage.textContent = "網頁帳戶登入功能仍在開發中。你可以直接喺主頁同小安傾偈，唔需要登入。";
     });
 
     // ===== CONTACTS =====
@@ -1712,44 +1562,15 @@
     addReminderBtn.addEventListener("click", addReminder);
 
     // ===== EMERGENCY BUTTON =====
-    async function triggerEmergency() {
-      if (!isAuthenticated()) {
-        alert("請先登入以使用緊急求助功能");
-        showPage("accountPage");
-        return;
-      }
-
-      try {
-        // 先获取紧急联系人列表，检查是否为空
-        const res = await fetch(API_BASE_URL + "/api/emergency", {
-          headers: { "Authorization": "Bearer " + authToken }
-        });
-        if (!res.ok) throw new Error("無法載入聯絡人");
-        const contacts = await res.json();
-        if (contacts.length === 0) {
-          alert("請先設定至少一位緊急聯絡人\n前往「📞 聯絡人」頁面新增。");
-          showPage("contactsPage");
-          return;
-        }
-
-        if (!confirm("🚨 你確定要發出緊急求助嗎？\n系統會通知你所有嘅緊急聯絡人。")) return;
-
-        const triggerRes = await fetch(API_BASE_URL + "/api/emergency/trigger", {
-          method: "POST",
-          headers: { "Authorization": "Bearer " + authToken }
-        });
-        if (!triggerRes.ok) {
-          const err = await triggerRes.json();
-          alert("緊急求助失敗：" + (err.detail || "未知錯誤"));
-          return;
-        }
-        const data = await triggerRes.json();
-        const names = data.notified.map(function(c) { return c.name; }).join("、");
-        alert("✅ 已發出緊急求助！\n已通知：" + names);
-        appendConversationMessage("系統", "🚨 已發出緊急求助！已通知：" + names, "assistant");
-      } catch (err) {
-        alert("連線錯誤：" + err.message);
-      }
+    // No backend emergency-notification feature exists yet (this used to
+    // call /api/emergency and /api/emergency/trigger, neither of which the
+    // server implements — every press would 404 or, before that, dead-end
+    // at a login screen nobody could complete). A silently-broken "help is
+    // on the way" button in a dementia-support app is worse than none, so
+    // this says plainly that it doesn't summon help yet and points to a
+    // real emergency number instead of pretending to notify anyone.
+    function triggerEmergency() {
+      alert("緊急求助功能仍在開發中，暫時未能通知緊急聯絡人。\n如有緊急情況，請直接致電緊急服務（香港：999）。");
     }
 
     if (emergencyButton) {
