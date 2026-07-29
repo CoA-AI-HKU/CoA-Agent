@@ -22,5 +22,11 @@
     "text": "食藥",
     "answer_language": "zh-Hant",
     "created_at": "2026-07-29T06:07:55.330124+00:00"
+  },
+  "8830339339": {
+    "reminder_id": 24,
+    "text": "鐘喝水",
+    "answer_language": "zh-Hant",
+    "created_at": "2026-07-29T06:13:48.148938+00:00"
   }
 }
