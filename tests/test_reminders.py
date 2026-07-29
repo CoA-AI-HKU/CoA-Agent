@@ -210,7 +210,7 @@ def test_get_or_create_patient_is_idempotent():
 
 
 def test_reminder_request_creates_reminder_and_confirms(registered_patient):
-    result = handle_dementia_user_message("12：28可以提醒我吃藥嗎", registered_patient)
+    result = handle_dementia_user_message("下午12：28可以提醒我吃藥嗎", registered_patient)
 
     assert result["route"] == "routine"
     assert "12:28" in result["answer"]
@@ -255,7 +255,7 @@ def test_explicit_reminder_request_bypasses_medication_boundary():
 
 
 def test_scheduler_delivers_due_reminder_via_telegram(registered_patient, monkeypatch):
-    handle_dementia_user_message("08:15可以提醒我食藥嗎", registered_patient)
+    handle_dementia_user_message("上午08:15可以提醒我食藥嗎", registered_patient)
 
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-token")
     sent = {}
@@ -330,16 +330,19 @@ def test_bare_time_reply_completes_a_pending_reminder(registered_patient, tmp_pa
     assert first["route"] == "routine"
     assert "幾點" in first["answer"]
 
-    second = handle_incoming_message("3：41", "telegram-reminder-test", "telegram")
+    # 15:41 rather than a bare "3:41" — an in-range 24-hour hour (>12) is
+    # unambiguous on its own, keeping this test's focus on the pending-reply
+    # mechanism itself rather than also exercising the AM/PM question.
+    second = handle_incoming_message("15：41", "telegram-reminder-test", "telegram")
     assert second["route"] == "routine"
-    assert "03:41" in second["answer"]
+    assert "15:41" in second["answer"]
     assert "食藥" in second["answer"]
 
     db = SessionLocal()
     try:
         patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
         assert patient is not None
-        assert any(r.time == "03:41" and r.text == "食藥" for r in db.query(Reminder).filter(Reminder.patient_id == patient.id))
+        assert any(r.time == "15:41" and r.text == "食藥" for r in db.query(Reminder).filter(Reminder.patient_id == patient.id))
     finally:
         db.close()
 
@@ -445,7 +448,7 @@ def test_llm_fallback_is_never_consulted_when_regex_already_found_a_time(registe
 
     monkeypatch.setattr("src.agents.memory_routine_agent.decide_reminder_via_llm", fail_if_called)
 
-    result = handle_routine_request("12：28可以提醒我吃藥嗎", registered_patient)
+    result = handle_routine_request("下午12：28可以提醒我吃藥嗎", registered_patient)
 
     assert result["route"] == "routine"
     assert "12:28" in result["answer"]
@@ -480,7 +483,7 @@ def test_unregistered_sender_still_gets_reminder_delivered(tmp_path, monkeypatch
     monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
     external_id = "unregistered-delivery-test"
     try:
-        result = handle_incoming_message("12:50提醒我食藥", external_id, "telegram")
+        result = handle_incoming_message("下午12:50提醒我食藥", external_id, "telegram")
         assert result["route"] == "routine"
 
         db = SessionLocal()
@@ -555,10 +558,13 @@ def test_reminder_correction_updates_time_and_keeps_task_text(tmp_path, monkeypa
     monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
     external_id = "correction-flow-test"
     try:
-        first = handle_incoming_message("一點二十分提醒我喝水好嗎", external_id, "telegram")
+        # Both messages include an explicit period marker so this test
+        # exercises the correction mechanism itself, not the separate
+        # AM/PM-clarification flow that a bare "一點二十分" would now trigger.
+        first = handle_incoming_message("下午一點二十提醒我喝水好嗎", external_id, "telegram")
         assert first["route"] == "routine"
         assert first["safety_level"] == "reminder_created"
-        assert "01:20" in first["answer"]
+        assert "13:20" in first["answer"]
 
         second = handle_incoming_message("抱歉，我的意思是下午一點二十一", external_id, "telegram")
         assert second["route"] == "routine"
@@ -588,12 +594,12 @@ def test_reminder_correction_does_not_apply_when_followup_is_a_new_request(tmp_p
     monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
     external_id = "correction-not-hijacked-test"
     try:
-        first = handle_incoming_message("一點二十分提醒我喝水", external_id, "telegram")
+        first = handle_incoming_message("下午一點二十提醒我喝水", external_id, "telegram")
         assert first["safety_level"] == "reminder_created"
 
         # Has its own "提醒我" trigger phrase — a genuinely new request, must
         # not be swallowed as a correction of the first reminder.
-        second = handle_incoming_message("五點提醒我食藥", external_id, "telegram")
+        second = handle_incoming_message("下午五點提醒我食藥", external_id, "telegram")
         assert second["safety_level"] == "reminder_created"
 
         db = SessionLocal()
@@ -623,4 +629,113 @@ def test_reminder_correction_expires_after_its_ttl(tmp_path, monkeypatch):
     state_path.write_text(json.dumps({"stale-correction-test": stale_entry}), encoding="utf-8")
 
     result = pending_reminder_correction.consume_reminder_correction("stale-correction-test", "下午一點二十一")
+    assert result is None
+
+
+def test_parse_reminder_request_flags_bare_hour_as_period_ambiguous():
+    parsed = parse_reminder_request("一點二十分提醒我喝水")
+    assert parsed.time == "01:20"
+    assert parsed.period_ambiguous is True
+
+    parsed2 = parse_reminder_request("5:30可以提醒我食藥嗎")
+    assert parsed2.time == "05:30"
+    assert parsed2.period_ambiguous is True
+
+
+def test_parse_reminder_request_marked_or_24_hour_times_are_not_ambiguous():
+    assert parse_reminder_request("下午5:30可以提醒我食藥嗎").period_ambiguous is False
+    assert parse_reminder_request("十七點提醒我食藥").period_ambiguous is False
+    assert parse_reminder_request("0點提醒我食藥").period_ambiguous is False
+
+
+def test_ambiguous_reminder_asks_am_or_pm_instead_of_guessing(tmp_path, monkeypatch):
+    # This is the exact case that bit Ling in production: "一點二十分提醒我
+    # 喝水好嗎" silently became 01:20 when 13:20 was meant, discovered only
+    # after the wrong-time reminder had already fired.
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    monkeypatch.setenv("PENDING_REMINDER_PERIOD_STATE_PATH", str(tmp_path / "pending_reminder_periods.json"))
+    external_id = "am-pm-question-test"
+    try:
+        first = handle_incoming_message("一點二十分提醒我喝水好嗎", external_id, "telegram")
+        assert first["route"] == "routine"
+        assert first["safety_level"] == "reminder_needs_period"
+        assert "1點" in first["answer"]
+        assert "上午" in first["answer"] and "下午" in first["answer"]
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            assert patient is None  # nothing created while the question is pending
+        finally:
+            db.close()
+
+        second = handle_incoming_message("下午", external_id, "telegram")
+        assert second["route"] == "routine"
+        assert second["safety_level"] == "reminder_created"
+        assert "13:20" in second["answer"]
+        assert "喝水" in second["answer"]
+
+        db = SessionLocal()
+        try:
+            patient = db.query(Patient).filter(Patient.external_user_id == external_id).first()
+            reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+            assert len(reminders) == 1
+            assert reminders[0].time == "13:20"
+            assert reminders[0].text == "喝水"
+        finally:
+            db.close()
+    finally:
+        _cleanup_patient(external_id)
+
+
+def test_pending_reminder_completion_chains_into_period_question_when_still_ambiguous(tmp_path, monkeypatch):
+    from src.user.message_router import handle_incoming_message
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "missing_registry.json"))
+    monkeypatch.setenv("EVENTS_LOG_PATH", str(tmp_path / "events.jsonl"))
+    monkeypatch.setenv("PENDING_REMINDER_STATE_PATH", str(tmp_path / "pending_reminders.json"))
+    monkeypatch.setenv("PENDING_REMINDER_PERIOD_STATE_PATH", str(tmp_path / "pending_reminder_periods.json"))
+    external_id = "pending-then-period-test"
+    try:
+        first = handle_incoming_message("提醒我食藥", external_id, "telegram")
+        assert first["safety_level"] == "reminder_needs_time"
+
+        # The reply that completes the pending "what time?" question is
+        # itself a bare, unmarked hour — must chain into the AM/PM question
+        # rather than silently guessing.
+        second = handle_incoming_message("9點", external_id, "telegram")
+        assert second["safety_level"] == "reminder_needs_period"
+
+        third = handle_incoming_message("上午", external_id, "telegram")
+        assert third["safety_level"] == "reminder_created"
+        assert "09:00" in third["answer"]
+        assert "食藥" in third["answer"]
+    finally:
+        _cleanup_patient(external_id)
+
+
+def test_pending_period_response_expires_after_its_ttl(tmp_path, monkeypatch):
+    from src.user import pending_reminder_period
+
+    state_path = tmp_path / "pending_reminder_periods.json"
+    monkeypatch.setenv("PENDING_REMINDER_PERIOD_STATE_PATH", str(state_path))
+
+    from datetime import datetime, timedelta, timezone
+    stale_entry = {
+        "user_id": "stale-period-user",
+        "display_name": "",
+        "sender_id": "stale-period-test",
+        "hour": 5,
+        "minute": 0,
+        "text": "食藥",
+        "days": chat_reminders.ALL_DAYS,
+        "answer_language": "zh-Hant",
+        "created_at": (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat(),
+    }
+    state_path.write_text(json.dumps({"stale-period-test": stale_entry}), encoding="utf-8")
+
+    result = pending_reminder_period.consume_pending_period_response("stale-period-test", "下午")
     assert result is None

@@ -10,11 +10,17 @@ from src.pipeline.language import detect_answer_language
 from src.reminders.trace_logging import log_reminder_checkpoint
 
 try:
-    from src.reminders.chat_reminders import create_reminder_for_user, parse_reminder_request, reminder_confirmation_text
+    from src.reminders.chat_reminders import (
+        create_reminder_for_user,
+        parse_reminder_request,
+        reminder_confirmation_text,
+        reminder_period_question_text,
+    )
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
     create_reminder_for_user = None
     parse_reminder_request = None
     reminder_confirmation_text = None
+    reminder_period_question_text = None
 
 
 DEFAULT_STATE_PATH = Path(__file__).resolve().parents[2] / "data" / "pending_reminders.json"
@@ -82,6 +88,34 @@ def consume_pending_reminder_response(sender_id: str, message: str, channel: str
     user_id = str(pending.get("user_id") or "")
     display_name = str(pending.get("display_name") or "")
     answer_language = str(pending.get("answer_language") or "") or detect_answer_language(message)
+
+    if parsed.period_ambiguous:
+        # The time that completes a pending "what time?" question can
+        # itself be ambiguous ("5點" in reply to "幾點提醒你？") — chain
+        # into the AM/PM question instead of guessing. message_router.py
+        # reads the same debug keys handle_routine_request uses for this,
+        # so both paths arm the pending-period state identically.
+        # (the pending "needs time" entry was already popped above)
+        raw_hour, raw_minute = (int(part) for part in parsed.time.split(":"))
+        return {
+            "answer": reminder_period_question_text(raw_hour, answer_language),
+            "route": "routine",
+            "intent": "reminder_request",
+            "sources": [],
+            "found": False,
+            "rag_called": False,
+            "safety_level": "reminder_needs_period",
+            "answer_language": answer_language,
+            "debug": {
+                "agent": "pending_reminder",
+                "reason": "period_ambiguous",
+                "reminder_pending_period_hour": raw_hour,
+                "reminder_pending_period_minute": raw_minute,
+                "reminder_pending_period_text": text,
+                "reminder_pending_period_days": parsed.days,
+                "reminder_pending_language": answer_language,
+            },
+        }
 
     log_reminder_checkpoint(
         "reminder_tool_available",

@@ -22,6 +22,7 @@ from src.user.onboarding_state import begin_onboarding, consume_onboarding_reply
 from src.user.pending_activity import consume_pending_activity_response, store_pending_activity
 from src.user.pending_reminder import consume_pending_reminder_response, store_pending_reminder
 from src.user.pending_reminder_correction import consume_reminder_correction, store_last_created_reminder
+from src.user.pending_reminder_period import consume_pending_period_response, store_pending_reminder_period
 from src.user.security import is_admin_sender
 from src.user.session_preferences import set_avoid_patient_framing
 from src.user.user_registry import (
@@ -88,14 +89,26 @@ def handle_incoming_message(
         if pending_activity_result is None and role != "caregiver"
         else None
     )
-    # Tried only once neither the "what time?" follow-up nor an activity
-    # reply consumed this message — a bare correction like "抱歉，我的意思是
-    # 下午一點二十一" has no reminder-trigger phrase of its own, so without
-    # this it would fall through to a generic reply and silently leave the
-    # just-created reminder wrong.
+    # A bare "上午"/"下午" reply to the AM/PM question — tried before the
+    # correction flow below since it answers a more fundamental question
+    # (what time is this even at) than a correction to an already-complete
+    # reminder.
+    pending_period_result = (
+        consume_pending_period_response(normalized_sender_id, message, channel)
+        if pending_activity_result is None and pending_reminder_result is None and role != "caregiver"
+        else None
+    )
+    # Tried only once neither the "what time?" follow-up, the AM/PM
+    # follow-up, nor an activity reply consumed this message — a bare
+    # correction like "抱歉，我的意思是下午一點二十一" has no reminder-trigger
+    # phrase of its own, so without this it would fall through to a generic
+    # reply and silently leave the just-created reminder wrong.
     reminder_correction_result = (
         consume_reminder_correction(normalized_sender_id, message, channel)
-        if pending_activity_result is None and pending_reminder_result is None and role != "caregiver"
+        if pending_activity_result is None
+        and pending_reminder_result is None
+        and pending_period_result is None
+        and role != "caregiver"
         else None
     )
     sender_memory = build_user_memory(normalized_sender_id)
@@ -108,6 +121,7 @@ def handle_incoming_message(
         if role == "user"
         and pending_activity_result is None
         and pending_reminder_result is None
+        and pending_period_result is None
         and reminder_correction_result is None
         else None
     )
@@ -115,6 +129,8 @@ def handle_incoming_message(
         result = pending_activity_result
     elif pending_reminder_result is not None:
         result = pending_reminder_result
+    elif pending_period_result is not None:
+        result = pending_period_result
     elif reminder_correction_result is not None:
         result = reminder_correction_result
     elif consent is not None and _is_group_channel(channel):
@@ -167,6 +183,18 @@ def handle_incoming_message(
             str(record.get("display_name") or ""),
             pending_text,
             pending_language,
+        )
+    if result.get("safety_level") == "reminder_needs_period":
+        period_debug = result.get("debug") or {}
+        store_pending_reminder_period(
+            normalized_sender_id,
+            str(event_user_id or session_user_id),
+            str(record.get("display_name") or ""),
+            int(period_debug.get("reminder_pending_period_hour") or 0),
+            int(period_debug.get("reminder_pending_period_minute") or 0),
+            str(period_debug.get("reminder_pending_period_text") or "提醒"),
+            str(period_debug.get("reminder_pending_period_days") or ""),
+            str(period_debug.get("reminder_pending_language") or "zh-Hant"),
         )
     if result.get("safety_level") == "reminder_created":
         created_debug = result.get("debug") or {}

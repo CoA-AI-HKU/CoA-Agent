@@ -125,6 +125,14 @@ class ParsedReminder(NamedTuple):
     time: str
     text: str
     days: str
+    # True when the time was given as a bare 1-12 hour with no 上午/下午/AM/PM
+    # marker ("一點", "9點", "5:30") — genuinely ambiguous, since nothing in
+    # the message says which half of the day was meant. Always False for
+    # in-range 24-hour-notation hours (13-23, or explicit "0點"/midnight) and
+    # for relative durations, neither of which need a marker to be
+    # unambiguous. Callers (see memory_routine_agent.handle_routine_request)
+    # ask the user to clarify instead of silently guessing AM.
+    period_ambiguous: bool = False
 
 
 def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedReminder | None:
@@ -173,11 +181,17 @@ def parse_reminder_request(message: str, now: datetime | None = None) -> ParsedR
     if not (0 <= hour <= 23 and 0 <= minute <= 59):
         return None
     time_str = f"{hour:02d}:{minute:02d}"
+    # period is None means no marker was given at all — _adjust_hour_for_period
+    # is then a no-op, so `hour` here still equals the bare hour as typed.
+    period_ambiguous = period is None and 1 <= hour <= 12
 
     remainder = message[: span[0]] + message[span[1] :]
     is_one_time = any(pattern.search(remainder) for pattern in _ONE_TIME_PATTERNS)
     text = _extract_reminder_text(remainder)
-    return ParsedReminder(time=time_str, text=text, days=ONE_TIME if is_one_time else ALL_DAYS)
+    return ParsedReminder(
+        time=time_str, text=text, days=ONE_TIME if is_one_time else ALL_DAYS,
+        period_ambiguous=period_ambiguous,
+    )
 
 
 def _match_relative_time(message: str, reference: datetime) -> tuple[datetime, tuple[int, int]] | None:
@@ -223,7 +237,15 @@ def _number_word_to_int(text: str) -> int | None:
 
 
 def _adjust_hour_for_period(hour: int, period: str | None) -> int:
-    kind = _PERIOD_KIND.get(period or "")
+    return adjust_hour_for_period_kind(hour, _PERIOD_KIND.get(period or ""))
+
+
+def adjust_hour_for_period_kind(hour: int, kind: str | None) -> int:
+    """Same adjustment as _adjust_hour_for_period, but takes a resolved kind
+
+    ("am"/"pm"/"noon", e.g. from resolve_period_word) rather than a raw
+    marker word — used once a period-clarification reply has been resolved.
+    """
     if kind == "pm" and hour < 12:
         return hour + 12
     if kind == "am" and hour == 12:
@@ -402,3 +424,34 @@ def reminder_correction_text(time_str: str, text: str, days: str, answer_languag
         return f'Got it, I\'ve updated it — I\'ll remind you {cadence} at {time_str} to "{text}".'
     cadence = "今天" if one_time else "每日"
     return f"好的，已經幫你改成{cadence}{time_str}提醒你「{text}」。"
+
+
+def reminder_period_question_text(hour: int, answer_language: str) -> str:
+    """Ask which half of the day a bare, unmarked hour (1-12) means."""
+    if answer_language == "zh-Hans":
+        return f"你说{hour}点，是想说上午还是下午呢？"
+    if answer_language == "en":
+        return f"Did you mean {hour} AM or {hour} PM?"
+    return f"你話{hour}點，係想話上午定係下午呢？"
+
+
+# English AM/PM replies to a period-clarification question — separate from
+# _PERIOD_KIND (which anchors specifically Chinese period words used inline
+# in a time expression like "下午2:14"), since a bare reply here may be just
+# "AM"/"PM"/"am"/"pm" with no accompanying time at all.
+_ENGLISH_PERIOD_REPLY = re.compile(r"\b(a\.?m\.?|p\.?m\.?)\b", re.IGNORECASE)
+
+
+def resolve_period_word(message: str) -> str | None:
+    """Extract 'am'/'pm'/'noon' from a reply to the AM/PM clarification question.
+
+    Returns None if the reply doesn't contain a recognizable period word, so
+    the caller knows not to treat it as an answer.
+    """
+    for word, kind in _PERIOD_KIND.items():
+        if word in message:
+            return kind
+    english = _ENGLISH_PERIOD_REPLY.search(message)
+    if english:
+        return "pm" if english.group(1).lower().startswith("p") else "am"
+    return None

@@ -21,6 +21,7 @@ try:
         extract_reminder_text_only,
         parse_reminder_request,
         reminder_confirmation_text,
+        reminder_period_question_text,
     )
     from src.reminders.llm_reminder_extractor import decide_reminder_via_llm
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
@@ -30,6 +31,7 @@ except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this proce
     extract_reminder_text_only = None
     parse_reminder_request = None
     reminder_confirmation_text = None
+    reminder_period_question_text = None
     decide_reminder_via_llm = None
 
 
@@ -177,6 +179,27 @@ def handle_routine_request(
                 # bare time reply like "3:41" has no CJK characters to detect
                 # a language from on its own.
                 "reminder_pending_text": extract_reminder_text_only(message),
+                "reminder_pending_language": answer_language,
+            },
+        )
+
+    if parsed.period_ambiguous:
+        raw_hour, raw_minute = (int(part) for part in parsed.time.split(":"))
+        return _placeholder_result(
+            answer=reminder_period_question_text(raw_hour, answer_language),
+            intent="reminder_request",
+            route="routine",
+            safety_level="reminder_needs_period",
+            answer_language=answer_language,
+            debug={
+                "agent": "memory_routine",
+                "reason": "period_ambiguous",
+                # message_router.py reads these to arm a short-lived "waiting
+                # for AM/PM" state — see src/user/pending_reminder_period.py.
+                "reminder_pending_period_hour": raw_hour,
+                "reminder_pending_period_minute": raw_minute,
+                "reminder_pending_period_text": parsed.text,
+                "reminder_pending_period_days": parsed.days,
                 "reminder_pending_language": answer_language,
             },
         )
