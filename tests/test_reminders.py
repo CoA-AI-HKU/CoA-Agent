@@ -124,6 +124,24 @@ def test_parse_reminder_request_handles_trailing_pm_marker():
     assert parsed.days == chat_reminders.ONE_TIME
 
 
+def test_parse_reminder_request_strips_trailing_confirmation_phrases():
+    # Regression test: "喝水好嗎" ("drink water, okay?") only had the bare
+    # "嗎" particle stripped, leaving "好" stuck onto the reminder text
+    # ("喝水好") — reproduced live in production. "好嗎"/"可以嗎"/etc. must
+    # be stripped as whole units, not just their trailing particle.
+    from datetime import datetime
+
+    now = datetime(2026, 7, 27, 15, 0)
+    parsed = parse_reminder_request("提醒我兩分鐘后喝水好嗎", now=now)
+    assert parsed.text == "喝水"
+
+    parsed2 = parse_reminder_request("五點二十六分提醒我喝水可以嗎")
+    assert parsed2.text == "喝水"
+
+    parsed3 = parse_reminder_request("12：28可以提醒我吃藥嗎")
+    assert parsed3.text == "吃藥"
+
+
 def test_parse_reminder_request_handles_relative_minutes():
     from datetime import datetime
 

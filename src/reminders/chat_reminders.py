@@ -107,7 +107,16 @@ _ONE_TIME_PATTERNS = [
         r"\bonly once\b", r"\bjust once\b", r"\bone[- ]time\b", r"\bjust today\b", r"\bonly today\b",
     )
 ]
-_TRAILING_PARTICLES = re.compile(r"(嗎|吗|呀|啊|喇|啦|呢)\s*$")
+# Trailing confirmation-seeking phrases ("喝水好嗎" = "drink water, okay?",
+# "喝水可以嗎" = "drink water, is that okay?", Cantonese "得唔得"/"好唔好")
+# must be matched as whole units, listed before the bare single-character
+# particles they contain — otherwise a leftmost-match on just "嗎" strips
+# only the question particle and leaves "好"/"可以" stuck onto the
+# reminder's own text (e.g. "喝水好嗎" -> "喝水好" instead of "喝水").
+_TRAILING_PARTICLES = re.compile(
+    r"(得唔得|好唔好|可唔可以|好嗎|好吗|可以嗎|可以吗|OK嗎|OK吗|嗎|吗|呀|啊|喇|啦|呢)\s*$",
+    re.IGNORECASE,
+)
 _ENGLISH_FILLER = re.compile(r"^(to)\b|\b(at|on|by)$", re.IGNORECASE)
 _STRIP_CHARS = " ，,。.?？~！!:：、"
 
