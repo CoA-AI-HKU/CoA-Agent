@@ -4,8 +4,9 @@ import sys
 import os
 from pathlib import Path
 
-# Add project root to path
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+# Add project root to path (this file lives at scripts/, so the project
+# root is one level up).
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.experimental.memory_routine_agent import (
     handle_personal_memory,
@@ -20,7 +21,7 @@ from src.metrics import log_event, infer_event_type
 # ===== FORCE THE CORRECT EVENTS PATH =====
 # Make sure events are written to the project's data folder,
 # which is where the Dashboard reads from.
-PROJECT_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 EVENTS_PATH = PROJECT_ROOT / "data" / "private" / "events.jsonl"
 os.environ["EVENTS_LOG_PATH"] = str(EVENTS_PATH)
 # =========================================

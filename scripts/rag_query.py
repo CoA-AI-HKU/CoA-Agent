@@ -5,6 +5,12 @@ Usage: python3 rag_query.py "your question"
 """
 
 import sys
+from pathlib import Path
+
+# This file lives at scripts/, so the project root is one level up — needed
+# on sys.path for `from src...` to resolve regardless of the caller's CWD.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from src.dementia_rag import answer_from_dementia_knowledge
 
 def main():
