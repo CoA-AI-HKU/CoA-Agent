@@ -16,6 +16,14 @@ from backend.services.account_profiles import (
 from backend.services.accounts_database import SessionLocal, WebContact
 from backend.services.firebase_auth import FirebaseUser, is_configured, verify_id_token
 from src.user.conversation_flags import get_recent_flags
+from src.user.user_registry import (
+    create_pairing_code,
+    get_linked_user_ids,
+    get_user_record_by_user_id,
+    redeem_pairing_code,
+    register_account,
+    unlink_caregiver,
+)
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 # No prefix — the spec for this endpoint names it exactly /api/me, and it is
@@ -86,11 +94,75 @@ def put_preferences(
 
 @me_router.get("/api/me/conversation-flags")
 def get_conversation_flags(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
-    # Only this account's own flags — see src/user/conversation_flags.py for
-    # why (no cross-account linkage exists yet to show a separate patient's
-    # flags to a caregiver account). Never includes raw message text, only
-    # the short stored reason (see ConversationFlag).
-    return {"flags": get_recent_flags(user.uid)}
+    # This account's own flags, plus any linked patient's (see the pairing
+    # endpoints below) — each entry tagged with whose it is. Never includes
+    # raw message text, only the short stored reason (see ConversationFlag).
+    combined = [dict(flag, source="自己") for flag in get_recent_flags(user.uid)]
+    for patient in _linked_patients(user.uid):
+        sender_id, _ = get_user_record_by_user_id(patient["user_id"])
+        if not sender_id:
+            continue
+        combined.extend(dict(flag, source=patient["display_name"]) for flag in get_recent_flags(sender_id))
+    combined.sort(key=lambda flag: flag["created_at"], reverse=True)
+    return {"flags": combined}
+
+
+class PairingCodeRequest(BaseModel):
+    display_name: str | None = None
+
+
+@me_router.post("/api/me/pairing-code")
+def create_my_pairing_code(
+    payload: PairingCodeRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    # Registers this account as a "patient" in the same registry Telegram's
+    # \paircode command uses (src/user/user_registry.py) — the code this
+    # returns works identically whether it's redeemed from Telegram's \link
+    # or from a web caregiver's /api/me/link-patient below.
+    register_account(user.uid, "user", display_name=payload.display_name or user.display_name or "")
+    code = create_pairing_code(user.uid)
+    return {"code": code, "expires_in_minutes": 15}
+
+
+class LinkPatientRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=32)
+
+
+@me_router.post("/api/me/link-patient")
+def link_patient(
+    payload: LinkPatientRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    register_account(user.uid, "caregiver", display_name=user.display_name or "")
+    try:
+        redeem_pairing_code(user.uid, payload.code)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"linked_patients": _linked_patients(user.uid)}
+
+
+@me_router.get("/api/me/linked-patients")
+def list_linked_patients(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    return {"linked_patients": _linked_patients(user.uid)}
+
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}")
+def remove_linked_patient(
+    patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    try:
+        removed = unlink_caregiver(user.uid, patient_user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"removed": removed, "linked_patients": _linked_patients(user.uid)}
+
+
+def _linked_patients(caregiver_uid: str) -> list[dict[str, str]]:
+    patients = []
+    for patient_user_id in get_linked_user_ids(caregiver_uid):
+        _, record = get_user_record_by_user_id(patient_user_id)
+        display_name = str(record.get("display_name") or "").strip() or patient_user_id
+        patients.append({"user_id": patient_user_id, "display_name": display_name})
+    return patients
 
 
 class ContactRequest(BaseModel):

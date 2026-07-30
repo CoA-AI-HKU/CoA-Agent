@@ -318,3 +318,122 @@ def test_conversation_flags_endpoint_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     response = client.get("/api/me/conversation-flags")
     assert response.status_code == 401
+
+
+def test_generate_pairing_code_returns_a_usable_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-pairing-generator"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/pairing-code", json={}, headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert len(body["code"]) == 8
+        assert body["expires_in_minutes"] == 15
+    finally:
+        _cleanup(uid)
+
+
+def test_pairing_code_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.post("/api/me/pairing-code", json={})
+    assert response.status_code == 401
+
+
+def test_link_patient_with_a_valid_code_links_both_accounts(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-pairing-patient", "pytest-pairing-caregiver"
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code = client.post(
+            "/api/me/pairing-code", json={"display_name": "阿婆"}, headers={"Authorization": "Bearer patient"},
+        ).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        link_response = client.post(
+            "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"},
+        )
+        assert link_response.status_code == 200
+        linked = link_response.json()["linked_patients"]
+        assert len(linked) == 1
+        assert linked[0]["display_name"] == "阿婆"
+
+        listing = client.get("/api/me/linked-patients", headers={"Authorization": "Bearer caregiver"})
+        assert listing.json()["linked_patients"] == linked
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_link_patient_with_an_invalid_code_returns_422(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-pairing-bad-code"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.post(
+            "/api/me/link-patient", json={"code": "NOTREAL1"}, headers={"Authorization": "Bearer fake"},
+        )
+        assert response.status_code == 422
+    finally:
+        _cleanup(uid)
+
+
+def test_unlinking_a_patient_removes_it_from_the_list(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-pairing-unlink-patient", "pytest-pairing-unlink-caregiver"
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code = client.post(
+            "/api/me/pairing-code", json={}, headers={"Authorization": "Bearer patient"},
+        ).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        headers = {"Authorization": "Bearer caregiver"}
+        linked = client.post("/api/me/link-patient", json={"code": code}, headers=headers).json()["linked_patients"]
+        patient_user_id = linked[0]["user_id"]
+
+        removal = client.delete(f"/api/me/linked-patients/{patient_user_id}", headers=headers)
+        assert removal.status_code == 200
+        assert removal.json()["linked_patients"] == []
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_conversation_flags_include_a_linked_patients_flags_with_source_label(monkeypatch, tmp_path):
+    from src.user.conversation_flags import get_recent_flags as _get_recent_flags
+    from src.user.conversation_flags_database import ConversationFlag, SessionLocal as FlagsSessionLocal
+    from src.user.conversation_flags import maybe_flag_turn
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-flags-linked-patient", "pytest-flags-linked-caregiver"
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code = client.post(
+            "/api/me/pairing-code", json={"display_name": "爸爸"}, headers={"Authorization": "Bearer patient"},
+        ).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        headers = {"Authorization": "Bearer caregiver"}
+        client.post("/api/me/link-patient", json={"code": code}, headers=headers)
+
+        maybe_flag_turn(patient_uid, "胸口好痛 chest pain", answer_callable=None)
+
+        response = client.get("/api/me/conversation-flags", headers=headers)
+        assert response.status_code == 200
+        flags = response.json()["flags"]
+        assert len(flags) == 1
+        assert flags[0]["source"] == "爸爸"
+        assert flags[0]["flag_type"] == "safety"
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+        db = FlagsSessionLocal()
+        try:
+            db.query(ConversationFlag).filter(ConversationFlag.sender_id == patient_uid).delete(
+                synchronize_session=False,
+            )
+            db.commit()
+        finally:
+            db.close()

@@ -480,6 +480,30 @@
         </div>
 
         <div class="subpage-section">
+          <h2>🔗 連結照顧對象</h2>
+          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
+            要連結一個由你照顧嘅人，請對方（喺呢個網頁或者 Telegram）產生一個配對碼，然後喺呢度輸入。
+          </p>
+          <form id="linkPatientForm">
+            <div class="form-field">
+              <label for="pairingCodeInput">對方嘅配對碼</label>
+              <input id="pairingCodeInput" name="pairingCodeInput" autocapitalize="characters" required>
+            </div>
+            <button class="action-button send-button" type="submit">連結</button>
+          </form>
+          <p id="linkPatientMessage" class="form-message" aria-live="polite"></p>
+          <ul id="linkedPatientsList" class="contact-list" aria-label="已連結嘅照顧對象"></ul>
+
+          <hr style="margin:1.2rem 0; border:none; border-top:1px solid #d8e6e8;">
+
+          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
+            如果你想俾另一位照顧者連結返嚟你（例如你自己都有人照顧），可以喺呢度產生一個配對碼俾佢。
+          </p>
+          <button id="generatePairingCodeButton" class="action-button secondary-button" type="button">產生配對碼</button>
+          <p id="generatePairingCodeMessage" class="form-message" aria-live="polite"></p>
+        </div>
+
+        <div class="subpage-section">
           <h2>📞 聯絡人</h2>
           <form id="contactForm">
             <div class="form-field">
@@ -653,6 +677,12 @@
     const contactMessage = document.getElementById("contactMessage");
     const conversationFlagsList = document.getElementById("conversationFlagsList");
     const conversationFlagsMessage = document.getElementById("conversationFlagsMessage");
+    const linkPatientForm = document.getElementById("linkPatientForm");
+    const pairingCodeInput = document.getElementById("pairingCodeInput");
+    const linkPatientMessage = document.getElementById("linkPatientMessage");
+    const linkedPatientsList = document.getElementById("linkedPatientsList");
+    const generatePairingCodeButton = document.getElementById("generatePairingCodeButton");
+    const generatePairingCodeMessage = document.getElementById("generatePairingCodeMessage");
 
     const prefDefaultMode = document.getElementById("prefDefaultMode");
     const prefRecognitionLanguage = document.getElementById("prefRecognitionLanguage");
@@ -759,7 +789,7 @@
       document.getElementById("caregiverMode").hidden = mode !== "caregiver";
       document.getElementById("developerMode").hidden = mode !== "developer";
       renderModeSwitcher();
-      if (mode === "caregiver") { loadContacts(); loadConversationFlags(); }
+      if (mode === "caregiver") { loadContacts(); loadConversationFlags(); loadLinkedPatients(); }
       if (mode === "developer") { devRecognitionLanguage.textContent = "辨識語言：" + currentRecognitionLanguage(); }
     }
 
@@ -1012,7 +1042,8 @@
         const reason = document.createElement("span");
         const when = document.createElement("small");
         item.className = "contact-item";
-        label.textContent = FLAG_TYPE_LABELS[flag.flag_type] || flag.flag_type;
+        const sourceLabel = flag.source && flag.source !== "自己" ? "（" + flag.source + "）" : "";
+        label.textContent = (FLAG_TYPE_LABELS[flag.flag_type] || flag.flag_type) + sourceLabel;
         reason.textContent = " " + flag.reason;
         when.textContent = new Date(flag.created_at).toLocaleString("zh-HK");
         when.style.display = "block";
@@ -1031,6 +1062,91 @@
         conversationFlagsMessage.textContent = "無法載入近期提示，請稍後再試。";
       }
     }
+
+    function renderLinkedPatients(patients) {
+      linkedPatientsList.replaceChildren();
+      if (!patients.length) {
+        const empty = document.createElement("li");
+        empty.className = "contact-item";
+        empty.textContent = "未有連結任何照顧對象。";
+        linkedPatientsList.append(empty);
+        return;
+      }
+      patients.forEach(function (patient) {
+        const item = document.createElement("li");
+        const name = document.createElement("span");
+        const removeButton = document.createElement("button");
+        item.className = "contact-item";
+        name.textContent = patient.display_name;
+        removeButton.className = "action-button danger-button small-button";
+        removeButton.type = "button";
+        removeButton.textContent = "解除連結";
+        removeButton.addEventListener("click", function () { unlinkPatient(patient.user_id); });
+        item.append(name, removeButton);
+        linkedPatientsList.append(item);
+      });
+    }
+
+    async function loadLinkedPatients() {
+      try {
+        const res = await apiFetch("/api/me/linked-patients");
+        if (!res.ok) throw new Error("failed to load linked patients");
+        renderLinkedPatients((await res.json()).linked_patients || []);
+      } catch (err) {
+        linkPatientMessage.textContent = "無法載入已連結嘅照顧對象，請稍後再試。";
+      }
+    }
+
+    async function unlinkPatient(patientUserId) {
+      if (!confirm("確定要解除呢個連結嗎？")) return;
+      try {
+        const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId), { method: "DELETE" });
+        if (!res.ok) throw new Error("failed to unlink patient");
+        renderLinkedPatients((await res.json()).linked_patients || []);
+        loadConversationFlags();
+      } catch (err) {
+        linkPatientMessage.textContent = "解除連結失敗，請稍後再試。";
+      }
+    }
+
+    linkPatientForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const code = pairingCodeInput.value.trim();
+      if (!code) return;
+      linkPatientMessage.textContent = "";
+      try {
+        const res = await apiFetch("/api/me/link-patient", { method: "POST", body: JSON.stringify({ code: code }) });
+        if (!res.ok) {
+          const body = await res.json().catch(function () { return {}; });
+          throw new Error(body.detail || "link failed");
+        }
+        const body = await res.json();
+        renderLinkedPatients(body.linked_patients || []);
+        pairingCodeInput.value = "";
+        linkPatientMessage.textContent = "連結成功！";
+        linkPatientMessage.classList.remove("error-message");
+        loadConversationFlags();
+      } catch (err) {
+        linkPatientMessage.textContent = "配對碼無效或已過期，請確認後再試一次。";
+        linkPatientMessage.classList.add("error-message");
+      }
+    });
+
+    generatePairingCodeButton.addEventListener("click", async function () {
+      generatePairingCodeButton.disabled = true;
+      try {
+        const res = await apiFetch("/api/me/pairing-code", { method: "POST", body: JSON.stringify({}) });
+        if (!res.ok) throw new Error("failed to create pairing code");
+        const body = await res.json();
+        generatePairingCodeMessage.textContent = "你嘅配對碼係：" + body.code + "（" + body.expires_in_minutes + " 分鐘內有效，只可以俾你信任嘅照顧者）";
+        generatePairingCodeMessage.classList.remove("error-message");
+      } catch (err) {
+        generatePairingCodeMessage.textContent = "產生配對碼失敗，請稍後再試。";
+        generatePairingCodeMessage.classList.add("error-message");
+      } finally {
+        generatePairingCodeButton.disabled = false;
+      }
+    });
 
     function renderContacts(contactsData) {
       contactList.replaceChildren();
