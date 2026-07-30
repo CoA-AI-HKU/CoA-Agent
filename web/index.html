@@ -532,6 +532,11 @@
             <button id="devSpeakButton" class="action-button secondary-button" type="button">Speak response</button>
           </div>
         </div>
+
+        <div class="subpage-section">
+          <h2>回覆</h2>
+          <div id="devReplyOutput">—</div>
+        </div>
       </section>
     </main>
   </div>
@@ -604,6 +609,7 @@
     const devFinalTranscript = document.getElementById("devFinalTranscript");
     const devErrorLog = document.getElementById("devErrorLog");
     const devTranscriptInput = document.getElementById("devTranscriptInput");
+    const devReplyOutput = document.getElementById("devReplyOutput");
     const devAutoSend = document.getElementById("devAutoSend");
     const devSendButton = document.getElementById("devSendButton");
     const devSpeakButton = document.getElementById("devSpeakButton");
@@ -920,7 +926,7 @@
         const payload = await sendChatMessage(message);
         lastAnswer = payload.reply;
         lastAnswerLanguage = payload.language || "zh-HK";
-        devTranscriptInput.value = payload.reply;
+        devReplyOutput.textContent = payload.reply;
       } catch (err) {
         logDevError("chat-failed");
       }

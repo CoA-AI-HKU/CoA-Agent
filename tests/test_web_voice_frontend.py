@@ -15,6 +15,16 @@ def test_developer_mode_editable_transcript_is_posted_on_send():
     assert "message: message, session_id: sessionId" in INDEX
 
 
+def test_developer_mode_reply_does_not_overwrite_the_sent_transcript():
+    # devTranscriptInput is the box you type/speak *into*; the reply must
+    # render in its own element (devReplyOutput) so the sent message stays
+    # visible instead of getting clobbered by the answer.
+    assert '<div id="devReplyOutput">' in INDEX
+    send_fn = INDEX[INDEX.index("async function sendDeveloperTranscript"):INDEX.index("devSendButton.addEventListener")]
+    assert "devReplyOutput.textContent = payload.reply" in send_fn
+    assert "devTranscriptInput.value = payload.reply" not in send_fn
+
+
 def test_developer_mode_supports_review_before_send():
     # Default is auto-send; review-before-send flips it off ("auto_send"
     # false), and only auto-sends the recognized transcript when the
