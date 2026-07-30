@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(auth.router)
     app.include_router(caregiver.router)
     app.include_router(web_account.router)
+    app.include_router(web_account.me_router)
 
     if REMINDER_SCHEDULER_AUTOSTART:
         @app.on_event("startup")

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.services.accounts_database import SessionLocal, WebContact
+from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
 from backend.services.firebase_auth import FirebaseUser
 
 client = TestClient(app)
@@ -13,6 +13,9 @@ def _cleanup(firebase_uid: str) -> None:
     db = SessionLocal()
     try:
         db.query(WebContact).filter(WebContact.firebase_uid == firebase_uid).delete(synchronize_session=False)
+        db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == firebase_uid).delete(
+            synchronize_session=False,
+        )
         db.commit()
     finally:
         db.close()
@@ -37,11 +40,11 @@ def test_contacts_endpoint_rejects_invalid_token(monkeypatch):
     assert response.status_code == 401
 
 
-def _authenticate_as(monkeypatch, uid: str) -> None:
+def _authenticate_as(monkeypatch, uid: str, *, email: str | None = None) -> None:
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     monkeypatch.setattr(
         "backend.api.web_account.verify_id_token",
-        lambda token: FirebaseUser(uid=uid, phone_number="+85212345678", display_name=None),
+        lambda token: FirebaseUser(uid=uid, phone_number="+85212345678", display_name=None, email=email),
     )
 
 
@@ -105,15 +108,144 @@ def test_delete_contact_cannot_remove_another_accounts_contact(monkeypatch):
         _cleanup(uid_b)
 
 
-def test_me_endpoint_reflects_verified_firebase_user(monkeypatch):
+def test_me_endpoint_creates_a_default_companion_profile(monkeypatch):
+    uid = "pytest-me-uid"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.status_code == 200
+        body = response.json()
+        assert body["user_id"] == uid
+        assert body["role"] == "companion"
+        assert body["roles"] == ["companion"]
+        assert body["permissions"] == ["chat", "voice"]
+        assert body["default_mode"] == "companion"
+        assert body["preferences"]["recognition_language"] == "zh-HK"
+        assert body["preferences"]["auto_send"] is True
+    finally:
+        _cleanup(uid)
+
+
+def test_me_endpoint_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
-    monkeypatch.setattr(
-        "backend.api.web_account.verify_id_token",
-        lambda token: FirebaseUser(uid="pytest-me-uid", phone_number="+85298765432", display_name="Test User"),
-    )
-    response = client.get("/api/account/me", headers={"Authorization": "Bearer fake"})
-    assert response.status_code == 200
-    body = response.json()
-    assert body["uid"] == "pytest-me-uid"
-    assert body["phone_number"] == "+85298765432"
-    assert body["display_name"] == "Test User"
+    response = client.get("/api/me")
+    assert response.status_code == 401
+
+
+def test_bootstrap_admin_env_var_elevates_a_new_account(monkeypatch):
+    uid = "pytest-bootstrap-admin-uid"
+    monkeypatch.setenv("COA_BOOTSTRAP_ADMIN_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        body = response.json()
+        assert body["role"] == "admin"
+        assert "admin" in body["permissions"]
+        assert "developer_mode" in body["permissions"]
+    finally:
+        _cleanup(uid)
+
+
+def test_bootstrap_by_email_elevates_a_new_account(monkeypatch):
+    uid = "pytest-bootstrap-email-uid"
+    monkeypatch.setenv("COA_BOOTSTRAP_DEVELOPER_EMAILS", "dev@example.com")
+    _authenticate_as(monkeypatch, uid, email="dev@example.com")
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["role"] == "developer"
+    finally:
+        _cleanup(uid)
+
+
+def test_bootstrap_does_not_demote_an_already_elevated_account(monkeypatch):
+    uid = "pytest-no-demote-uid"
+    monkeypatch.setenv("COA_BOOTSTRAP_ADMIN_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        client.get("/api/me", headers={"Authorization": "Bearer fake"})  # becomes admin
+
+        monkeypatch.delenv("COA_BOOTSTRAP_ADMIN_UIDS", raising=False)
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["role"] == "admin"
+    finally:
+        _cleanup(uid)
+
+
+def test_preferences_update_is_applied_and_role_cannot_be_set_through_it(monkeypatch):
+    uid = "pytest-preferences-uid"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)  # ensure a profile row exists first
+        response = client.put(
+            "/api/me/preferences",
+            json={
+                "recognition_language": "en-US",
+                "talk_mode": "hold",
+                "speech_speed": 1.2,
+                "auto_speak": False,
+                "auto_send": False,
+                "role": "admin",  # must be silently ignored, not applied
+            },
+            headers=headers,
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["role"] == "companion"  # unchanged despite the attempted override
+        assert body["preferences"]["recognition_language"] == "en-US"
+        assert body["preferences"]["talk_mode"] == "hold"
+        assert body["preferences"]["speech_speed"] == 1.2
+        assert body["preferences"]["auto_speak"] is False
+        assert body["preferences"]["auto_send"] is False
+    finally:
+        _cleanup(uid)
+
+
+def test_preferences_update_rejects_default_mode_the_role_does_not_permit_with_403(monkeypatch):
+    # A real mode the account just isn't authorized for — the spec's "403
+    # for a logged-in user without permission" case, not a 422 (the value
+    # itself is a perfectly valid mode name, just not for this role).
+    uid = "pytest-preferences-mode-uid"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        response = client.put("/api/me/preferences", json={"default_mode": "developer"}, headers=headers)
+        assert response.status_code == 403
+    finally:
+        _cleanup(uid)
+
+
+def test_preferences_update_rejects_an_unrecognized_mode_with_422(monkeypatch):
+    uid = "pytest-preferences-badmode-uid"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        response = client.put("/api/me/preferences", json={"default_mode": "not-a-real-mode"}, headers=headers)
+        assert response.status_code == 422
+    finally:
+        _cleanup(uid)
+
+
+def test_new_developer_account_defaults_to_review_before_send(monkeypatch):
+    uid = "pytest-new-developer-uid"
+    monkeypatch.setenv("COA_BOOTSTRAP_DEVELOPER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        body = response.json()
+        assert body["role"] == "developer"
+        assert body["preferences"]["auto_send"] is False
+    finally:
+        _cleanup(uid)
+
+
+def test_new_companion_account_defaults_to_auto_send(monkeypatch):
+    uid = "pytest-new-companion-uid"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["preferences"]["auto_send"] is True
+    finally:
+        _cleanup(uid)

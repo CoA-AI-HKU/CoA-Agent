@@ -4,11 +4,13 @@ import logging
 import os
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
+from backend.api.web_account import require_firebase_user
 from backend.services.conversation import process_user_message
+from backend.services.firebase_auth import FirebaseUser
 
 
 router = APIRouter(tags=["web-chat"])
@@ -19,7 +21,6 @@ AGENT_TIMEOUT_SECONDS = float(os.getenv("COA_WEB_AGENT_TIMEOUT_SECONDS", "30"))
 
 class WebChatRequest(BaseModel):
     message: str = Field(max_length=MAX_MESSAGE_LENGTH)
-    user_id: str = Field(min_length=1, max_length=200)
     session_id: str = Field(min_length=1, max_length=200)
     input_mode: Literal["voice", "text"] = "text"
 
@@ -34,13 +35,18 @@ class WebChatResponse(BaseModel):
 
 
 @router.post("/api/chat", response_model=WebChatResponse)
-async def web_chat(payload: WebChatRequest) -> dict[str, str] | JSONResponse:
+async def web_chat(
+    payload: WebChatRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, str] | JSONResponse:
     message = payload.message.strip()
-    user_id = payload.user_id.strip()
+    # Identity comes only from the verified Firebase token — a client-
+    # supplied user_id field used to be trusted here (see this file's git
+    # history); it never actually mattered for permissions, but chat now
+    # requires sign-in at all, so there is no longer an unauthenticated
+    # identity to accept in the first place.
+    user_id = user.uid
     if not message:
         return JSONResponse(status_code=400, content={"error": "請先輸入訊息。"})
-    if not user_id:
-        return JSONResponse(status_code=400, content={"error": "請檢查輸入資料。"})
 
     logger.info(
         "API request received",
@@ -52,8 +58,6 @@ async def web_chat(payload: WebChatRequest) -> dict[str, str] | JSONResponse:
         },
     )
 
-    # Browser-supplied privilege fields are ignored. Identity and permissions
-    # are resolved by the shared server-side message-processing pipeline.
     try:
         response = await process_user_message(
             user_id=user_id,

@@ -15,6 +15,7 @@ class FirebaseUser:
     uid: str
     phone_number: str | None
     display_name: str | None
+    email: str | None
 
 
 def _ensure_initialized() -> bool:
@@ -86,4 +87,5 @@ def verify_id_token(id_token: str) -> FirebaseUser | None:
         uid=uid,
         phone_number=decoded.get("phone_number"),
         display_name=decoded.get("name"),
+        email=decoded.get("email"),
     )

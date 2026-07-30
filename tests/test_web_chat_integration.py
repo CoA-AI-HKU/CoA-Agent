@@ -4,9 +4,11 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.services.firebase_auth import FirebaseUser
 
 
 client = TestClient(app)
+AUTH_HEADERS = {"Authorization": "Bearer fake-id-token"}
 
 
 @pytest.fixture(autouse=True)
@@ -15,6 +17,19 @@ def explicit_test_rag_runtime(monkeypatch, tmp_path):
     monkeypatch.setenv("RAG_ALLOW_EXTRACTIVE_FALLBACK", "true")
     monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "chroma"))
     monkeypatch.setenv("RAG_AUTO_INDEX", "false")
+
+
+@pytest.fixture(autouse=True)
+def authenticated_web_chat_user(monkeypatch):
+    # /api/chat now requires a verified Firebase sign-in (see
+    # backend/api/web_chat.py) — every test in this file exercises that
+    # endpoint, so the fake sign-in is applied to all of them here rather
+    # than repeated per test.
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    monkeypatch.setattr(
+        "backend.api.web_account.verify_id_token",
+        lambda token: FirebaseUser(uid="integration-web-user", phone_number=None, display_name=None, email=None),
+    )
 
 
 @pytest.mark.parametrize(
@@ -31,10 +46,10 @@ def test_web_chat_always_returns_stable_user_facing_contract(message: str) -> No
         "/api/chat",
         json={
             "message": message,
-            "user_id": "integration-web-user",
             "session_id": "integration-session",
             "input_mode": "text",
         },
+        headers=AUTH_HEADERS,
     )
 
     assert response.status_code == 200
@@ -54,7 +69,7 @@ def test_unified_app_serves_frontend() -> None:
 
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert 'fetch("/api/chat"' in response.text
+    assert 'apiFetch("/api/chat"' in response.text
 
 
 @pytest.mark.parametrize(
@@ -71,10 +86,10 @@ def test_web_chat_answers_safe_casual_activity_questions(
         "/api/chat",
         json={
             "message": message,
-            "user_id": "casual-web-user",
             "session_id": "casual-session",
             "input_mode": "text",
         },
+        headers=AUTH_HEADERS,
     )
 
     assert response.status_code == 200
