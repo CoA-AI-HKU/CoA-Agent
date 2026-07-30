@@ -64,6 +64,11 @@ class WebAccountProfile(Base):
     # user (or, in practice, mainly the developer role) to check before it's
     # actually sent to the chat pipeline.
     auto_send = Column(Boolean, nullable=False, default=True)
+    # NULL = has not agreed to the consent form yet. Set once, the first
+    # time an account agrees (see backend/api/web_account.py's
+    # POST /api/me/consent) — never cleared automatically, so an already-
+    # registered account is never asked again.
+    consent_accepted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -92,6 +97,7 @@ def _migrate_add_missing_columns() -> None:
             "auto_speak": "BOOLEAN NOT NULL DEFAULT 1",
             "transcript_visible": "BOOLEAN NOT NULL DEFAULT 1",
             "auto_send": "BOOLEAN NOT NULL DEFAULT 1",
+            "consent_accepted_at": "DATETIME",
         }
         for column, ddl_type in additions.items():
             if column not in existing_columns:

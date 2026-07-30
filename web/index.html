@@ -110,6 +110,18 @@
     }
 
     .mode-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: 1rem 0; }
+
+    .consent-box {
+      background: #f2f8f8;
+      border: 1px solid #b7cfd2;
+      border-radius: 14px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .consent-item { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1rem; }
+    .consent-item:last-child { margin-bottom: 0; }
+    .consent-item input[type="checkbox"] { width: 26px; min-height: 26px; flex-shrink: 0; accent-color: #075b64; }
+    .consent-item label { margin: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; }
     .form-message { min-height: 1.7rem; margin: .8rem 0 0; font-weight: 700; color: #075b64; }
     .form-message.error-message { color: #9b1c1c; }
 
@@ -397,6 +409,35 @@
     </p>
   </div>
 
+  <!-- ========== CONSENT GATE ==========
+       Shown once, after sign-in, only for an account that has never agreed
+       before (GET /api/me's consent_given is false — see backend/services/
+       account_profiles.py). An already-registered account that agreed on a
+       prior login skips straight past this to appShell. -->
+  <div id="consentGate" class="pre-login" hidden>
+    <h1>使用同意書</h1>
+    <p class="intro">請先閱讀並同意以下事項，先可以開始使用。</p>
+
+    <div class="account-card">
+      <div class="consent-box">
+        <div class="consent-item">
+          <input type="checkbox" id="consentCheck1">
+          <label for="consentCheck1">我明白 CoA-Agent <strong>並非醫療器材</strong>，<strong>不能</strong>取代專業醫療建議、診斷或治療；如有即時危險或醫療緊急情況，會直接致電 999。</label>
+        </div>
+        <div class="consent-item">
+          <input type="checkbox" id="consentCheck2">
+          <label for="consentCheck2">我同意收集必要嘅帳戶資料（例如聯絡人、偏好設定）以提供呢個服務，詳情見<a href="privacy.html" target="_blank" rel="noopener">私隱政策</a>。</label>
+        </div>
+        <div class="consent-item">
+          <input type="checkbox" id="consentCheck3">
+          <label for="consentCheck3">我明白我可以隨時停止使用呢個服務。</label>
+        </div>
+      </div>
+      <button id="consentAgreeButton" class="action-button send-button" type="button" style="width:100%;" disabled>✅ 我同意，繼續</button>
+      <div id="consentMessage" class="form-message" aria-live="polite"></div>
+    </div>
+  </div>
+
   <!-- ========== APP SHELL (all protected content) ========== -->
   <div id="appShell" hidden>
     <header class="top-bar">
@@ -568,6 +609,13 @@
     const appShell = document.getElementById("appShell");
     const modeSwitcher = document.getElementById("modeSwitcher");
     const signOutButton = document.getElementById("signOutButton");
+
+    const consentGate = document.getElementById("consentGate");
+    const consentCheck1 = document.getElementById("consentCheck1");
+    const consentCheck2 = document.getElementById("consentCheck2");
+    const consentCheck3 = document.getElementById("consentCheck3");
+    const consentAgreeButton = document.getElementById("consentAgreeButton");
+    const consentMessage = document.getElementById("consentMessage");
 
     const showPhoneSignInButton = document.getElementById("showPhoneSignInButton");
     const showEmailSignInButton = document.getElementById("showEmailSignInButton");
@@ -1166,10 +1214,42 @@
     // whether a session already exists (the whole point of the auth gate:
     // this never runs "maybe true, maybe false" — it runs exactly once
     // Firebase actually knows).
+    function enterApp() {
+      consentGate.hidden = true;
+      appShell.hidden = false;
+      setMode(meProfile.default_mode || "companion");
+      setCompanionState("idle");
+      if (!speechRecognitionSupported()) companionError("unsupported");
+    }
+
+    function updateConsentAgreeButton() {
+      consentAgreeButton.disabled = !(consentCheck1.checked && consentCheck2.checked && consentCheck3.checked);
+    }
+    [consentCheck1, consentCheck2, consentCheck3].forEach(function (box) {
+      box.addEventListener("change", updateConsentAgreeButton);
+    });
+
+    consentAgreeButton.addEventListener("click", async function () {
+      consentAgreeButton.disabled = true;
+      try {
+        meProfile = await (await apiFetch("/api/me/consent", { method: "POST" })).json();
+        enterApp();
+      } catch (err) {
+        consentMessage.textContent = "未能送出同意書，請檢查網絡連線後再試。";
+        consentMessage.classList.add("error-message");
+        updateConsentAgreeButton();
+      }
+    });
+
+    // Called by the module script once Firebase has finished resolving
+    // whether a session already exists (the whole point of the auth gate:
+    // this never runs "maybe true, maybe false" — it runs exactly once
+    // Firebase actually knows).
     window.onFirebaseAuthResolved = async function (signedIn) {
       authGate.hidden = true;
       if (!signedIn) {
         preLoginScreen.hidden = false;
+        consentGate.hidden = true;
         appShell.hidden = true;
         return;
       }
@@ -1182,10 +1262,14 @@
         preLoginMessage.classList.add("error-message");
         return;
       }
-      appShell.hidden = false;
-      setMode(meProfile.default_mode || "companion");
-      setCompanionState("idle");
-      if (!speechRecognitionSupported()) companionError("unsupported");
+      // A returning, already-consented account skips straight past this —
+      // only an account that has never agreed before (new registration, or
+      // an existing one from before this consent gate existed) sees it.
+      if (!meProfile.consent_given) {
+        consentGate.hidden = false;
+        return;
+      }
+      enterApp();
     };
   </script>
 

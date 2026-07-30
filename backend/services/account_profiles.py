@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime
 from typing import Any
 
 from backend.services.accounts_database import SessionLocal, WebAccountProfile
@@ -113,6 +114,25 @@ def get_or_create_profile(user: FirebaseUser) -> WebAccountProfile:
         db.close()
 
 
+def record_consent(firebase_uid: str) -> WebAccountProfile:
+    """Mark the consent form as agreed to. Idempotent — a second call from an
+    already-consented account just keeps the original timestamp, it does not
+    matter here whether the account is new or returning.
+    """
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == firebase_uid).first()
+        if profile is None:
+            raise PreferenceValidationError("no profile found for this account")
+        if profile.consent_accepted_at is None:
+            profile.consent_accepted_at = datetime.utcnow()
+            db.commit()
+            db.refresh(profile)
+        return profile
+    finally:
+        db.close()
+
+
 def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
     role = profile.role
     return {
@@ -121,6 +141,7 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
         "roles": [role],
         "permissions": ROLE_PERMISSIONS.get(role, ROLE_PERMISSIONS["companion"]),
         "default_mode": profile.default_mode,
+        "consent_given": profile.consent_accepted_at is not None,
         "preferences": {
             "recognition_language": profile.recognition_language,
             "talk_mode": profile.talk_mode,

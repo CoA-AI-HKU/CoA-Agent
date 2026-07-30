@@ -249,3 +249,38 @@ def test_new_companion_account_defaults_to_auto_send(monkeypatch):
         assert response.json()["preferences"]["auto_send"] is True
     finally:
         _cleanup(uid)
+
+
+def test_new_account_has_not_given_consent_yet(monkeypatch):
+    uid = "pytest-consent-new-uid"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["consent_given"] is False
+    finally:
+        _cleanup(uid)
+
+
+def test_posting_consent_marks_the_account_as_consented(monkeypatch):
+    uid = "pytest-consent-agree-uid"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        response = client.post("/api/me/consent", headers=headers)
+        assert response.status_code == 200
+        assert response.json()["consent_given"] is True
+
+        # A later /api/me call (simulating a return visit / re-login) must
+        # still report the account as consented — it should never be asked
+        # again once it has agreed.
+        follow_up = client.get("/api/me", headers=headers)
+        assert follow_up.json()["consent_given"] is True
+    finally:
+        _cleanup(uid)
+
+
+def test_consent_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.post("/api/me/consent")
+    assert response.status_code == 401

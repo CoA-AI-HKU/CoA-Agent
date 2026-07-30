@@ -10,6 +10,7 @@ from backend.services.account_profiles import (
     PreferenceValidationError,
     get_or_create_profile,
     profile_to_me_response,
+    record_consent,
     update_preferences,
 )
 from backend.services.accounts_database import SessionLocal, WebContact
@@ -52,6 +53,15 @@ class PreferencesUpdateRequest(BaseModel):
 @me_router.get("/api/me")
 def me(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
     profile = get_or_create_profile(user)
+    return profile_to_me_response(profile)
+
+
+@me_router.post("/api/me/consent")
+def post_consent(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    # No request body — agreeing is a single, all-or-nothing action (see the
+    # consent gate in web/index.html); there is nothing partial to submit.
+    get_or_create_profile(user)
+    profile = record_consent(user.uid)
     return profile_to_me_response(profile)
 
 
