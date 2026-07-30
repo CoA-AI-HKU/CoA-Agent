@@ -27,7 +27,9 @@ def handle_caregiver_manager_message(
     elif command.startswith("\\"):
         result = handle_caregiver_message(message, sender_id, linked_user_id)
     else:
-        result = handle_dementia_user_message(message, user_id=linked_user_id or sender_id)
+        result = handle_dementia_user_message(
+            message, user_id=linked_user_id or sender_id, channel=channel, sender_id=sender_id,
+        )
         result = dict(result)
         result["role"] = "caregiver"
         result["linked_user_id"] = linked_user_id

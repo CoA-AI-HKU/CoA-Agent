@@ -111,13 +111,13 @@ def handle_dementia_user_message(
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":
-        result = _supportive_response(message, decision)
+        result = _supportive_response(message, decision, sender_id)
     elif decision.route == "daily_life":
-        result = _daily_life_response(message, decision)
+        result = _daily_life_response(message, decision, sender_id)
     elif decision.route == "general":
-        result = _general_response(message, decision)
+        result = _general_response(message, decision, sender_id)
     else:
-        result = _unknown_response(message, decision)
+        result = _unknown_response(message, decision, sender_id)
 
     result["intent"] = decision.intent
     result.setdefault("found", False)
@@ -176,16 +176,16 @@ def handle_dementia_user_message(
     return user_facing
 
 
-def _daily_life_response(message: str, decision: AgentDecision) -> dict[str, Any]:
-    return answer_general_conversation(message, decision, "daily_life")
+def _daily_life_response(message: str, decision: AgentDecision, sender_id: str = "") -> dict[str, Any]:
+    return answer_general_conversation(message, decision, "daily_life", sender_id)
 
 
-def _supportive_response(message: str, decision: AgentDecision) -> dict[str, Any]:
-    return answer_general_conversation(message, decision, "supportive")
+def _supportive_response(message: str, decision: AgentDecision, sender_id: str = "") -> dict[str, Any]:
+    return answer_general_conversation(message, decision, "supportive", sender_id)
 
 
-def _general_response(message: str, decision: AgentDecision) -> dict[str, Any]:
-    return answer_general_conversation(message, decision, "general")
+def _general_response(message: str, decision: AgentDecision, sender_id: str = "") -> dict[str, Any]:
+    return answer_general_conversation(message, decision, "general", sender_id)
 
 
 def _role_correction_response(message: str, decision: AgentDecision) -> dict[str, Any]:
@@ -216,8 +216,8 @@ def _prompt_injection_response(message: str, decision: AgentDecision) -> dict[st
     }
 
 
-def _unknown_response(message: str, decision: AgentDecision) -> dict[str, Any]:
-    return answer_general_conversation(message, decision, "unknown")
+def _unknown_response(message: str, decision: AgentDecision, sender_id: str = "") -> dict[str, Any]:
+    return answer_general_conversation(message, decision, "unknown", sender_id)
 
 
 def _attach_coordinator_debug(result: dict[str, Any], decision: AgentDecision) -> None:

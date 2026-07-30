@@ -15,6 +15,7 @@ from backend.services.account_profiles import (
 )
 from backend.services.accounts_database import SessionLocal, WebContact
 from backend.services.firebase_auth import FirebaseUser, is_configured, verify_id_token
+from src.user.conversation_flags import get_recent_flags
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 # No prefix — the spec for this endpoint names it exactly /api/me, and it is
@@ -81,6 +82,15 @@ def put_preferences(
     except PreferenceValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return profile_to_me_response(profile)
+
+
+@me_router.get("/api/me/conversation-flags")
+def get_conversation_flags(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    # Only this account's own flags — see src/user/conversation_flags.py for
+    # why (no cross-account linkage exists yet to show a separate patient's
+    # flags to a caregiver account). Never includes raw message text, only
+    # the short stored reason (see ConversationFlag).
+    return {"flags": get_recent_flags(user.uid)}
 
 
 class ContactRequest(BaseModel):

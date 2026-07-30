@@ -9,6 +9,8 @@ from src.agents.types import AgentDecision
 from src.pipeline.language import detect_answer_language, language_name
 from src.pipeline.rag_agent import build_default_rag_config, create_chat_answer
 from src.safety.medication_guard import detect_red_flags, is_medication_decision_question
+from src.user.conversation_flags import maybe_flag_turn
+from src.user.conversation_memory import get_recent_turns, record_turn
 
 try:
     from src.reminders.chat_reminders import LOCAL_TIMEZONE
@@ -80,7 +82,9 @@ ROUTE_SAFETY_LEVEL = {
 GENERAL_CHAT_SAFETY_LEVELS = frozenset(ROUTE_SAFETY_LEVEL.values())
 
 
-def answer_general_conversation(message: str, decision: AgentDecision, route: str) -> dict[str, Any]:
+def answer_general_conversation(
+    message: str, decision: AgentDecision, route: str, sender_id: str = "",
+) -> dict[str, Any]:
     """Answer a non-knowledge message with the general LLM, falling back to a fixed response.
 
     Only called for routes that the medication/urgent-safety gates in
@@ -88,28 +92,58 @@ def answer_general_conversation(message: str, decision: AgentDecision, route: st
     sees a message flagged as medical or urgent at the input side. The
     generated answer still gets a soft output-side check (see
     _apply_output_soft_flag) since the input-side keyword gate has known gaps.
+
+    sender_id, when known, threads into two privacy-conscious side effects
+    (see src/user/conversation_memory.py and src/user/conversation_flags.py):
+    short-term same-conversation continuity, and a flag record (never the
+    raw message) when something safety- or decline-related comes up. Both
+    are best-effort — neither can fail this function.
     """
     if route == "unknown" and not _is_intelligible(message):
         return _fallback_result(UNKNOWN_RESPONSE, decision, route)
 
     if _is_current_time_question(message):
         answer_language = detect_answer_language(message)
-        return _build_result(_current_time_answer(answer_language), decision, route)
+        answer = _current_time_answer(answer_language)
+        _remember_turn(sender_id, message, answer, answer_callable=None)
+        return _build_result(answer, decision, route)
 
     answer_callable = create_chat_answer(build_default_rag_config("mcp"))
     if answer_callable is not None:
-        generated = _generate(message, route, answer_callable)
+        generated = _generate(message, route, answer_callable, sender_id)
         if generated:
+            _remember_turn(sender_id, message, generated, answer_callable=answer_callable)
             return _build_result(generated, decision, route)
 
-    return _fallback_result(_fallback_text(message, route), decision, route)
+    fallback = _fallback_text(message, route)
+    _remember_turn(sender_id, message, fallback, answer_callable=answer_callable)
+    return _fallback_result(fallback, decision, route)
 
 
-def _generate(message: str, route: str, answer_callable) -> str:
+def _remember_turn(sender_id: str, message: str, answer: str, *, answer_callable) -> None:
+    prior_turns = get_recent_turns(sender_id)
+    context = "\n".join(f"使用者：{turn.user_message}\n小安：{turn.reply}" for turn in prior_turns[-3:])
+    record_turn(sender_id, message, answer)
+    maybe_flag_turn(sender_id, message, context=context, answer_callable=answer_callable)
+
+
+def _format_recent_turns(sender_id: str) -> str:
+    recent = get_recent_turns(sender_id)
+    if not recent:
+        return ""
+    lines = ["呢個對話之前講過（畀你參考上文下理，唔使覆述）："]
+    for turn in recent:
+        lines.append(f"使用者：{turn.user_message}")
+        lines.append(f"小安：{turn.reply}")
+    return "\n".join(lines) + "\n\n"
+
+
+def _generate(message: str, route: str, answer_callable, sender_id: str = "") -> str:
     answer_language = detect_answer_language(message)
     task_framing = ROUTE_TASK_FRAMING.get(route, ROUTE_TASK_FRAMING["general"])
+    history = _format_recent_turns(sender_id)
     prompt = (
-        f"{PERSONA_INSTRUCTIONS}\n\n{task_framing}\n\n"
+        f"{PERSONA_INSTRUCTIONS}\n\n{task_framing}\n\n{history}"
         f"請用{language_name(answer_language)}回覆，用2至3句完整、自然收尾嘅句子回答，唔好突然斷句。\n\n"
         f"使用者：{message}"
     )

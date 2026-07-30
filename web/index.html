@@ -471,6 +471,15 @@
         <h1>🫂 照顧者模式</h1>
 
         <div class="subpage-section">
+          <h2>🔔 近期提示（14 日內）</h2>
+          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
+            呢度淨係會顯示同安全或者認知狀況變化有關嘅提示，唔會顯示對話內容本身。
+          </p>
+          <ul id="conversationFlagsList" class="contact-list" aria-label="近期提示"></ul>
+          <p id="conversationFlagsMessage" class="form-message" aria-live="polite"></p>
+        </div>
+
+        <div class="subpage-section">
           <h2>📞 聯絡人</h2>
           <form id="contactForm">
             <div class="form-field">
@@ -642,6 +651,8 @@
     const contactForm = document.getElementById("contactForm");
     const contactList = document.getElementById("contactList");
     const contactMessage = document.getElementById("contactMessage");
+    const conversationFlagsList = document.getElementById("conversationFlagsList");
+    const conversationFlagsMessage = document.getElementById("conversationFlagsMessage");
 
     const prefDefaultMode = document.getElementById("prefDefaultMode");
     const prefRecognitionLanguage = document.getElementById("prefRecognitionLanguage");
@@ -748,7 +759,7 @@
       document.getElementById("caregiverMode").hidden = mode !== "caregiver";
       document.getElementById("developerMode").hidden = mode !== "developer";
       renderModeSwitcher();
-      if (mode === "caregiver") { loadContacts(); }
+      if (mode === "caregiver") { loadContacts(); loadConversationFlags(); }
       if (mode === "developer") { devRecognitionLanguage.textContent = "辨識語言：" + currentRecognitionLanguage(); }
     }
 
@@ -984,6 +995,43 @@
     devSpeakButton.addEventListener("click", function () { speak(lastAnswer, lastAnswerLanguage); });
 
     // ===== 8. CAREGIVER TOOLS =====
+    const FLAG_TYPE_LABELS = { safety: "⚠️ 安全提示", cognitive_decline: "🧠 認知狀況" };
+
+    function renderConversationFlags(flags) {
+      conversationFlagsList.replaceChildren();
+      if (!flags.length) {
+        const empty = document.createElement("li");
+        empty.className = "contact-item";
+        empty.textContent = "呢 14 日冇特別提示。";
+        conversationFlagsList.append(empty);
+        return;
+      }
+      flags.forEach(function (flag) {
+        const item = document.createElement("li");
+        const label = document.createElement("strong");
+        const reason = document.createElement("span");
+        const when = document.createElement("small");
+        item.className = "contact-item";
+        label.textContent = FLAG_TYPE_LABELS[flag.flag_type] || flag.flag_type;
+        reason.textContent = " " + flag.reason;
+        when.textContent = new Date(flag.created_at).toLocaleString("zh-HK");
+        when.style.display = "block";
+        when.style.color = "#5a7a7f";
+        item.append(label, reason, when);
+        conversationFlagsList.append(item);
+      });
+    }
+
+    async function loadConversationFlags() {
+      try {
+        const res = await apiFetch("/api/me/conversation-flags");
+        if (!res.ok) throw new Error("failed to load conversation flags");
+        renderConversationFlags((await res.json()).flags || []);
+      } catch (err) {
+        conversationFlagsMessage.textContent = "無法載入近期提示，請稍後再試。";
+      }
+    }
+
     function renderContacts(contactsData) {
       contactList.replaceChildren();
       if (!contactsData.length) {

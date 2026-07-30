@@ -284,3 +284,37 @@ def test_consent_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     response = client.post("/api/me/consent")
     assert response.status_code == 401
+
+
+def test_conversation_flags_endpoint_returns_this_accounts_own_flags(monkeypatch):
+    from src.user.conversation_flags import maybe_flag_turn
+    from src.user.conversation_flags_database import ConversationFlag, SessionLocal as FlagsSessionLocal
+
+    uid = "pytest-me-conversation-flags-uid"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        empty = client.get("/api/me/conversation-flags", headers=headers)
+        assert empty.status_code == 200
+        assert empty.json() == {"flags": []}
+
+        maybe_flag_turn(uid, "胸口好痛 chest pain", answer_callable=None)
+        response = client.get("/api/me/conversation-flags", headers=headers)
+        assert response.status_code == 200
+        flags = response.json()["flags"]
+        assert len(flags) == 1
+        assert flags[0]["flag_type"] == "safety"
+    finally:
+        _cleanup(uid)
+        db = FlagsSessionLocal()
+        try:
+            db.query(ConversationFlag).filter(ConversationFlag.sender_id == uid).delete(synchronize_session=False)
+            db.commit()
+        finally:
+            db.close()
+
+
+def test_conversation_flags_endpoint_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.get("/api/me/conversation-flags")
+    assert response.status_code == 401
