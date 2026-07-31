@@ -50,6 +50,7 @@ def _authenticate_as(monkeypatch, uid: str, *, email: str | None = None) -> None
 
 def test_add_list_and_delete_contact(monkeypatch):
     uid = "pytest-firebase-uid-1"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)  # managing contacts requires the "contacts" permission
     _authenticate_as(monkeypatch, uid)
     headers = {"Authorization": "Bearer fake-id-token"}
     try:
@@ -74,9 +75,13 @@ def test_add_list_and_delete_contact(monkeypatch):
 def test_contacts_are_isolated_per_firebase_uid(monkeypatch):
     uid_a = "pytest-firebase-uid-a"
     uid_b = "pytest-firebase-uid-b"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid_a)
     try:
         _authenticate_as(monkeypatch, uid_a)
-        client.post("/api/account/contacts", json={"name": "A的聯絡人", "detail": "111"}, headers={"Authorization": "Bearer a"})
+        created = client.post(
+            "/api/account/contacts", json={"name": "A的聯絡人", "detail": "111"}, headers={"Authorization": "Bearer a"},
+        )
+        assert created.status_code == 201
 
         _authenticate_as(monkeypatch, uid_b)
         response_b = client.get("/api/account/contacts", headers={"Authorization": "Bearer b"})
@@ -89,6 +94,9 @@ def test_contacts_are_isolated_per_firebase_uid(monkeypatch):
 def test_delete_contact_cannot_remove_another_accounts_contact(monkeypatch):
     uid_a = "pytest-firebase-uid-owner"
     uid_b = "pytest-firebase-uid-intruder"
+    # Both need the "contacts" permission so this test exercises the
+    # ownership check (404) rather than the role check (403).
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", f"{uid_a},{uid_b}")
     try:
         _authenticate_as(monkeypatch, uid_a)
         create = client.post(
@@ -344,6 +352,7 @@ def test_pairing_code_requires_authentication(monkeypatch):
 def test_link_patient_with_a_valid_code_links_both_accounts(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
     patient_uid, caregiver_uid = "pytest-pairing-patient", "pytest-pairing-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
     try:
         _authenticate_as(monkeypatch, patient_uid)
         code = client.post(
@@ -369,6 +378,7 @@ def test_link_patient_with_a_valid_code_links_both_accounts(monkeypatch, tmp_pat
 def test_link_patient_with_an_invalid_code_returns_422(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
     uid = "pytest-pairing-bad-code"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
     _authenticate_as(monkeypatch, uid)
     try:
         response = client.post(
@@ -382,6 +392,7 @@ def test_link_patient_with_an_invalid_code_returns_422(monkeypatch, tmp_path):
 def test_unlinking_a_patient_removes_it_from_the_list(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
     patient_uid, caregiver_uid = "pytest-pairing-unlink-patient", "pytest-pairing-unlink-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
     try:
         _authenticate_as(monkeypatch, patient_uid)
         code = client.post(
@@ -408,6 +419,7 @@ def test_conversation_flags_include_a_linked_patients_flags_with_source_label(mo
 
     monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
     patient_uid, caregiver_uid = "pytest-flags-linked-patient", "pytest-flags-linked-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
     try:
         _authenticate_as(monkeypatch, patient_uid)
         code = client.post(
@@ -437,3 +449,106 @@ def test_conversation_flags_include_a_linked_patients_flags_with_source_label(mo
             db.commit()
         finally:
             db.close()
+
+
+def test_companion_role_cannot_add_a_contact(monkeypatch):
+    uid = "pytest-perm-companion-add-contact"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)  # creates a default companion profile
+        response = client.post("/api/account/contacts", json={"name": "X", "detail": "123"}, headers=headers)
+        assert response.status_code == 403
+    finally:
+        _cleanup(uid)
+
+
+def test_companion_role_can_still_read_contacts(monkeypatch):
+    uid = "pytest-perm-companion-read-contacts"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        response = client.get("/api/account/contacts", headers=headers)
+        assert response.status_code == 200
+        assert response.json() == []
+    finally:
+        _cleanup(uid)
+
+
+def test_companion_role_cannot_delete_a_contact(monkeypatch):
+    companion_uid = "pytest-perm-companion-delete-contact"
+    caregiver_uid = "pytest-perm-companion-delete-contact-caregiver"
+    try:
+        monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+        _authenticate_as(monkeypatch, caregiver_uid)
+        create = client.post(
+            "/api/account/contacts", json={"name": "Y", "detail": "456"}, headers={"Authorization": "Bearer c"},
+        )
+        contact_id = create.json()["id"]
+
+        _authenticate_as(monkeypatch, companion_uid)
+        response = client.delete(
+            f"/api/account/contacts/{contact_id}", headers={"Authorization": "Bearer p"},
+        )
+        assert response.status_code == 403
+    finally:
+        _cleanup(companion_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_caregiver_role_can_still_add_and_delete_contacts(monkeypatch):
+    uid = "pytest-perm-caregiver-contacts"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        create = client.post("/api/account/contacts", json={"name": "Z", "detail": "789"}, headers=headers)
+        assert create.status_code == 201
+        deletion = client.delete(f"/api/account/contacts/{create.json()['id']}", headers=headers)
+        assert deletion.status_code == 200
+    finally:
+        _cleanup(uid)
+
+
+def test_companion_role_can_still_generate_a_pairing_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-perm-companion-generate-code"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.post("/api/me/pairing-code", json={}, headers={"Authorization": "Bearer fake"})
+        assert response.status_code == 200
+    finally:
+        _cleanup(uid)
+
+
+def test_companion_role_cannot_redeem_a_pairing_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, companion_uid = "pytest-perm-link-patient", "pytest-perm-link-companion"
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code = client.post(
+            "/api/me/pairing-code", json={}, headers={"Authorization": "Bearer patient"},
+        ).json()["code"]
+
+        _authenticate_as(monkeypatch, companion_uid)
+        response = client.post(
+            "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer companion"},
+        )
+        assert response.status_code == 403
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(companion_uid)
+
+
+def test_companion_role_cannot_list_or_unlink_patients(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-perm-companion-list-linked"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        assert client.get("/api/me/linked-patients", headers=headers).status_code == 403
+        assert client.delete("/api/me/linked-patients/whatever", headers=headers).status_code == 403
+    finally:
+        _cleanup(uid)

@@ -6,11 +6,13 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel, Field
 
 from backend.services.account_profiles import (
+    PermissionDeniedError,
     PreferencePermissionError,
     PreferenceValidationError,
     get_or_create_profile,
     profile_to_me_response,
     record_consent,
+    require_permission,
     update_preferences,
 )
 from backend.services.accounts_database import SessionLocal, WebContact
@@ -42,6 +44,14 @@ def require_firebase_user(authorization: str | None = Header(default=None)) -> F
     if user is None:
         raise HTTPException(status_code=401, detail="invalid or expired sign-in")
     return user
+
+
+def _require_permission(user: FirebaseUser, permission: str) -> None:
+    profile = get_or_create_profile(user)
+    try:
+        require_permission(profile, permission)
+    except PermissionDeniedError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
 
 
 class PreferencesUpdateRequest(BaseModel):
@@ -132,6 +142,11 @@ class LinkPatientRequest(BaseModel):
 def link_patient(
     payload: LinkPatientRequest, user: FirebaseUser = Depends(require_firebase_user),
 ) -> dict[str, Any]:
+    # Redeeming a code is the caregiver-side action — a companion-only
+    # account can still generate its own code above (that's the patient
+    # side, open to every role), but only a caregiver-capable role may
+    # link *to* someone else's account.
+    _require_permission(user, "caregiver_mode")
     register_account(user.uid, "caregiver", display_name=user.display_name or "")
     try:
         redeem_pairing_code(user.uid, payload.code)
@@ -142,6 +157,7 @@ def link_patient(
 
 @me_router.get("/api/me/linked-patients")
 def list_linked_patients(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    _require_permission(user, "caregiver_mode")
     return {"linked_patients": _linked_patients(user.uid)}
 
 
@@ -149,6 +165,7 @@ def list_linked_patients(user: FirebaseUser = Depends(require_firebase_user)) ->
 def remove_linked_patient(
     patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user),
 ) -> dict[str, Any]:
+    _require_permission(user, "caregiver_mode")
     try:
         removed = unlink_caregiver(user.uid, patient_user_id)
     except ValueError as exc:
@@ -195,6 +212,10 @@ def list_contacts(user: FirebaseUser = Depends(require_firebase_user)) -> list[W
 
 @router.post("/contacts", response_model=ContactResponse, status_code=201)
 def add_contact(payload: ContactRequest, user: FirebaseUser = Depends(require_firebase_user)) -> WebContact:
+    # Reading contacts stays open to every role (Companion Mode's "call
+    # caregiver" button needs to read them) — only adding/removing is
+    # gated, since managing the contact list is a caregiver action.
+    _require_permission(user, "contacts")
     db = SessionLocal()
     try:
         contact = WebContact(firebase_uid=user.uid, name=payload.name.strip(), detail=payload.detail.strip())
@@ -208,6 +229,7 @@ def add_contact(payload: ContactRequest, user: FirebaseUser = Depends(require_fi
 
 @router.delete("/contacts/{contact_id}")
 def delete_contact(contact_id: int, user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    _require_permission(user, "contacts")
     db = SessionLocal()
     try:
         deleted = (

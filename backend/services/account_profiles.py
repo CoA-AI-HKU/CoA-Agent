@@ -162,6 +162,23 @@ class PreferencePermissionError(ValueError):
     """The value is well-formed but this account's role isn't allowed to set it — maps to 403."""
 
 
+class PermissionDeniedError(ValueError):
+    """This account's role does not include the requested permission — maps to 403."""
+
+
+def require_permission(profile: WebAccountProfile, permission: str) -> None:
+    """Raise unless profile's role actually grants `permission`.
+
+    The frontend's mode switcher (see web/index.html's availableModes())
+    hides UI for permissions a role doesn't have, but that is a display
+    choice, not a security boundary — a request crafted by hand still has
+    to pass this check. Call this at the top of any endpoint that acts on
+    behalf of a specific permission (e.g. "contacts", "caregiver_mode").
+    """
+    if permission not in ROLE_PERMISSIONS.get(profile.role, ROLE_PERMISSIONS["companion"]):
+        raise PermissionDeniedError(f"role {profile.role!r} does not include the {permission!r} permission")
+
+
 def update_preferences(firebase_uid: str, updates: dict[str, Any]) -> WebAccountProfile:
     """Apply a partial preferences update. Never touches `role`.
 
