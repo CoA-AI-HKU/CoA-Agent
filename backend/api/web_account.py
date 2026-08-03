@@ -21,7 +21,9 @@ from backend.services.firebase_auth import FirebaseUser, is_configured, verify_i
 from src.user.conversation_flags import get_recent_flags
 from src.user.user_registry import (
     create_pairing_code,
+    get_caregiver_records_for_user,
     get_linked_user_ids,
+    get_registry_user_id,
     get_user_record_by_user_id,
     redeem_pairing_code,
     register_account,
@@ -154,6 +156,22 @@ def create_my_pairing_code(
     register_account(user.uid, "user", display_name=payload.display_name or user.display_name or "")
     code = create_pairing_code(user.uid)
     return {"code": code, "expires_in_minutes": 15}
+
+
+@me_router.get("/api/me/linked-caregivers")
+def list_linked_caregivers(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    # The patient-side mirror of /api/me/linked-patients below — lets the
+    # frontend tell "never paired yet" (registry_user_id is None: this
+    # account has never even generated a code) and "already has a
+    # caregiver" apart, so it knows when to stop offering to generate a new
+    # pairing code (see web/index.html's loadLinkedCaregivers()).
+    registry_user_id = get_registry_user_id(user.uid)
+    caregivers = []
+    if registry_user_id:
+        for caregiver_sender_id, record in get_caregiver_records_for_user(registry_user_id):
+            display_name = str(record.get("display_name") or "").strip() or caregiver_sender_id
+            caregivers.append({"sender_id": caregiver_sender_id, "display_name": display_name})
+    return {"linked_caregivers": caregivers}
 
 
 class LinkPatientRequest(BaseModel):

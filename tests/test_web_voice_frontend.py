@@ -95,6 +95,31 @@ def test_privacy_policy_links_from_the_app_pass_policy_context():
     assert 'href="privacy.html"' not in INDEX  # every in-app link must carry the context param
 
 
+def test_companion_mode_can_generate_a_pairing_code_without_caregiver_mode():
+    # A companion-only account never sees Caregiver Mode (no mode switcher
+    # entry for it — see availableModes()), so pairing-code generation
+    # (POST /api/me/pairing-code, open to every role) needs its own button
+    # inside Companion Mode itself, or a companion account has no way to
+    # reach it at all despite the backend allowing it.
+    companion_section = INDEX[INDEX.index('<section id="companionMode"'):INDEX.index('<section id="caregiverMode"')]
+    assert '<button id="companionPairingCodeButton"' in companion_section
+    assert 'companionPairingCodeButton.addEventListener("click"' in INDEX
+    assert "generatePairingCode(companionPairingCodeButton, companionPairingCodeMessage)" in INDEX
+
+
+def test_generate_pairing_code_ui_hides_once_already_paired():
+    # Both places a "generate a code" affordance can appear (Companion Mode
+    # and Caregiver Mode) start hidden in markup and only get shown by
+    # loadLinkedCaregivers() once it confirms this account has no linked
+    # caregiver yet — see /api/me/linked-caregivers.
+    assert '<div id="companionPairingCodeSection" hidden>' in INDEX
+    assert '<div id="generateOwnCodeSection" hidden>' in INDEX
+    fn = INDEX[INDEX.index("async function loadLinkedCaregivers"):INDEX.index("async function loadLinkedCaregivers") + 800]
+    assert "companionPairingCodeSection.hidden = hasCaregiver" in fn
+    assert "generateOwnCodeSection.hidden = hasCaregiver" in fn
+    assert '"/api/me/linked-caregivers"' in fn
+
+
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():
     forbidden = (
         "TELEGRAM_BOT_TOKEN",

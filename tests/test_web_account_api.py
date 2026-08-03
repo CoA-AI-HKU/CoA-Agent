@@ -638,3 +638,57 @@ def test_choose_identity_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     response = client.post("/api/me/identity", json={"role": "companion"})
     assert response.status_code == 401
+
+
+def test_linked_caregivers_is_empty_for_an_account_that_never_generated_a_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-linked-caregivers-fresh"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me/linked-caregivers", headers={"Authorization": "Bearer fake"})
+        assert response.status_code == 200
+        assert response.json()["linked_caregivers"] == []
+    finally:
+        _cleanup(uid)
+
+
+def test_linked_caregivers_is_empty_before_a_generated_code_is_redeemed(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-linked-caregivers-pending"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.post("/api/me/pairing-code", json={}, headers=headers)
+        response = client.get("/api/me/linked-caregivers", headers=headers)
+        assert response.json()["linked_caregivers"] == []
+    finally:
+        _cleanup(uid)
+
+
+def test_linked_caregivers_shows_up_once_a_caregiver_redeems_the_code(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-linked-caregivers-patient", "pytest-linked-caregivers-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code = client.post(
+            "/api/me/pairing-code", json={}, headers={"Authorization": "Bearer patient"},
+        ).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        client.post("/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"})
+
+        _authenticate_as(monkeypatch, patient_uid)
+        response = client.get("/api/me/linked-caregivers", headers={"Authorization": "Bearer patient"})
+        caregivers = response.json()["linked_caregivers"]
+        assert len(caregivers) == 1
+        assert caregivers[0]["sender_id"] == caregiver_uid
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_linked_caregivers_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.get("/api/me/linked-caregivers")
+    assert response.status_code == 401
