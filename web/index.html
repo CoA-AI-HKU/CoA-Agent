@@ -281,21 +281,6 @@
     .pref-row input[type="checkbox"] { width: 28px; min-height: 28px; flex: 0 0 auto; }
     .pref-row select, .pref-row input[type="range"] { width: auto; min-width: 140px; }
 
-    .game-button {
-      min-height: 60px;
-      padding: .6rem 1rem;
-      border: 2px solid #076b75;
-      border-radius: 10px;
-      font: inherit;
-      font-weight: 750;
-      cursor: pointer;
-      background: #fff;
-      color: #075b64;
-      width: 100%;
-      margin-bottom: 0.5rem;
-    }
-    .game-button.selected { background: #076b75; color: #fff; }
-
     /* ===== Developer panel ===== */
     textarea {
       display: block;
@@ -612,23 +597,6 @@
           </div>
           <button id="savePreferencesButton" class="action-button send-button" type="button">儲存設定</button>
           <p id="preferencesMessage" class="form-message" aria-live="polite"></p>
-        </div>
-
-        <div class="subpage-section">
-          <h2>🧠 認知訓練</h2>
-          <div>
-            <button class="game-button selected" data-game="naming" id="gameNamingBtn">🍎 命名遊戲</button>
-            <button class="game-button" data-game="memory" id="gameMemoryBtn">🔢 記憶遊戲</button>
-            <button class="game-button" data-game="calculation" id="gameCalculationBtn">🧮 計算遊戲</button>
-          </div>
-          <div id="gameQuestion" style="font-size: 1.3rem; font-weight: 700; margin: 1rem 0;">按「開始遊戲」開始訓練</div>
-          <div id="gameInputArea">
-            <input type="text" id="gameAnswerInput" placeholder="輸入你嘅答案...">
-            <button id="gameSubmitBtn" class="action-button send-button" style="margin-top: .5rem; width: 100%;">✅ 提交答案</button>
-          </div>
-          <div id="gameFeedback" style="min-height: 2.2rem; margin-top: .6rem; font-weight: 700;"></div>
-          <button id="gameNextBtn" class="action-button secondary-button" style="margin-top: .5rem; width: 100%;" disabled>▶️ 下一題</button>
-          <button id="gameStartBtn" class="action-button send-button" style="margin-top: .5rem; width: 100%;">🎯 開始遊戲</button>
         </div>
       </section>
 
@@ -1339,86 +1307,6 @@
     emergencyButton.addEventListener("click", handleCallCaregiver);
 
     signOutButton.addEventListener("click", function () { window.signOutOfFirebase(); });
-
-    // ===== Cognitive games (unchanged prototype logic, kept under Caregiver Mode) =====
-    const gameNamingBtn = document.getElementById("gameNamingBtn");
-    const gameMemoryBtn = document.getElementById("gameMemoryBtn");
-    const gameCalculationBtn = document.getElementById("gameCalculationBtn");
-    const gameQuestion = document.getElementById("gameQuestion");
-    const gameAnswerInput = document.getElementById("gameAnswerInput");
-    const gameSubmitBtn = document.getElementById("gameSubmitBtn");
-    const gameNextBtn = document.getElementById("gameNextBtn");
-    const gameStartBtn = document.getElementById("gameStartBtn");
-    const gameFeedback = document.getElementById("gameFeedback");
-
-    let currentGame = "naming";
-    let gameActive = false;
-    const namingCategories = {
-      "水果": ["蘋果", "香蕉", "橙", "西瓜", "提子", "芒果", "梨", "火龍果"],
-      "動物": ["貓", "狗", "雞", "鴨", "牛", "羊", "豬", "兔"],
-      "顏色": ["紅色", "藍色", "綠色", "黃色", "黑色", "白色"],
-    };
-    let namingAnswer = "";
-    const calculationQuestions = [
-      { a: 2, b: 3, op: "+", ans: 5 }, { a: 8, b: 3, op: "-", ans: 5 },
-      { a: 5, b: 4, op: "+", ans: 9 }, { a: 9, b: 2, op: "-", ans: 7 },
-    ];
-    let currentCalc = null;
-    let memorySequence = [];
-    let memoryIndex = 0;
-
-    function selectGame(game) {
-      currentGame = game;
-      [gameNamingBtn, gameMemoryBtn, gameCalculationBtn].forEach(function (btn) { btn.classList.remove("selected"); });
-      ({ naming: gameNamingBtn, memory: gameMemoryBtn, calculation: gameCalculationBtn })[game].classList.add("selected");
-      gameActive = false;
-      gameQuestion.textContent = "按「開始遊戲」開始訓練";
-      gameFeedback.textContent = "";
-      gameNextBtn.disabled = true;
-    }
-
-    function startGame() {
-      gameActive = true;
-      gameFeedback.textContent = "";
-      gameNextBtn.disabled = true;
-      if (currentGame === "naming") {
-        const categories = Object.keys(namingCategories);
-        const category = categories[Math.floor(Math.random() * categories.length)];
-        const items = namingCategories[category];
-        namingAnswer = items[Math.floor(Math.random() * items.length)];
-        gameQuestion.textContent = "講出一個屬於「" + category + "」嘅嘢";
-      } else if (currentGame === "calculation") {
-        currentCalc = calculationQuestions[Math.floor(Math.random() * calculationQuestions.length)];
-        gameQuestion.textContent = currentCalc.a + " " + currentCalc.op + " " + currentCalc.b + " = ?";
-      } else {
-        const length = 3 + Math.floor(Math.random() * 3);
-        memorySequence = Array.from({ length: length }, function () { return Math.floor(Math.random() * 10); });
-        memoryIndex = 0;
-        gameQuestion.textContent = "記住呢串數字：" + memorySequence.join(" ");
-        setTimeout(function () { gameQuestion.textContent = "而家輸入啱啱嘅數字（順序）"; }, 3000);
-      }
-    }
-
-    function submitGameAnswer() {
-      if (!gameActive) return;
-      const value = gameAnswerInput.value.trim();
-      let correct = false;
-      if (currentGame === "naming") correct = value === namingAnswer;
-      else if (currentGame === "calculation") correct = parseInt(value, 10) === currentCalc.ans;
-      else correct = value === memorySequence.join("");
-      gameFeedback.textContent = correct ? "✅ 答對了！" : "❌ 答錯了，試多次啦！";
-      gameFeedback.style.color = correct ? "#22c55e" : "#e74c3c";
-      gameAnswerInput.value = "";
-      gameActive = false;
-      gameNextBtn.disabled = false;
-    }
-
-    gameNamingBtn.addEventListener("click", function () { selectGame("naming"); });
-    gameMemoryBtn.addEventListener("click", function () { selectGame("memory"); });
-    gameCalculationBtn.addEventListener("click", function () { selectGame("calculation"); });
-    gameStartBtn.addEventListener("click", startGame);
-    gameSubmitBtn.addEventListener("click", submitGameAnswer);
-    gameNextBtn.addEventListener("click", startGame);
 
     // ===== 10. WIRING / INIT =====
     // Firebase auth wiring (setAuthFormMode, submitPhoneForm, submitCodeForm,
