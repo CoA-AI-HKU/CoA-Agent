@@ -89,3 +89,22 @@ def verify_id_token(id_token: str) -> FirebaseUser | None:
         display_name=decoded.get("name"),
         email=decoded.get("email"),
     )
+
+
+def delete_user(uid: str) -> None:
+    """Permanently delete a Firebase Auth account. Irreversible — the caller
+    (see backend/api/web_account.py's delete-patient-account endpoint) is
+    responsible for its own confirmation step before ever reaching this.
+
+    A "user not found" error is treated as success (idempotent) since the
+    end state — this uid can no longer sign in — is already true either way.
+    """
+    if not _ensure_initialized():
+        raise RuntimeError("Firebase sign-in is not configured on this server")
+    from firebase_admin import auth as firebase_auth_sdk
+    from firebase_admin.exceptions import NotFoundError
+
+    try:
+        firebase_auth_sdk.delete_user(uid)
+    except NotFoundError:
+        pass

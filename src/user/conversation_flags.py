@@ -121,3 +121,19 @@ def get_recent_flags(sender_id: str, days: int = RETENTION_DAYS) -> list[dict[st
         ]
     finally:
         db.close()
+
+
+def delete_flags_for_sender(sender_id: str) -> None:
+    """Remove every flag for a sender — used when an account is deleted
+    outright (see backend/api/web_account.py's delete-patient-account
+    endpoint), not part of the normal 14-day retention flow.
+    """
+    sender_id = str(sender_id or "").strip()
+    if not sender_id:
+        return
+    db = SessionLocal()
+    try:
+        db.query(ConversationFlag).filter(ConversationFlag.sender_id == sender_id).delete(synchronize_session=False)
+        db.commit()
+    finally:
+        db.close()

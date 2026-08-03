@@ -78,6 +78,17 @@ class WebAccountProfile(Base):
     # already decided and get this set True immediately, since the server
     # already made that call for them.
     identity_confirmed = Column(Boolean, nullable=False, default=False)
+    # NULL until the account fills in the profile-info screen (see
+    # POST /api/me/profile-info) — a self-reported name/birthday, distinct
+    # from Firebase's own `display_name` (often empty for phone sign-ins).
+    # This is what a caregiver actually sees identifying a linked patient.
+    name = Column(String, nullable=True)
+    birthday = Column(String, nullable=True)  # "YYYY-MM-DD"; free text, not validated as a real date
+    # Mirrored from the verified Firebase ID token on every /api/me load
+    # (see get_or_create_profile) purely so it can be shown to a linked
+    # caregiver without a live Firebase Admin lookup per request — Firebase
+    # itself remains the actual identity/auth authority.
+    email = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -108,6 +119,9 @@ def _migrate_add_missing_columns() -> None:
             "auto_send": "BOOLEAN NOT NULL DEFAULT 1",
             "consent_accepted_at": "DATETIME",
             "identity_confirmed": "BOOLEAN NOT NULL DEFAULT 0",
+            "name": "VARCHAR",
+            "birthday": "VARCHAR",
+            "email": "VARCHAR",
         }
         for column, ddl_type in additions.items():
             if column not in existing_columns:

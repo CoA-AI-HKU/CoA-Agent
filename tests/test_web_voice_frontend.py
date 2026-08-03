@@ -108,16 +108,57 @@ def test_companion_mode_can_generate_a_pairing_code_without_caregiver_mode():
 
 
 def test_generate_pairing_code_ui_hides_once_already_paired():
-    # Both places a "generate a code" affordance can appear (Companion Mode
-    # and Caregiver Mode) start hidden in markup and only get shown by
-    # loadLinkedCaregivers() once it confirms this account has no linked
-    # caregiver yet — see /api/me/linked-caregivers.
+    # Companion Mode's "generate a code" affordance starts hidden in markup
+    # and only gets shown by loadLinkedCaregivers() once it confirms this
+    # account has no linked caregiver yet — see /api/me/linked-caregivers.
+    # (Caregiver Mode's copy of this was removed — see
+    # test_caregiver_mode_has_no_generate_own_code_section.)
     assert '<div id="companionPairingCodeSection" hidden>' in INDEX
-    assert '<div id="generateOwnCodeSection" hidden>' in INDEX
     fn = INDEX[INDEX.index("async function loadLinkedCaregivers"):INDEX.index("async function loadLinkedCaregivers") + 800]
     assert "companionPairingCodeSection.hidden = hasCaregiver" in fn
-    assert "generateOwnCodeSection.hidden = hasCaregiver" in fn
     assert '"/api/me/linked-caregivers"' in fn
+
+
+def test_caregiver_mode_has_no_generate_own_code_section():
+    # Generating a pairing code (to be paired AS a patient) only makes
+    # sense from Companion Mode / the info gate now — Caregiver Mode kept a
+    # redundant copy of it that has been removed.
+    caregiver_section = INDEX[INDEX.index('<section id="caregiverMode"'):INDEX.index('<section id="developerMode"')]
+    assert "generateOwnCodeSection" not in caregiver_section
+    assert "generatePairingCodeButton" not in caregiver_section
+    assert "產生配對碼" not in caregiver_section or "俾照顧者" not in caregiver_section
+
+
+def test_info_gate_comes_after_identity_and_before_consent():
+    flow = INDEX[INDEX.index("function proceedAfterProfileLoaded"):INDEX.index("function chooseIdentity")]
+    identity_check = flow.index("meProfile.identity_confirmed")
+    info_check = flow.index("meProfile.profile_info_given")
+    consent_check = flow.index("meProfile.consent_given")
+    assert identity_check < info_check < consent_check
+
+
+def test_info_gate_collects_name_birthday_and_offers_a_pairing_code():
+    assert '<div id="infoGate"' in INDEX
+    info_section = INDEX[INDEX.index('<div id="infoGate"'):INDEX.index('<div id="consentGate"')]
+    assert 'id="profileNameInput"' in info_section
+    assert 'id="profileBirthdayInput"' in info_section
+    assert 'id="infoPairingCodeButton"' in info_section
+    assert '"/api/me/profile-info"' in INDEX
+
+
+def test_deleting_a_patient_account_requires_typed_hk_confirmation_phrase():
+    assert 'const DELETE_PATIENT_CONFIRMATION_PHRASE = "確定刪除"' in INDEX
+    fn = INDEX[INDEX.index("async function deletePatientAccount"):INDEX.index("async function deletePatientAccount") + 1200]
+    assert "typed.trim() !== DELETE_PATIENT_CONFIRMATION_PHRASE" in fn
+    assert '"/account"' in fn
+
+
+def test_caregiver_default_mode_is_set_to_caregiver_on_the_backend():
+    # The frontend just trusts meProfile.default_mode from the server (see
+    # enterApp()) — the actual "caregiver defaults into caregiver mode"
+    # decision lives in backend/services/account_profiles.py, covered
+    # there. This just locks in that enterApp() doesn't hardcode "companion".
+    assert 'setMode(meProfile.default_mode || "companion")' in INDEX
 
 
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():

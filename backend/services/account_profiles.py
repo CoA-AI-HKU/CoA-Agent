@@ -105,9 +105,13 @@ def get_or_create_profile(user: FirebaseUser) -> WebAccountProfile:
             profile = WebAccountProfile(
                 firebase_uid=user.uid,
                 role=initial_role,
-                default_mode="companion",
+                # A caregiver's primary view is Caregiver Mode itself (the
+                # dashboard: alerts, contacts, pairing) — everyone else
+                # defaults into Companion Mode.
+                default_mode="caregiver" if initial_role == "caregiver" else "companion",
                 auto_send=initial_role not in ("developer", "admin"),
                 identity_confirmed=bootstrap is not None,
+                email=user.email,
             )
             db.add(profile)
             db.commit()
@@ -117,10 +121,15 @@ def get_or_create_profile(user: FirebaseUser) -> WebAccountProfile:
         if bootstrap and ROLE_RANK.get(bootstrap, 0) > ROLE_RANK.get(profile.role, 0):
             profile.role = bootstrap
             profile.identity_confirmed = True
-            # A newly-elevated account's default_mode must stay one it's
-            # actually allowed into — "companion" always qualifies, so this
-            # never needs to change unless it was already, impossibly, set
-            # to something outside the (now-larger) allowed set.
+            if bootstrap == "caregiver":
+                profile.default_mode = "caregiver"
+            db.commit()
+            db.refresh(profile)
+        # Kept fresh on every load — Firebase's own email is the source of
+        # truth (e.g. after an account-linking flow adds one that wasn't
+        # there before), this is just a local mirror of it.
+        if profile.email != user.email:
+            profile.email = user.email
             db.commit()
             db.refresh(profile)
         return profile
@@ -148,6 +157,31 @@ def choose_identity(firebase_uid: str, role: str) -> WebAccountProfile:
             raise PreferencePermissionError("identity has already been chosen for this account")
         profile.role = role
         profile.identity_confirmed = True
+        profile.default_mode = "caregiver" if role == "caregiver" else "companion"
+        db.commit()
+        db.refresh(profile)
+        return profile
+    finally:
+        db.close()
+
+
+def record_profile_info(firebase_uid: str, name: str, birthday: str) -> WebAccountProfile:
+    """Save the self-reported name/birthday collected on first login.
+
+    Not one-time like choose_identity — a typo in your own birthday should
+    be fixable, so this can be called again later (e.g. from a future
+    "edit my info" control) without restriction.
+    """
+    name = name.strip()
+    if not name:
+        raise PreferenceValidationError("name is required")
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == firebase_uid).first()
+        if profile is None:
+            raise PreferenceValidationError("no profile found for this account")
+        profile.name = name
+        profile.birthday = birthday.strip() or None
         db.commit()
         db.refresh(profile)
         return profile
@@ -184,6 +218,10 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
         "default_mode": profile.default_mode,
         "consent_given": profile.consent_accepted_at is not None,
         "identity_confirmed": profile.identity_confirmed,
+        "profile_info_given": bool(profile.name),
+        "name": profile.name,
+        "birthday": profile.birthday,
+        "email": profile.email,
         "preferences": {
             "recognition_language": profile.recognition_language,
             "talk_mode": profile.talk_mode,

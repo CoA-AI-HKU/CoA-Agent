@@ -420,6 +420,43 @@
     </div>
   </div>
 
+  <!-- ========== PROFILE INFO GATE ==========
+       Shown once, right after identity choice, only for an account that
+       hasn't filled this in yet (GET /api/me's profile_info_given is
+       false). This is what actually identifies an account to a linked
+       caregiver — Firebase's own display_name is usually empty for phone
+       sign-ins. The pairing-code generator is embedded here too so a
+       brand-new account can immediately hand a code to whoever cares for
+       them (or vice versa) without hunting for it in Companion/Caregiver
+       Mode afterward. -->
+  <div id="infoGate" class="pre-login" hidden>
+    <h1>你嘅資料</h1>
+    <p class="intro">請簡單填寫以下資料，方便照顧者可以認得你。</p>
+
+    <div class="account-card">
+      <form id="profileInfoForm">
+        <div class="form-field">
+          <label for="profileNameInput">姓名</label>
+          <input id="profileNameInput" name="profileNameInput" required>
+        </div>
+        <div class="form-field">
+          <label for="profileBirthdayInput">出生日期</label>
+          <input id="profileBirthdayInput" name="profileBirthdayInput" type="date">
+        </div>
+        <button class="action-button send-button" type="submit" style="width:100%;">繼續</button>
+      </form>
+      <p id="profileInfoMessage" class="form-message" aria-live="polite"></p>
+
+      <hr style="margin:1.2rem 0; border:none; border-top:1px solid #d8e6e8;">
+
+      <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
+        如果你想連結照顧者或者照顧對象，可以喺呢度產生配對碼。
+      </p>
+      <button id="infoPairingCodeButton" class="action-button secondary-button" type="button" style="width:100%;">🔗 產生配對碼</button>
+      <p id="infoPairingCodeMessage" class="form-message" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- ========== CONSENT GATE ==========
        Shown once, after sign-in, only for an account that has never agreed
        before (GET /api/me's consent_given is false — see backend/services/
@@ -541,21 +578,6 @@
           </form>
           <p id="linkPatientMessage" class="form-message" aria-live="polite"></p>
           <ul id="linkedPatientsList" class="contact-list" aria-label="已連結嘅照顧對象"></ul>
-
-          <!-- Only shown while this account has never been paired as
-               someone's care recipient yet — see loadLinkedCaregivers() in
-               the script below, which hides this once a caregiver is
-               already linked, and the matching section in Companion
-               Mode's #companionPairingCodeButton. -->
-          <div id="generateOwnCodeSection" hidden>
-            <hr style="margin:1.2rem 0; border:none; border-top:1px solid #d8e6e8;">
-
-            <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
-              如果你想俾另一位照顧者連結返嚟你（例如你自己都有人照顧），可以喺呢度產生一個配對碼俾佢。
-            </p>
-            <button id="generatePairingCodeButton" class="action-button secondary-button" type="button">產生配對碼</button>
-            <p id="generatePairingCodeMessage" class="form-message" aria-live="polite"></p>
-          </div>
         </div>
 
         <div class="subpage-section">
@@ -685,6 +707,13 @@
     const chooseCompanionButton = document.getElementById("chooseCompanionButton");
     const chooseCaregiverButton = document.getElementById("chooseCaregiverButton");
     const identityMessage = document.getElementById("identityMessage");
+    const infoGate = document.getElementById("infoGate");
+    const profileInfoForm = document.getElementById("profileInfoForm");
+    const profileNameInput = document.getElementById("profileNameInput");
+    const profileBirthdayInput = document.getElementById("profileBirthdayInput");
+    const profileInfoMessage = document.getElementById("profileInfoMessage");
+    const infoPairingCodeButton = document.getElementById("infoPairingCodeButton");
+    const infoPairingCodeMessage = document.getElementById("infoPairingCodeMessage");
     const consentGate = document.getElementById("consentGate");
     const consentPolicyText = document.getElementById("consentPolicyText");
     const consentScrollHint = document.getElementById("consentScrollHint");
@@ -728,9 +757,6 @@
     const pairingCodeInput = document.getElementById("pairingCodeInput");
     const linkPatientMessage = document.getElementById("linkPatientMessage");
     const linkedPatientsList = document.getElementById("linkedPatientsList");
-    const generateOwnCodeSection = document.getElementById("generateOwnCodeSection");
-    const generatePairingCodeButton = document.getElementById("generatePairingCodeButton");
-    const generatePairingCodeMessage = document.getElementById("generatePairingCodeMessage");
 
     const prefDefaultMode = document.getElementById("prefDefaultMode");
     const prefRecognitionLanguage = document.getElementById("prefRecognitionLanguage");
@@ -1125,15 +1151,50 @@
         const item = document.createElement("li");
         const name = document.createElement("span");
         const removeButton = document.createElement("button");
+        const deleteButton = document.createElement("button");
         item.className = "contact-item";
-        name.textContent = patient.display_name;
-        removeButton.className = "action-button danger-button small-button";
+        name.textContent = patient.email ? patient.display_name + "（" + patient.email + "）" : patient.display_name;
+        removeButton.className = "action-button secondary-button small-button";
         removeButton.type = "button";
         removeButton.textContent = "解除連結";
         removeButton.addEventListener("click", function () { unlinkPatient(patient.user_id); });
-        item.append(name, removeButton);
+        deleteButton.className = "action-button danger-button small-button";
+        deleteButton.type = "button";
+        deleteButton.textContent = "刪除帳戶";
+        deleteButton.addEventListener("click", function () { deletePatientAccount(patient.user_id, patient.display_name); });
+        item.append(name, removeButton, deleteButton);
         linkedPatientsList.append(item);
       });
+    }
+
+    const DELETE_PATIENT_CONFIRMATION_PHRASE = "確定刪除";
+
+    async function deletePatientAccount(patientUserId, displayName) {
+      const typed = prompt(
+        "呢個操作會永久刪除「" + displayName + "」嘅整個帳戶，包括登入、聯絡人同提示記錄，唔可以復原。\n" +
+        "如果要繼續，請喺下面輸入「" + DELETE_PATIENT_CONFIRMATION_PHRASE + "」：",
+      );
+      if (typed === null) return;
+      if (typed.trim() !== DELETE_PATIENT_CONFIRMATION_PHRASE) {
+        linkPatientMessage.textContent = "輸入唔正確，帳戶未有被刪除。";
+        linkPatientMessage.classList.add("error-message");
+        return;
+      }
+      try {
+        const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/account", {
+          method: "DELETE",
+          body: JSON.stringify({ confirmation: typed.trim() }),
+        });
+        if (!res.ok) throw new Error("failed to delete patient account");
+        const body = await res.json();
+        renderLinkedPatients(body.linked_patients || []);
+        linkPatientMessage.textContent = "已刪除「" + displayName + "」嘅帳戶。";
+        linkPatientMessage.classList.remove("error-message");
+        loadConversationFlags();
+      } catch (err) {
+        linkPatientMessage.textContent = "刪除帳戶失敗，請稍後再試。";
+        linkPatientMessage.classList.add("error-message");
+      }
     }
 
     async function loadLinkedPatients() {
@@ -1160,7 +1221,6 @@
         // silently hiding a feature the account might still need.
       }
       companionPairingCodeSection.hidden = hasCaregiver;
-      generateOwnCodeSection.hidden = hasCaregiver;
     }
 
     async function unlinkPatient(patientUserId) {
@@ -1216,9 +1276,6 @@
         button.disabled = false;
       }
     }
-    generatePairingCodeButton.addEventListener("click", function () {
-      generatePairingCode(generatePairingCodeButton, generatePairingCodeMessage);
-    });
     companionPairingCodeButton.addEventListener("click", function () {
       generatePairingCode(companionPairingCodeButton, companionPairingCodeMessage);
     });
@@ -1375,6 +1432,7 @@
     // Firebase actually knows).
     function enterApp() {
       identityGate.hidden = true;
+      infoGate.hidden = true;
       consentGate.hidden = true;
       appShell.hidden = false;
       setMode(meProfile.default_mode || "companion");
@@ -1383,16 +1441,24 @@
     }
 
     // The gate sequence after a successful sign-in: identity choice (if
-    // never chosen), then consent (if never given), then the app itself.
-    // Called both right after loadMe() and again after each gate is
-    // cleared, so it always resumes at whichever step is still pending.
+    // never chosen), then profile info (if never given), then consent (if
+    // never given), then the app itself. Called both right after loadMe()
+    // and again after each gate is cleared, so it always resumes at
+    // whichever step is still pending.
     function proceedAfterProfileLoaded() {
       if (!meProfile.identity_confirmed) {
         identityGate.hidden = false;
+        infoGate.hidden = true;
         consentGate.hidden = true;
         return;
       }
       identityGate.hidden = true;
+      if (!meProfile.profile_info_given) {
+        infoGate.hidden = false;
+        consentGate.hidden = true;
+        return;
+      }
+      infoGate.hidden = true;
       if (!meProfile.consent_given) {
         consentGate.hidden = false;
         // If the policy text already fits without scrolling (tall
@@ -1405,6 +1471,29 @@
       }
       enterApp();
     }
+
+    profileInfoForm.addEventListener("submit", async function (event) {
+      event.preventDefault();
+      const name = profileNameInput.value.trim();
+      if (!name) return;
+      profileInfoMessage.textContent = "";
+      profileInfoMessage.classList.remove("error-message");
+      try {
+        const res = await apiFetch("/api/me/profile-info", {
+          method: "POST",
+          body: JSON.stringify({ name: name, birthday: profileBirthdayInput.value }),
+        });
+        if (!res.ok) throw new Error("failed to save profile info");
+        meProfile = await res.json();
+        proceedAfterProfileLoaded();
+      } catch (err) {
+        profileInfoMessage.textContent = "未能儲存資料，請稍後再試。";
+        profileInfoMessage.classList.add("error-message");
+      }
+    });
+    infoPairingCodeButton.addEventListener("click", function () {
+      generatePairingCode(infoPairingCodeButton, infoPairingCodeMessage);
+    });
 
     function chooseIdentity(role) {
       chooseCompanionButton.disabled = true;
@@ -1475,6 +1564,7 @@
       if (!signedIn) {
         preLoginScreen.hidden = false;
         identityGate.hidden = true;
+        infoGate.hidden = true;
         consentGate.hidden = true;
         appShell.hidden = true;
         return;

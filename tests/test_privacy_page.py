@@ -21,3 +21,13 @@ def test_policy_context_hides_the_consent_form_and_telegram_button():
     assert "consentSection" in script
     assert "ctaButtons" in script
     assert "hidden = true" in script
+
+
+def test_btn_group_hidden_attribute_actually_hides_it():
+    # .btn-group sets its own `display: flex`, which outranks the browser's
+    # default `[hidden] { display: none }` rule — setting the `hidden`
+    # attribute alone (see the ?context=policy script above) silently did
+    # nothing without this override. Regression test for that bug.
+    assert ".btn-group[hidden]" in PRIVACY
+    override = PRIVACY[PRIVACY.index(".btn-group[hidden]"):PRIVACY.index(".btn-group[hidden]") + 100]
+    assert "display: none" in override

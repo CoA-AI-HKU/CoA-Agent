@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException
@@ -13,12 +14,13 @@ from backend.services.account_profiles import (
     get_or_create_profile,
     profile_to_me_response,
     record_consent,
+    record_profile_info,
     require_permission,
     update_preferences,
 )
-from backend.services.accounts_database import SessionLocal, WebContact
-from backend.services.firebase_auth import FirebaseUser, is_configured, verify_id_token
-from src.user.conversation_flags import get_recent_flags
+from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
+from backend.services.firebase_auth import FirebaseUser, delete_user, is_configured, verify_id_token
+from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags
 from src.user.user_registry import (
     create_pairing_code,
     get_caregiver_records_for_user,
@@ -27,8 +29,11 @@ from src.user.user_registry import (
     get_user_record_by_user_id,
     redeem_pairing_code,
     register_account,
+    revoke_caregivers_for_user,
     unlink_caregiver,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 # No prefix — the spec for this endpoint names it exactly /api/me, and it is
@@ -99,6 +104,23 @@ def post_identity(
     return profile_to_me_response(profile)
 
 
+class ProfileInfoRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+    birthday: str = Field(default="", max_length=20)
+
+
+@me_router.post("/api/me/profile-info")
+def post_profile_info(
+    payload: ProfileInfoRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    get_or_create_profile(user)
+    try:
+        profile = record_profile_info(user.uid, payload.name, payload.birthday)
+    except PreferenceValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return profile_to_me_response(profile)
+
+
 @me_router.post("/api/me/consent")
 def post_consent(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
     # No request body — agreeing is a single, all-or-nothing action (see the
@@ -153,7 +175,16 @@ def create_my_pairing_code(
     # \paircode command uses (src/user/user_registry.py) — the code this
     # returns works identically whether it's redeemed from Telegram's \link
     # or from a web caregiver's /api/me/link-patient below.
-    register_account(user.uid, "user", display_name=payload.display_name or user.display_name or "")
+    #
+    # Prefers the name collected on the profile-info screen (see
+    # record_profile_info) — that's what a caregiver actually sees identifying
+    # this account, so it needs to be a real name, not Firebase's often-empty
+    # display_name.
+    profile = get_or_create_profile(user)
+    display_name = (
+        (payload.display_name or "").strip() or profile.name or user.email or user.display_name or ""
+    )
+    register_account(user.uid, "user", display_name=display_name)
     code = create_pairing_code(user.uid)
     return {"code": code, "expires_in_minutes": 15}
 
@@ -213,12 +244,81 @@ def remove_linked_patient(
     return {"removed": removed, "linked_patients": _linked_patients(user.uid)}
 
 
-def _linked_patients(caregiver_uid: str) -> list[dict[str, str]]:
+class DeletePatientAccountRequest(BaseModel):
+    # The typed confirmation phrase lives client-side (see web/index.html's
+    # deletePatientAccount()) — this field just proves the request actually
+    # went through that flow rather than being silently automatable.
+    confirmation: str = Field(min_length=1, max_length=20)
+
+
+REQUIRED_DELETE_CONFIRMATION = "確定刪除"
+
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}/account")
+def delete_linked_patient_account(
+    patient_user_id: str,
+    payload: DeletePatientAccountRequest,
+    user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    """Permanently delete a linked patient's entire account — not just the
+    link. Irreversible: removes their Firebase sign-in, their profile,
+    contacts, and stored conversation flags. A caregiver may only do this
+    to a patient actually linked to them (checked below), and only after
+    the frontend's typed-confirmation step.
+    """
+    _require_permission(user, "caregiver_mode")
+    if payload.confirmation.strip() != REQUIRED_DELETE_CONFIRMATION:
+        raise HTTPException(status_code=422, detail=f"confirmation text must be {REQUIRED_DELETE_CONFIRMATION!r}")
+    if patient_user_id not in get_linked_user_ids(user.uid):
+        raise HTTPException(status_code=404, detail="patient not found or not linked to this account")
+
+    sender_id, _ = get_user_record_by_user_id(patient_user_id)
+
+    # Local cleanup first: if Firebase deletion below fails, the account is
+    # still left in a safe, self-healing state (a login with no profile
+    # just re-triggers onboarding), rather than a deleted login with
+    # orphaned local data.
+    if sender_id:
+        db = SessionLocal()
+        try:
+            db.query(WebContact).filter(WebContact.firebase_uid == sender_id).delete(synchronize_session=False)
+            db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == sender_id).delete(
+                synchronize_session=False,
+            )
+            db.commit()
+        finally:
+            db.close()
+        delete_flags_for_sender(sender_id)
+        # revoke_caregivers_for_user takes the patient's sender_id, not the
+        # opaque registry user_id — it resolves the user_id internally.
+        revoke_caregivers_for_user(sender_id)
+        try:
+            delete_user(sender_id)
+        except Exception:
+            logger.exception("Failed to delete Firebase account for sender_id=%s", sender_id)
+
+    return {"deleted_patient_user_id": patient_user_id, "linked_patients": _linked_patients(user.uid)}
+
+
+def _linked_patients(caregiver_uid: str) -> list[dict[str, str | None]]:
     patients = []
     for patient_user_id in get_linked_user_ids(caregiver_uid):
-        _, record = get_user_record_by_user_id(patient_user_id)
+        sender_id, record = get_user_record_by_user_id(patient_user_id)
         display_name = str(record.get("display_name") or "").strip() or patient_user_id
-        patients.append({"user_id": patient_user_id, "display_name": display_name})
+        # Only web-based patients have a WebAccountProfile row at all (a
+        # Telegram-only patient won't, and that's fine — email stays None).
+        email = None
+        if sender_id:
+            db = SessionLocal()
+            try:
+                patient_profile = (
+                    db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == sender_id).first()
+                )
+                if patient_profile is not None:
+                    email = patient_profile.email
+            finally:
+                db.close()
+        patients.append({"user_id": patient_user_id, "display_name": display_name, "email": email})
     return patients
 
 

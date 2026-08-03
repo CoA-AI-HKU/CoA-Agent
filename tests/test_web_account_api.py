@@ -692,3 +692,265 @@ def test_linked_caregivers_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     response = client.get("/api/me/linked-caregivers")
     assert response.status_code == 401
+
+
+def test_choosing_caregiver_identity_defaults_into_caregiver_mode(monkeypatch):
+    uid = "pytest-default-mode-choose-caregiver"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/identity", json={"role": "caregiver"}, headers=headers)
+        assert response.json()["default_mode"] == "caregiver"
+    finally:
+        _cleanup(uid)
+
+
+def test_choosing_companion_identity_defaults_into_companion_mode(monkeypatch):
+    uid = "pytest-default-mode-choose-companion"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/identity", json={"role": "companion"}, headers=headers)
+        assert response.json()["default_mode"] == "companion"
+    finally:
+        _cleanup(uid)
+
+
+def test_bootstrapped_caregiver_account_defaults_into_caregiver_mode(monkeypatch):
+    uid = "pytest-default-mode-bootstrap-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["default_mode"] == "caregiver"
+    finally:
+        _cleanup(uid)
+
+
+def test_new_account_has_not_given_profile_info_yet(monkeypatch):
+    uid = "pytest-profile-info-new"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["profile_info_given"] is False
+        assert response.json()["name"] is None
+    finally:
+        _cleanup(uid)
+
+
+def test_saving_profile_info_succeeds(monkeypatch):
+    uid = "pytest-profile-info-save"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post(
+            "/api/me/profile-info", json={"name": "陳大文", "birthday": "1950-01-01"}, headers=headers,
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["profile_info_given"] is True
+        assert body["name"] == "陳大文"
+        assert body["birthday"] == "1950-01-01"
+    finally:
+        _cleanup(uid)
+
+
+def test_profile_info_requires_a_name(monkeypatch):
+    uid = "pytest-profile-info-blank-name"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/profile-info", json={"name": "  ", "birthday": ""}, headers=headers)
+        assert response.status_code == 422
+    finally:
+        _cleanup(uid)
+
+
+def test_profile_info_can_be_saved_again_later(monkeypatch):
+    uid = "pytest-profile-info-update"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.post("/api/me/profile-info", json={"name": "陳大文", "birthday": ""}, headers=headers)
+        second = client.post("/api/me/profile-info", json={"name": "陳小文", "birthday": ""}, headers=headers)
+        assert second.status_code == 200
+        assert second.json()["name"] == "陳小文"
+    finally:
+        _cleanup(uid)
+
+
+def test_profile_info_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.post("/api/me/profile-info", json={"name": "X", "birthday": ""})
+    assert response.status_code == 401
+
+
+def test_email_is_mirrored_from_firebase_onto_the_profile(monkeypatch):
+    uid = "pytest-profile-email-mirror"
+    _authenticate_as(monkeypatch, uid, email="chan@example.com")
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["email"] == "chan@example.com"
+    finally:
+        _cleanup(uid)
+
+
+def test_pairing_code_uses_the_collected_name_as_the_registry_display_name(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-pairing-name-patient", "pytest-pairing-name-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        headers = {"Authorization": "Bearer patient"}
+        client.post("/api/me/profile-info", json={"name": "王小明", "birthday": ""}, headers=headers)
+        code = client.post("/api/me/pairing-code", json={}, headers=headers).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        linked = client.post(
+            "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"},
+        ).json()["linked_patients"]
+        assert linked[0]["display_name"] == "王小明"
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_linked_patients_includes_the_patients_email(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-linked-email-patient", "pytest-linked-email-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        _authenticate_as(monkeypatch, patient_uid, email="patient@example.com")
+        headers = {"Authorization": "Bearer patient"}
+        code = client.post("/api/me/pairing-code", json={}, headers=headers).json()["code"]
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        linked = client.post(
+            "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"},
+        ).json()["linked_patients"]
+        assert linked[0]["email"] == "patient@example.com"
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid, *, patient_email=None):
+    _authenticate_as(monkeypatch, patient_uid, email=patient_email)
+    code = client.post(
+        "/api/me/pairing-code", json={}, headers={"Authorization": "Bearer patient"},
+    ).json()["code"]
+    _authenticate_as(monkeypatch, caregiver_uid)
+    linked = client.post(
+        "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"},
+    ).json()["linked_patients"]
+    return linked[0]["user_id"]
+
+
+def test_deleting_a_linked_patient_account_removes_their_profile(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setattr("backend.api.web_account.delete_user", lambda uid: None)
+    patient_uid, caregiver_uid = "pytest-delete-patient", "pytest-delete-patient-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        response = client.request(
+            "DELETE",
+            f"/api/me/linked-patients/{patient_user_id}/account",
+            json={"confirmation": "確定刪除"},
+            headers={"Authorization": "Bearer caregiver"},
+        )
+        assert response.status_code == 200
+        assert response.json()["linked_patients"] == []
+
+        # The deleted account's profile should be gone — a fresh GET /api/me
+        # for that uid creates a brand-new, unconfirmed profile again.
+        _authenticate_as(monkeypatch, patient_uid)
+        fresh = client.get("/api/me", headers={"Authorization": "Bearer patient"})
+        assert fresh.json()["identity_confirmed"] is False
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_deleting_a_patient_account_requires_the_exact_confirmation_phrase(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setattr("backend.api.web_account.delete_user", lambda uid: None)
+    patient_uid, caregiver_uid = "pytest-delete-wrong-phrase-patient", "pytest-delete-wrong-phrase-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+        _authenticate_as(monkeypatch, caregiver_uid)
+        response = client.request(
+            "DELETE",
+            f"/api/me/linked-patients/{patient_user_id}/account",
+            json={"confirmation": "delete"},
+            headers={"Authorization": "Bearer caregiver"},
+        )
+        assert response.status_code == 422
+        # and the patient must still be linked — nothing was actually removed
+        listing = client.get("/api/me/linked-patients", headers={"Authorization": "Bearer caregiver"})
+        assert len(listing.json()["linked_patients"]) == 1
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_deleting_a_non_linked_patient_account_is_rejected(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-delete-not-linked-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.request(
+            "DELETE",
+            "/api/me/linked-patients/patient_doesnotexist/account",
+            json={"confirmation": "確定刪除"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        assert response.status_code == 404
+    finally:
+        _cleanup(uid)
+
+
+def test_deleting_a_patient_account_requires_caregiver_mode_permission(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-delete-companion-forbidden"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)
+        response = client.request(
+            "DELETE", "/api/me/linked-patients/whatever/account", json={"confirmation": "確定刪除"}, headers=headers,
+        )
+        assert response.status_code == 403
+    finally:
+        _cleanup(uid)
+
+
+def test_deleting_a_patient_account_also_removes_their_conversation_flags(monkeypatch, tmp_path):
+    from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags as _get_recent_flags, maybe_flag_turn
+
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setattr("backend.api.web_account.delete_user", lambda uid: None)
+    patient_uid, caregiver_uid = "pytest-delete-flags-patient", "pytest-delete-flags-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        delete_flags_for_sender(patient_uid)  # in case a prior failed run left flags behind
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+        maybe_flag_turn(patient_uid, "chest pain", answer_callable=None)
+        assert len(_get_recent_flags(patient_uid)) == 1
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        client.request(
+            "DELETE",
+            f"/api/me/linked-patients/{patient_user_id}/account",
+            json={"confirmation": "確定刪除"},
+            headers={"Authorization": "Bearer caregiver"},
+        )
+        assert _get_recent_flags(patient_uid) == []
+    finally:
+        delete_flags_for_sender(patient_uid)
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
