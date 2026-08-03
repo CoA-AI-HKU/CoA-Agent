@@ -18,6 +18,7 @@ _INTENT_DESCRIPTIONS = {
     "caregiver_support": "照顧者描述被照顧者（家人）的記憶或行為變化，尋求照顧建議。",
     "personal_memory": "使用者分享個人喜好、家人稱呼、日常習慣等個人資訊。",
     "reminder_request": "使用者想設定一個未來的提醒（例如幾點提醒佢做某件事）——注意呢個唔係問而家幾點嘅問題。",
+    "cancel_reminder": "使用者想取消、清除或刪除已經設定嘅提醒/鬧鐘，唔想再收到提醒。",
     "cognitive_activity": "使用者想做一啲輕鬆嘅認知活動、遊戲，或者話悶，想搵嘢做。",
     "emotional_support": "使用者表達情緒，例如唔開心、擔心、孤單、攰，需要情感支持。",
     "dementia_knowledge": "使用者想知道關於腦退化症/認知障礙嘅事實資訊（症狀、成因、預防等）。",

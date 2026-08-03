@@ -17,9 +17,11 @@ try:
     from src.reminders.chat_reminders import (
         LOCAL_TIMEZONE,
         ParsedReminder,
+        cancel_all_reminders_for_user,
         create_reminder_for_user,
         extract_reminder_text_only,
         parse_reminder_request,
+        reminder_cancellation_text,
         reminder_confirmation_text,
         reminder_period_question_text,
     )
@@ -27,9 +29,11 @@ try:
 except ImportError:  # reminder deps (SQLAlchemy etc.) unavailable in this process
     LOCAL_TIMEZONE = None
     ParsedReminder = None
+    cancel_all_reminders_for_user = None
     create_reminder_for_user = None
     extract_reminder_text_only = None
     parse_reminder_request = None
+    reminder_cancellation_text = None
     reminder_confirmation_text = None
     reminder_period_question_text = None
     decide_reminder_via_llm = None
@@ -240,6 +244,67 @@ def handle_routine_request(
             "reminder_time": parsed.time,
             "reminder_text": parsed.text,
             "reminder_days": parsed.days,
+        },
+    )
+
+
+def handle_cancel_reminder_request(
+    message: str,
+    user_id: str | None = None,
+    channel: str = "",
+    message_id: str = "",
+    sender_id: str = "",
+) -> dict[str, Any]:
+    answer_language = detect_answer_language(message)
+
+    tool_available = cancel_all_reminders_for_user is not None
+    log_reminder_checkpoint(
+        "reminder_cancel_tool_available",
+        user_id=user_id, channel=channel, message_id=message_id, available=tool_available,
+    )
+    if not tool_available:
+        logger.warning("src.reminders unavailable in this process; falling back to placeholder")
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
+            intent="cancel_reminder",
+            route="routine_cancel",
+            safety_level="reminder_placeholder",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reminder_backend_available": False},
+        )
+
+    if not user_id:
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_needs_account"][answer_language],
+            intent="cancel_reminder",
+            route="routine_cancel",
+            safety_level="reminder_needs_account",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "no_user_id"},
+        )
+
+    try:
+        cancelled_count = cancel_all_reminders_for_user(user_id)
+    except Exception:
+        logger.exception("Failed to cancel reminders for user_id=%s", user_id)
+        return _placeholder_result(
+            answer=LOCALIZED_RESPONSES["routine_unavailable"][answer_language],
+            intent="cancel_reminder",
+            route="routine_cancel",
+            safety_level="reminder_placeholder",
+            answer_language=answer_language,
+            debug={"agent": "memory_routine", "reason": "cancel_failed"},
+        )
+
+    return _placeholder_result(
+        answer=reminder_cancellation_text(cancelled_count, answer_language),
+        intent="cancel_reminder",
+        route="routine_cancel",
+        safety_level="reminder_cancelled" if cancelled_count else "reminder_none_to_cancel",
+        answer_language=answer_language,
+        debug={
+            "agent": "memory_routine",
+            "cancelled_count": cancelled_count,
         },
     )
 

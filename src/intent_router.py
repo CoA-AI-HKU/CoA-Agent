@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Literal
 
@@ -15,6 +16,7 @@ Intent = Literal[
     "cognitive_concern_screening",
     "personal_memory",
     "reminder_request",
+    "cancel_reminder",
     "cognitive_activity",
     "emotional_support",
     "safety_sensitive",
@@ -379,6 +381,64 @@ REMINDER_TERMS = [
     "appointment",
 ]
 
+# Phrases asking to cancel/clear/delete existing reminders — checked as its
+# own deterministic gate *before* REMINDER_TERMS (both classify_intent's
+# early gate and the semantic router's category list), since a message like
+# "取消提醒" also contains "提醒" and would otherwise be classified as a new
+# reminder_request instead of a cancellation.
+CANCEL_REMINDER_TERMS = [
+    "取消提醒",
+    "取消所有提醒",
+    "取消晒啲提醒",
+    "取消全部提醒",
+    "取消鬧鐘",
+    "取消闹钟",
+    "清除提醒",
+    "清除所有提醒",
+    "清空提醒",
+    "刪除提醒",
+    "删除提醒",
+    "唔使再提醒我",
+    "唔使提醒我啦",
+    "唔好再提醒我",
+    "不用再提醒我",
+    "不用提醒我啦",
+    "不要再提醒我",
+    "停止提醒",
+    "停止提我",
+    "cancel reminder",
+    "cancel my reminder",
+    "cancel my reminders",
+    "cancel all reminders",
+    "cancel alarm",
+    "cancel my alarm",
+    "cancel my alarms",
+    "clear my reminder",
+    "clear my reminders",
+    "clear all reminders",
+    "clear reminders",
+    "delete reminder",
+    "delete my reminder",
+    "delete my reminders",
+    "remove reminder",
+    "remove my reminders",
+    "stop reminding me",
+    "turn off reminder",
+    "turn off my reminders",
+]
+
+# Fixed phrases above miss real phrasing like "取消我的所有提醒" or "唔該幫我
+# 取消返啲提醒" — the cancel verb and "提醒"/"鬧鐘" are rarely adjacent once a
+# pronoun, "所有"/"全部", or a politeness word is inserted between them. These
+# patterns allow a short run of arbitrary characters in between instead of
+# requiring an exact phrase.
+_CANCEL_REMINDER_PATTERN = re.compile(r"(取消|清除|清空|刪除|删除|停止).{0,10}(提醒|提我|鬧鐘|闹钟)")
+_CANCEL_REMINDER_ENGLISH_PATTERN = re.compile(
+    r"\bcancel\b.{0,20}\b(reminder|alarm)s?\b"
+    r"|\b(clear|delete|remove|turn off)\b.{0,20}\b(reminder|alarm)s?\b"
+    r"|\bstop remind(ing)?\b"
+)
+
 PERSONAL_MEMORY_TERMS = [
     "我叫什麼",
     "我叫咩",
@@ -591,6 +651,23 @@ def classify_intent(message: str) -> IntentResult:
             confidence=_confidence(0.95, len(safety_matches)),
             matched_terms=safety_matches,
             reason="Matched urgent or current safety-risk terms.",
+        )
+
+    # Checked before REMINDER_TERMS and before the semantic router: a
+    # cancellation message like "取消提醒" contains "提醒" too, and the LLM
+    # semantic router has no cancel_reminder category to fall back on if this
+    # doesn't run deterministically first.
+    cancel_reminder_matches = _matched_terms(normalized, CANCEL_REMINDER_TERMS)
+    if (
+        cancel_reminder_matches
+        or _CANCEL_REMINDER_PATTERN.search(normalized)
+        or _CANCEL_REMINDER_ENGLISH_PATTERN.search(normalized)
+    ):
+        return IntentResult(
+            intent="cancel_reminder",
+            confidence=_confidence(0.9, len(cancel_reminder_matches) or 1),
+            matched_terms=cancel_reminder_matches,
+            reason="Matched a request to cancel or clear existing reminders.",
         )
 
     if daily_life_matches:

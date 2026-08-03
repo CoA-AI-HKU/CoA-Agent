@@ -137,6 +137,7 @@ def coordinate_message(message: str, user_id: str | None = None) -> AgentDecisio
         "emotional_support": ("supportive", False, False),
         "personal_memory": ("memory", False, False),
         "reminder_request": ("routine", False, False),
+        "cancel_reminder": ("routine_cancel", False, False),
         "cognitive_activity": ("activity", False, False),
         "unknown": ("unknown", False, False),
         "casual_conversation": ("general", False, False),

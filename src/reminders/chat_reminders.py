@@ -371,6 +371,54 @@ def create_reminder_for_user(
         db.close()
 
 
+def cancel_all_reminders_for_user(external_user_id: str) -> int:
+    """Deactivate every active reminder for this user; returns how many.
+
+    Deactivates (active = False) rather than deleting rows, matching how the
+    scheduler retires a fired one-time reminder (see scheduler.py) — this
+    keeps NotificationLog.reminder_id valid either way and gives "clear my
+    reminders" the same semantics as a reminder naturally finishing.
+    """
+    db = SessionLocal()
+    try:
+        patient = (
+            db.query(Patient).filter(Patient.external_user_id == external_user_id).first()
+        )
+        if patient is None:
+            return 0
+        active_reminders = (
+            db.query(Reminder)
+            .filter(Reminder.patient_id == patient.id, Reminder.active == True)  # noqa: E712
+            .all()
+        )
+        count = len(active_reminders)
+        for reminder in active_reminders:
+            reminder.active = False
+        if count:
+            db.commit()
+        log_reminder_checkpoint(
+            "reminder_cancelled", user_id=external_user_id, cancelled_count=count,
+        )
+        return count
+    finally:
+        db.close()
+
+
+def reminder_cancellation_text(count: int, answer_language: str) -> str:
+    if count == 0:
+        if answer_language == "zh-Hans":
+            return "你现在没有已设定的提醒喔。"
+        if answer_language == "en":
+            return "You don't have any active reminders right now."
+        return "你而家冇已經設定嘅提醒喎。"
+    if answer_language == "zh-Hans":
+        return f"好的，已经帮你取消了{count}个提醒。"
+    if answer_language == "en":
+        plural = "reminder" if count == 1 else "reminders"
+        return f"Okay, I've cancelled {count} {plural} for you."
+    return f"好的，已經幫你取消咗{count}個提醒。"
+
+
 def reminder_confirmation_text(time_str: str, text: str, days: str, answer_language: str) -> str:
     one_time = days == ONE_TIME
     if answer_language == "zh-Hans":

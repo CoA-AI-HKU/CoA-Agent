@@ -10,7 +10,7 @@ from src.reminders.chat_reminders import create_reminder_for_user, parse_reminde
 from src.reminders.database import Patient, Reminder, SessionLocal
 from src.reminders.llm_reminder_extractor import ReminderDecision
 from src.agents.coordinator_agent import coordinate_message
-from src.agents.memory_routine_agent import handle_routine_request
+from src.agents.memory_routine_agent import handle_cancel_reminder_request, handle_routine_request
 from src.orchestrator import handle_dementia_user_message
 
 
@@ -823,6 +823,98 @@ def test_pending_period_response_expires_after_its_ttl(tmp_path, monkeypatch):
 
     result = pending_reminder_period.consume_pending_period_response("stale-period-test", "下午")
     assert result is None
+
+
+def test_cancel_reminder_intent_takes_priority_over_reminder_request():
+    # "取消提醒" contains "提醒", which alone matches REMINDER_TERMS — the
+    # cancel gate must be checked first or this misclassifies as a brand new
+    # reminder_request instead of a cancellation.
+    decision = coordinate_message("取消我的所有提醒")
+    assert decision.intent == "cancel_reminder"
+    assert decision.route == "routine_cancel"
+
+    for message in (
+        "清除提醒",
+        "刪除所有提醒",
+        "唔使再提醒我啦",
+        "cancel my reminders",
+        "clear all reminders",
+        "stop reminding me",
+    ):
+        assert coordinate_message(message).intent == "cancel_reminder", message
+
+
+def test_cancel_all_reminders_for_user_deactivates_every_active_reminder(registered_patient):
+    create_reminder_for_user(registered_patient, "Test Ling", "食藥", "08:00")
+    create_reminder_for_user(registered_patient, "Test Ling", "喝水", "09:00", days=chat_reminders.ONE_TIME)
+
+    cancelled_count = chat_reminders.cancel_all_reminders_for_user(registered_patient)
+    assert cancelled_count == 2
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+        assert len(reminders) == 2
+        assert all(r.active is False for r in reminders)
+    finally:
+        db.close()
+
+
+def test_cancel_all_reminders_for_user_is_a_no_op_for_unknown_user():
+    assert chat_reminders.cancel_all_reminders_for_user("no-such-external-id") == 0
+
+
+def test_cancel_all_reminders_for_user_does_not_touch_already_inactive_reminders(registered_patient):
+    active = create_reminder_for_user(registered_patient, "Test Ling", "食藥", "08:00")
+    inactive = create_reminder_for_user(registered_patient, "Test Ling", "喝水", "09:00")
+
+    db = SessionLocal()
+    try:
+        db.query(Reminder).filter(Reminder.id == inactive.id).update({"active": False})
+        db.commit()
+    finally:
+        db.close()
+
+    cancelled_count = chat_reminders.cancel_all_reminders_for_user(registered_patient)
+    assert cancelled_count == 1
+
+    db = SessionLocal()
+    try:
+        refreshed = db.query(Reminder).filter(Reminder.id == active.id).first()
+        assert refreshed.active is False
+    finally:
+        db.close()
+
+
+def test_end_to_end_cancel_reminder_request_via_telegram(registered_patient):
+    created = handle_dementia_user_message("下午12：28可以提醒我吃藥嗎", registered_patient)
+    assert created["safety_level"] == "reminder_created"
+
+    result = handle_dementia_user_message("唔該取消我所有嘅提醒", registered_patient)
+    assert result["route"] == "routine_cancel"
+    assert result["intent"] == "cancel_reminder"
+    assert result["safety_level"] == "reminder_cancelled"
+
+    db = SessionLocal()
+    try:
+        patient = db.query(Patient).filter(Patient.external_user_id == registered_patient).first()
+        reminders = db.query(Reminder).filter(Reminder.patient_id == patient.id).all()
+        assert reminders and all(r.active is False for r in reminders)
+    finally:
+        db.close()
+
+
+def test_cancel_reminder_request_with_nothing_to_cancel_says_so(registered_patient):
+    result = handle_cancel_reminder_request("取消提醒", registered_patient)
+    assert result["safety_level"] == "reminder_none_to_cancel"
+    assert result["debug"]["cancelled_count"] == 0
+
+
+def test_cancel_reminder_request_without_registration_asks_to_register():
+    result = handle_dementia_user_message("取消我全部提醒", None)
+    assert result["route"] == "routine_cancel"
+    assert "register" in result["answer"].lower() or "\\register" in result["answer"]
 
 
 def test_pending_period_question_does_not_hijack_a_new_complete_request(tmp_path, monkeypatch):

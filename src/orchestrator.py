@@ -15,6 +15,7 @@ from .agents.general_chat_agent import (
 )
 from .agents.memory_routine_agent import (
     handle_activity_request,
+    handle_cancel_reminder_request,
     handle_personal_memory,
     handle_routine_request,
 )
@@ -106,6 +107,15 @@ def handle_dementia_user_message(
             intent=decision.intent, confidence=decision.confidence,
         )
         result = handle_routine_request(
+            message, user_id, channel=channel, message_id=message_id, sender_id=sender_id,
+        )
+    elif decision.route == "routine_cancel":
+        log_reminder_checkpoint(
+            "reminder_cancel_intent_detected",
+            user_id=user_id, channel=channel, message_id=message_id,
+            intent=decision.intent, confidence=decision.confidence,
+        )
+        result = handle_cancel_reminder_request(
             message, user_id, channel=channel, message_id=message_id, sender_id=sender_id,
         )
     elif decision.route == "activity":
