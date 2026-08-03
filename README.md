@@ -2,6 +2,8 @@
 
 A safety-aware, privacy-first dementia knowledge and daily-support assistant for general users, people with memory concerns, and caregivers. It combines deterministic routing, bounded agentic retrieval (A-RAG), medication and urgent-safety boundaries, structured event logging, and a caregiver dashboard.
 
+Live: https://104-131-176-48.sslip.io/
+
 ## Project structure
 
 - `backend/` — the single FastAPI application, transport-neutral chat services, and API routers for web and channel clients.
