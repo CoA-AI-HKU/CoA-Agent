@@ -9,6 +9,7 @@ from backend.services.account_profiles import (
     PermissionDeniedError,
     PreferencePermissionError,
     PreferenceValidationError,
+    choose_identity,
     get_or_create_profile,
     profile_to_me_response,
     record_consent,
@@ -72,6 +73,27 @@ class PreferencesUpdateRequest(BaseModel):
 @me_router.get("/api/me")
 def me(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
     profile = get_or_create_profile(user)
+    return profile_to_me_response(profile)
+
+
+class ChooseIdentityRequest(BaseModel):
+    role: str = Field(min_length=1, max_length=20)
+
+
+@me_router.post("/api/me/identity")
+def post_identity(
+    payload: ChooseIdentityRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    # One-time, first-run only — see choose_identity's docstring for why a
+    # second call (from an account that already picked) is rejected rather
+    # than silently allowed to switch.
+    get_or_create_profile(user)
+    try:
+        profile = choose_identity(user.uid, payload.role)
+    except PreferencePermissionError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    except PreferenceValidationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     return profile_to_me_response(profile)
 
 

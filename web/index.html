@@ -399,7 +399,7 @@
       <div id="recaptchaContainer"></div>
 
       <div class="pre-login-links">
-        <a href="privacy.html">私隱政策</a>
+        <a href="privacy.html?context=policy">私隱政策</a>
         <button id="accountRecoveryButton" type="button">忘記密碼</button>
       </div>
     </div>
@@ -409,30 +409,82 @@
     </p>
   </div>
 
+  <!-- ========== IDENTITY GATE ==========
+       Shown once, right after sign-in, only for an account that hasn't
+       picked its own identity yet (GET /api/me's identity_confirmed is
+       false). A brand-new account otherwise defaulted to "companion"
+       silently — this makes it an explicit, one-time choice instead. A
+       bootstrap-elevated account (developer/admin/caregiver via env var —
+       see account_profiles.py) skips this, since the server already
+       decided for it. Only companion/caregiver are offered here;
+       developer/admin are never self-service. -->
+  <div id="identityGate" class="pre-login" hidden>
+    <h1>你係邊位？</h1>
+    <p class="intro">請揀選最切合你嘅身份，等我哋提供啱嘅功能。</p>
+
+    <div class="account-card">
+      <button id="chooseCompanionButton" class="action-button send-button" type="button" style="width:100%; margin-bottom:.75rem;">
+        🧑 我自己想用
+        <br><span style="font-weight:400; font-size:.85rem;">主要用嚟同小安傾偈</span>
+      </button>
+      <button id="chooseCaregiverButton" class="action-button secondary-button" type="button" style="width:100%;">
+        🫂 我係照顧者
+        <br><span style="font-weight:400; font-size:.85rem;">管理聯絡人、查看提示、連結照顧對象</span>
+      </button>
+      <p id="identityMessage" class="form-message" aria-live="polite"></p>
+    </div>
+  </div>
+
   <!-- ========== CONSENT GATE ==========
        Shown once, after sign-in, only for an account that has never agreed
        before (GET /api/me's consent_given is false — see backend/services/
        account_profiles.py). An already-registered account that agreed on a
-       prior login skips straight past this to appShell. -->
+       prior login skips straight past this to appShell.
+
+       The full policy text is embedded here directly (not just linked out
+       to privacy.html) so reading it is actually part of signing in, not
+       an optional detour — see privacy.html?context=policy for the same
+       text presented as a standalone reference page (no agree action
+       there, since agreeing only ever happens here or via the QR/Telegram
+       landing flow, never both). The agree button below stays disabled
+       until the policy text has been scrolled to the end AND all three
+       boxes are checked — see checkPolicyScrolledToEnd() /
+       updateConsentAgreeButton() in the script below. -->
   <div id="consentGate" class="pre-login" hidden>
     <h1>使用同意書</h1>
-    <p class="intro">請先閱讀並同意以下事項，先可以開始使用。</p>
+    <p class="intro">請先閱讀以下政策內容（捲動到底），再同意先可以開始使用。</p>
 
     <div class="account-card">
+      <div id="consentPolicyText" style="max-height:40vh; overflow-y:auto; border:1px solid #b7cfd2; border-radius:12px; padding:1rem; margin-bottom:1rem; font-size:.95rem; line-height:1.6; text-align:left;">
+        <h2 style="font-size:1.05rem; margin:0 0 .4rem;">📊 數據收集與使用</h2>
+        <p>CoA-Agent 以你嘅私隱為最優先考量。我哋只會收集提供呢個服務所需嘅帳戶資料，例如你儲存嘅聯絡人同偏好設定；對話內容唔會以原文形式長期保存——只有喺你嘅照顧者提示功能入面，先會儲存一句好簡短嘅提示原因（例如「對日期感到混亂」），唔會儲存完整對話。</p>
+
+        <h2 style="font-size:1.05rem; margin:1rem 0 .4rem;">⚠️ 醫療免責聲明</h2>
+        <p><strong>CoA-Agent 並非醫療器材。</strong>所有回應僅供參考及支持用途，<strong>不能</strong>取代專業醫療建議、診斷或治療。<strong>如有即時危險或醫療緊急情況，請立即撥打 999 或當地緊急熱線，不要等候使用本應用程式。</strong></p>
+
+        <h2 style="font-size:1.05rem; margin:1rem 0 .4rem;">🛡️ 你的權利</h2>
+        <p>你可以隨時停止使用 CoA-Agent。如果你係照顧者，只有你連結咗嘅照顧對象嘅安全或認知狀況提示先會顯示俾你，唔會顯示日常對話內容。如果你想連結或者解除連結照顧對象，隨時可以喺照顧者模式入面處理。</p>
+
+        <h2 style="font-size:1.05rem; margin:1rem 0 .4rem;">📬 聯絡我們</h2>
+        <p>如對呢份政策有任何疑問，請電郵至 <a href="mailto:coa-agent@hku.hk">coa-agent@hku.hk</a>。</p>
+        <p id="consentPolicyEndMarker" style="margin-top:1rem; color:#5a7a7f; font-size:.85rem;">— 政策內容完 —</p>
+      </div>
+
       <div class="consent-box">
         <div class="consent-item">
-          <input type="checkbox" id="consentCheck1">
+          <input type="checkbox" id="consentCheck1" disabled>
           <label for="consentCheck1">我明白 CoA-Agent <strong>並非醫療器材</strong>，<strong>不能</strong>取代專業醫療建議、診斷或治療；如有即時危險或醫療緊急情況，會直接致電 999。</label>
         </div>
         <div class="consent-item">
-          <input type="checkbox" id="consentCheck2">
-          <label for="consentCheck2">我同意收集必要嘅帳戶資料（例如聯絡人、偏好設定）以提供呢個服務，詳情見<a href="privacy.html" target="_blank" rel="noopener">私隱政策</a>。</label>
+          <input type="checkbox" id="consentCheck2" disabled>
+          <label for="consentCheck2">我同意收集必要嘅帳戶資料（例如聯絡人、偏好設定）以提供呢個服務。</label>
         </div>
         <div class="consent-item">
-          <input type="checkbox" id="consentCheck3">
+          <input type="checkbox" id="consentCheck3" disabled>
           <label for="consentCheck3">我明白我可以隨時停止使用呢個服務。</label>
         </div>
       </div>
+      <p id="consentScrollHint" class="form-message">請先捲動閱讀以上政策內容，先可以勾選同意。</p>
       <button id="consentAgreeButton" class="action-button send-button" type="button" style="width:100%;" disabled>✅ 我同意，繼續</button>
       <div id="consentMessage" class="form-message" aria-live="polite"></div>
     </div>
@@ -643,7 +695,13 @@
     const modeSwitcher = document.getElementById("modeSwitcher");
     const signOutButton = document.getElementById("signOutButton");
 
+    const identityGate = document.getElementById("identityGate");
+    const chooseCompanionButton = document.getElementById("chooseCompanionButton");
+    const chooseCaregiverButton = document.getElementById("chooseCaregiverButton");
+    const identityMessage = document.getElementById("identityMessage");
     const consentGate = document.getElementById("consentGate");
+    const consentPolicyText = document.getElementById("consentPolicyText");
+    const consentScrollHint = document.getElementById("consentScrollHint");
     const consentCheck1 = document.getElementById("consentCheck1");
     const consentCheck2 = document.getElementById("consentCheck2");
     const consentCheck3 = document.getElementById("consentCheck3");
@@ -1379,6 +1437,7 @@
     // this never runs "maybe true, maybe false" — it runs exactly once
     // Firebase actually knows).
     function enterApp() {
+      identityGate.hidden = true;
       consentGate.hidden = true;
       appShell.hidden = false;
       setMode(meProfile.default_mode || "companion");
@@ -1386,8 +1445,73 @@
       if (!speechRecognitionSupported()) companionError("unsupported");
     }
 
+    // The gate sequence after a successful sign-in: identity choice (if
+    // never chosen), then consent (if never given), then the app itself.
+    // Called both right after loadMe() and again after each gate is
+    // cleared, so it always resumes at whichever step is still pending.
+    function proceedAfterProfileLoaded() {
+      if (!meProfile.identity_confirmed) {
+        identityGate.hidden = false;
+        consentGate.hidden = true;
+        return;
+      }
+      identityGate.hidden = true;
+      if (!meProfile.consent_given) {
+        consentGate.hidden = false;
+        // If the policy text already fits without scrolling (tall
+        // viewport, short content), there's nothing to scroll to trigger
+        // checkPolicyScrolledToEnd() via the scroll listener — check once
+        // directly, after layout has settled enough for scrollHeight to
+        // be accurate.
+        requestAnimationFrame(checkPolicyScrolledToEnd);
+        return;
+      }
+      enterApp();
+    }
+
+    function chooseIdentity(role) {
+      chooseCompanionButton.disabled = true;
+      chooseCaregiverButton.disabled = true;
+      identityMessage.textContent = "";
+      identityMessage.classList.remove("error-message");
+      apiFetch("/api/me/identity", { method: "POST", body: JSON.stringify({ role: role }) })
+        .then(function (res) {
+          if (!res.ok) throw new Error("failed to choose identity");
+          return res.json();
+        })
+        .then(function (body) {
+          meProfile = body;
+          proceedAfterProfileLoaded();
+        })
+        .catch(function () {
+          identityMessage.textContent = "未能儲存你嘅選擇，請稍後再試。";
+          identityMessage.classList.add("error-message");
+        })
+        .finally(function () {
+          chooseCompanionButton.disabled = false;
+          chooseCaregiverButton.disabled = false;
+        });
+    }
+    chooseCompanionButton.addEventListener("click", function () { chooseIdentity("companion"); });
+    chooseCaregiverButton.addEventListener("click", function () { chooseIdentity("caregiver"); });
+
+    let consentPolicyRead = false;
+
+    function checkPolicyScrolledToEnd() {
+      if (consentPolicyRead) return;
+      const scrolledToEnd = consentPolicyText.scrollTop + consentPolicyText.clientHeight
+        >= consentPolicyText.scrollHeight - 4;
+      if (!scrolledToEnd) return;
+      consentPolicyRead = true;
+      [consentCheck1, consentCheck2, consentCheck3].forEach(function (box) { box.disabled = false; });
+      consentScrollHint.hidden = true;
+    }
+    consentPolicyText.addEventListener("scroll", checkPolicyScrolledToEnd);
+
     function updateConsentAgreeButton() {
-      consentAgreeButton.disabled = !(consentCheck1.checked && consentCheck2.checked && consentCheck3.checked);
+      consentAgreeButton.disabled = !(
+        consentPolicyRead && consentCheck1.checked && consentCheck2.checked && consentCheck3.checked
+      );
     }
     [consentCheck1, consentCheck2, consentCheck3].forEach(function (box) {
       box.addEventListener("change", updateConsentAgreeButton);
@@ -1413,6 +1537,7 @@
       authGate.hidden = true;
       if (!signedIn) {
         preLoginScreen.hidden = false;
+        identityGate.hidden = true;
         consentGate.hidden = true;
         appShell.hidden = true;
         return;
@@ -1426,14 +1551,7 @@
         preLoginMessage.classList.add("error-message");
         return;
       }
-      // A returning, already-consented account skips straight past this —
-      // only an account that has never agreed before (new registration, or
-      // an existing one from before this consent gate existed) sees it.
-      if (!meProfile.consent_given) {
-        consentGate.hidden = false;
-        return;
-      }
-      enterApp();
+      proceedAfterProfileLoaded();
     };
   </script>
 

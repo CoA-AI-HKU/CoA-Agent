@@ -69,6 +69,15 @@ class WebAccountProfile(Base):
     # POST /api/me/consent) — never cleared automatically, so an already-
     # registered account is never asked again.
     consent_accepted_at = Column(DateTime, nullable=True)
+    # False until the account explicitly picks "companion" or "caregiver"
+    # for itself (see POST /api/me/identity) — a brand-new row's `role`
+    # column above is only a storage placeholder ("companion") until then,
+    # not a real decision; the frontend gates entry on this flag instead of
+    # trusting that placeholder. Bootstrap-elevated accounts (developer/
+    # admin/caregiver via env var — see account_profiles.py) are considered
+    # already decided and get this set True immediately, since the server
+    # already made that call for them.
+    identity_confirmed = Column(Boolean, nullable=False, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -98,6 +107,7 @@ def _migrate_add_missing_columns() -> None:
             "transcript_visible": "BOOLEAN NOT NULL DEFAULT 1",
             "auto_send": "BOOLEAN NOT NULL DEFAULT 1",
             "consent_accepted_at": "DATETIME",
+            "identity_confirmed": "BOOLEAN NOT NULL DEFAULT 0",
         }
         for column, ddl_type in additions.items():
             if column not in existing_columns:

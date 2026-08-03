@@ -54,6 +54,47 @@ def test_unsupported_speech_apis_get_friendly_messages_not_raw_errors():
     assert "onDone && onDone();\n        return;" in tts_unsupported
 
 
+def test_identity_gate_offers_only_companion_and_caregiver():
+    assert '<div id="identityGate"' in INDEX
+    assert 'chooseIdentity("companion")' in INDEX
+    assert 'chooseIdentity("caregiver")' in INDEX
+    # developer/admin must never be self-service choices from this screen
+    assert 'chooseIdentity("developer")' not in INDEX
+    assert 'chooseIdentity("admin")' not in INDEX
+
+
+def test_identity_gate_is_checked_before_consent_gate():
+    flow = INDEX[INDEX.index("function proceedAfterProfileLoaded"):INDEX.index("function chooseIdentity")]
+    identity_check = flow.index("meProfile.identity_confirmed")
+    consent_check = flow.index("meProfile.consent_given")
+    assert identity_check < consent_check
+
+
+def test_consent_gate_embeds_the_full_policy_text_not_just_a_link():
+    gate = INDEX[INDEX.index('<div id="consentGate"'):INDEX.index('<div id="appShell"')]
+    assert "醫療免責聲明" in gate
+    assert "數據收集與使用" in gate
+    assert "你的權利" in gate
+
+
+def test_consent_checkboxes_stay_disabled_until_policy_is_scrolled_to_the_end():
+    assert '<input type="checkbox" id="consentCheck1" disabled>' in INDEX
+    script = INDEX[INDEX.index("function checkPolicyScrolledToEnd"):INDEX.index("consentAgreeButton.addEventListener")]
+    assert "box.disabled = false" in script
+    assert "consentPolicyRead && consentCheck1.checked" in INDEX
+
+
+def test_consent_gate_never_links_to_telegram():
+    gate = INDEX[INDEX.index('<div id="consentGate"'):INDEX.index('<div id="appShell"')]
+    assert "t.me" not in gate
+    assert "Telegram" not in gate
+
+
+def test_privacy_policy_links_from_the_app_pass_policy_context():
+    assert 'href="privacy.html?context=policy"' in INDEX
+    assert 'href="privacy.html"' not in INDEX  # every in-app link must carry the context param
+
+
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():
     forbidden = (
         "TELEGRAM_BOT_TOKEN",

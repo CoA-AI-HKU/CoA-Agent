@@ -552,3 +552,89 @@ def test_companion_role_cannot_list_or_unlink_patients(monkeypatch, tmp_path):
         assert client.delete("/api/me/linked-patients/whatever", headers=headers).status_code == 403
     finally:
         _cleanup(uid)
+
+
+def test_new_account_has_not_confirmed_its_identity_yet(monkeypatch):
+    uid = "pytest-identity-new-uid"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["identity_confirmed"] is False
+        assert response.json()["role"] == "companion"  # storage placeholder, not a real decision yet
+    finally:
+        _cleanup(uid)
+
+
+def test_bootstrapped_account_has_identity_confirmed_automatically(monkeypatch):
+    uid = "pytest-identity-bootstrap-uid"
+    monkeypatch.setenv("COA_BOOTSTRAP_DEVELOPER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/me", headers={"Authorization": "Bearer fake"})
+        assert response.json()["identity_confirmed"] is True
+        assert response.json()["role"] == "developer"
+    finally:
+        _cleanup(uid)
+
+
+def test_choosing_companion_identity_succeeds(monkeypatch):
+    uid = "pytest-identity-choose-companion"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/identity", json={"role": "companion"}, headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["role"] == "companion"
+        assert body["identity_confirmed"] is True
+    finally:
+        _cleanup(uid)
+
+
+def test_choosing_caregiver_identity_succeeds(monkeypatch):
+    uid = "pytest-identity-choose-caregiver"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/identity", json={"role": "caregiver"}, headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["role"] == "caregiver"
+        assert body["identity_confirmed"] is True
+        assert "caregiver_mode" in body["permissions"]
+    finally:
+        _cleanup(uid)
+
+
+def test_choosing_developer_or_admin_identity_is_rejected(monkeypatch):
+    uid = "pytest-identity-choose-developer"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/identity", json={"role": "developer"}, headers=headers)
+        assert response.status_code == 422
+        # and the account is still unconfirmed, not silently left half-applied
+        assert client.get("/api/me", headers=headers).json()["identity_confirmed"] is False
+    finally:
+        _cleanup(uid)
+
+
+def test_identity_cannot_be_chosen_twice(monkeypatch):
+    uid = "pytest-identity-choose-twice"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        first = client.post("/api/me/identity", json={"role": "companion"}, headers=headers)
+        assert first.status_code == 200
+        second = client.post("/api/me/identity", json={"role": "caregiver"}, headers=headers)
+        assert second.status_code == 403
+        # role from the first choice must be unchanged
+        assert client.get("/api/me", headers=headers).json()["role"] == "companion"
+    finally:
+        _cleanup(uid)
+
+
+def test_choose_identity_requires_authentication(monkeypatch):
+    monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
+    response = client.post("/api/me/identity", json={"role": "companion"})
+    assert response.status_code == 401

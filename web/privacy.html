@@ -325,7 +325,7 @@
             <!-- ============================================ -->
             <!-- SECTION 5: CONSENT FORM                       -->
             <!-- ============================================ -->
-            <div class="consent-box">
+            <div class="consent-box" id="consentSection">
                 <h2 style="font-size:18px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
                     ✅ Consent / 同意書
                 </h2>
@@ -355,8 +355,14 @@
                 </div>
             </div>
 
-            <!-- ===== BUTTONS ===== -->
-            <div class="btn-group">
+            <!-- ===== BUTTONS =====
+                 Hidden entirely when opened from inside the web app (see the
+                 script below) — someone reading this as a policy reference
+                 from an already-logged-in, already-consented session has no
+                 reason to be pushed toward Telegram or asked to re-consent;
+                 that flow is only for the QR-code / Telegram-first landing
+                 case, where this page IS the entry point. -->
+            <div class="btn-group" id="ctaButtons">
                 <a href="https://t.me/Ako_saka_Bot" id="proceedBtn" class="btn btn-primary" style="pointer-events:none; opacity:0.5;">
                     ✅ I Agree &amp; Open Telegram
                     <br><span style="font-weight:400; font-size:14px;">我同意並前往 Telegram</span>
@@ -388,6 +394,15 @@
                 btn.style.pointerEvents = 'none';
                 btn.style.opacity = '0.5';
             }
+        }
+
+        // ?context=policy is how the web app links here (see web/index.html's
+        // consent gate) when someone just wants to read the policy — not the
+        // QR-code/Telegram landing case, which is this page's default
+        // behavior with no query string.
+        if (new URLSearchParams(window.location.search).get('context') === 'policy') {
+            document.getElementById('consentSection').hidden = true;
+            document.getElementById('ctaButtons').hidden = true;
         }
     </script>
 

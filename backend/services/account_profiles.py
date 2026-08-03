@@ -46,6 +46,12 @@ ROLE_ALLOWED_MODES: dict[str, list[str]] = {
 # isn't permitted to use" (403, a permission decision) in update_preferences.
 MODE_LABELS_KNOWN = frozenset(ROLE_ALLOWED_MODES["admin"])
 
+# The only roles an account may pick for itself (see choose_identity below).
+# developer/admin stay bootstrap-only — self-service identity choice is
+# about "who is this for" (a person living with memory changes vs. someone
+# caring for them), not a way to grant internal/debug access.
+SELF_SERVICE_ROLES = ("companion", "caregiver")
+
 PREFERENCE_FIELDS = (
     "default_mode", "recognition_language", "talk_mode", "speech_speed",
     "voice_name", "auto_speak", "transcript_visible", "auto_send",
@@ -89,12 +95,19 @@ def get_or_create_profile(user: FirebaseUser) -> WebAccountProfile:
             # while the developer inspects/corrects the transcript before
             # it's actually submitted. Every other role keeps the normal
             # auto_send=True default.
+            #
+            # role here is only a storage placeholder until the account
+            # picks its own identity (see choose_identity) — identity_
+            # confirmed is what the frontend actually gates on. A bootstrap
+            # match means the server already decided for this account, so
+            # there's nothing left to ask it.
             initial_role = bootstrap if bootstrap else "companion"
             profile = WebAccountProfile(
                 firebase_uid=user.uid,
                 role=initial_role,
                 default_mode="companion",
                 auto_send=initial_role not in ("developer", "admin"),
+                identity_confirmed=bootstrap is not None,
             )
             db.add(profile)
             db.commit()
@@ -103,12 +116,40 @@ def get_or_create_profile(user: FirebaseUser) -> WebAccountProfile:
 
         if bootstrap and ROLE_RANK.get(bootstrap, 0) > ROLE_RANK.get(profile.role, 0):
             profile.role = bootstrap
+            profile.identity_confirmed = True
             # A newly-elevated account's default_mode must stay one it's
             # actually allowed into — "companion" always qualifies, so this
             # never needs to change unless it was already, impossibly, set
             # to something outside the (now-larger) allowed set.
             db.commit()
             db.refresh(profile)
+        return profile
+    finally:
+        db.close()
+
+
+def choose_identity(firebase_uid: str, role: str) -> WebAccountProfile:
+    """One-time self-service identity choice for a brand-new account.
+
+    Only "companion" or "caregiver" — see SELF_SERVICE_ROLES. Only works
+    once: an account that already confirmed its identity (including one
+    the bootstrap env vars already decided for) cannot use this to change
+    role later; that keeps this a first-run question, not an ongoing
+    self-service role switch.
+    """
+    if role not in SELF_SERVICE_ROLES:
+        raise PreferenceValidationError(f"role {role!r} cannot be self-selected")
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == firebase_uid).first()
+        if profile is None:
+            raise PreferenceValidationError("no profile found for this account")
+        if profile.identity_confirmed:
+            raise PreferencePermissionError("identity has already been chosen for this account")
+        profile.role = role
+        profile.identity_confirmed = True
+        db.commit()
+        db.refresh(profile)
         return profile
     finally:
         db.close()
@@ -142,6 +183,7 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
         "permissions": ROLE_PERMISSIONS.get(role, ROLE_PERMISSIONS["companion"]),
         "default_mode": profile.default_mode,
         "consent_given": profile.consent_accepted_at is not None,
+        "identity_confirmed": profile.identity_confirmed,
         "preferences": {
             "recognition_language": profile.recognition_language,
             "talk_mode": profile.talk_mode,
