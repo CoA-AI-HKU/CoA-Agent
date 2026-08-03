@@ -443,6 +443,19 @@
           <label for="profileBirthdayInput">出生日期</label>
           <input id="profileBirthdayInput" name="profileBirthdayInput" type="date">
         </div>
+        <!-- Only shown for a companion (patient) account — see
+             applyRoleToInfoGate() in the script below. A caregiver account
+             manages contacts itself in Caregiver Mode instead. -->
+        <div id="emergencyContactFields" hidden>
+          <div class="form-field">
+            <label for="emergencyContactNameInput">緊急聯絡人姓名</label>
+            <input id="emergencyContactNameInput" name="emergencyContactNameInput">
+          </div>
+          <div class="form-field">
+            <label for="emergencyContactPhoneInput">緊急聯絡人電話</label>
+            <input id="emergencyContactPhoneInput" name="emergencyContactPhoneInput" type="tel" inputmode="tel">
+          </div>
+        </div>
         <button class="action-button send-button" type="submit" style="width:100%;">繼續</button>
       </form>
       <p id="profileInfoMessage" class="form-message" aria-live="polite"></p>
@@ -488,7 +501,7 @@
         <p>你可以隨時停止使用 CoA-Agent。如果你係照顧者，只有你連結咗嘅照顧對象嘅安全或認知狀況提示先會顯示俾你，唔會顯示日常對話內容。如果你想連結或者解除連結照顧對象，隨時可以喺照顧者模式入面處理。</p>
 
         <h2 style="font-size:1.05rem; margin:1rem 0 .4rem;">📬 聯絡我們</h2>
-        <p>如對呢份政策有任何疑問，請電郵至 <a href="mailto:coa-agent@hku.hk">coa-agent@hku.hk</a>。</p>
+        <p>如對呢份政策有任何疑問，請電郵至 <a href="mailto:ageing@hku.hk">ageing@hku.hk</a>。</p>
         <p id="consentPolicyEndMarker" style="margin-top:1rem; color:#5a7a7f; font-size:.85rem;">— 政策內容完 —</p>
       </div>
 
@@ -711,6 +724,9 @@
     const profileInfoForm = document.getElementById("profileInfoForm");
     const profileNameInput = document.getElementById("profileNameInput");
     const profileBirthdayInput = document.getElementById("profileBirthdayInput");
+    const emergencyContactFields = document.getElementById("emergencyContactFields");
+    const emergencyContactNameInput = document.getElementById("emergencyContactNameInput");
+    const emergencyContactPhoneInput = document.getElementById("emergencyContactPhoneInput");
     const profileInfoMessage = document.getElementById("profileInfoMessage");
     const infoPairingCodeButton = document.getElementById("infoPairingCodeButton");
     const infoPairingCodeMessage = document.getElementById("infoPairingCodeMessage");
@@ -1396,6 +1412,17 @@
     tryAgainButton.addEventListener("click", function () { setCompanionState("idle"); });
 
     async function handleCallCaregiver() {
+      // The dedicated emergency contact (collected on the info gate) is
+      // always tried first — it's an explicit, single, always-known number
+      // rather than a guess from a general contact list. Falls back to the
+      // first phone-shaped entry in /api/account/contacts, which now
+      // includes any linked caregiver's contacts too (see
+      // _readable_contact_owner_ids in backend/api/web_account.py).
+      const emergencyPhone = meProfile && meProfile.emergency_contact_phone;
+      if (emergencyPhone && /[\d+][\d\s-]{5,}/.test(emergencyPhone)) {
+        window.location.href = "tel:" + emergencyPhone.replace(/[^\d+]/g, "");
+        return;
+      }
       try {
         const res = await apiFetch("/api/account/contacts");
         const contacts = res.ok ? await res.json() : [];
@@ -1454,6 +1481,7 @@
       }
       identityGate.hidden = true;
       if (!meProfile.profile_info_given) {
+        emergencyContactFields.hidden = meProfile.role !== "companion";
         infoGate.hidden = false;
         consentGate.hidden = true;
         return;
@@ -1481,7 +1509,12 @@
       try {
         const res = await apiFetch("/api/me/profile-info", {
           method: "POST",
-          body: JSON.stringify({ name: name, birthday: profileBirthdayInput.value }),
+          body: JSON.stringify({
+            name: name,
+            birthday: profileBirthdayInput.value,
+            emergency_contact_name: emergencyContactNameInput.value.trim(),
+            emergency_contact_phone: emergencyContactPhoneInput.value.trim(),
+          }),
         });
         if (!res.ok) throw new Error("failed to save profile info");
         meProfile = await res.json();

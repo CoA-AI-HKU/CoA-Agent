@@ -107,6 +107,11 @@ def post_identity(
 class ProfileInfoRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     birthday: str = Field(default="", max_length=20)
+    # Mainly meaningful for a patient account — the frontend only shows
+    # these fields for role "companion" — but accepted unconditionally
+    # here since an empty value is harmless for any other role.
+    emergency_contact_name: str = Field(default="", max_length=100)
+    emergency_contact_phone: str = Field(default="", max_length=40)
 
 
 @me_router.post("/api/me/profile-info")
@@ -115,7 +120,10 @@ def post_profile_info(
 ) -> dict[str, Any]:
     get_or_create_profile(user)
     try:
-        profile = record_profile_info(user.uid, payload.name, payload.birthday)
+        profile = record_profile_info(
+            user.uid, payload.name, payload.birthday,
+            payload.emergency_contact_name, payload.emergency_contact_phone,
+        )
     except PreferenceValidationError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return profile_to_me_response(profile)
@@ -336,13 +344,28 @@ class ContactResponse(BaseModel):
         from_attributes = True
 
 
+def _readable_contact_owner_ids(user: FirebaseUser) -> list[str]:
+    """This account's own contacts, plus (if it's a patient) any linked
+    caregiver's — a caregiver manages the shared contact book, and a
+    patient's Companion Mode (the "call caregiver" button) needs to read
+    what they entered without the patient ever having write access to it.
+    """
+    owner_ids = [user.uid]
+    registry_user_id = get_registry_user_id(user.uid)
+    if registry_user_id:
+        for caregiver_sender_id, _record in get_caregiver_records_for_user(registry_user_id):
+            if caregiver_sender_id not in owner_ids:
+                owner_ids.append(caregiver_sender_id)
+    return owner_ids
+
+
 @router.get("/contacts", response_model=list[ContactResponse])
 def list_contacts(user: FirebaseUser = Depends(require_firebase_user)) -> list[WebContact]:
     db = SessionLocal()
     try:
         return (
             db.query(WebContact)
-            .filter(WebContact.firebase_uid == user.uid)
+            .filter(WebContact.firebase_uid.in_(_readable_contact_owner_ids(user)))
             .order_by(WebContact.id)
             .all()
         )

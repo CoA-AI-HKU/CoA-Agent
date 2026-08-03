@@ -161,6 +161,25 @@ def test_caregiver_default_mode_is_set_to_caregiver_on_the_backend():
     assert 'setMode(meProfile.default_mode || "companion")' in INDEX
 
 
+def test_emergency_contact_fields_are_only_shown_for_companion_role():
+    assert '<div id="emergencyContactFields" hidden>' in INDEX
+    flow = INDEX[INDEX.index("function proceedAfterProfileLoaded"):INDEX.index("function chooseIdentity")]
+    assert 'emergencyContactFields.hidden = meProfile.role !== "companion"' in flow
+
+
+def test_profile_info_submits_emergency_contact_fields():
+    fn = INDEX[INDEX.index('profileInfoForm.addEventListener("submit"'):INDEX.index('profileInfoForm.addEventListener("submit"') + 800]
+    assert "emergency_contact_name: emergencyContactNameInput.value.trim()" in fn
+    assert "emergency_contact_phone: emergencyContactPhoneInput.value.trim()" in fn
+
+
+def test_call_caregiver_prefers_the_dedicated_emergency_contact():
+    fn = INDEX[INDEX.index("async function handleCallCaregiver"):INDEX.index("callCaregiverButton.addEventListener")]
+    emergency_check = fn.index("meProfile.emergency_contact_phone")
+    contacts_fetch = fn.index('apiFetch("/api/account/contacts")')
+    assert emergency_check < contacts_fetch
+
+
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():
     forbidden = (
         "TELEGRAM_BOT_TOKEN",

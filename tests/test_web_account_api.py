@@ -954,3 +954,89 @@ def test_deleting_a_patient_account_also_removes_their_conversation_flags(monkey
         delete_flags_for_sender(patient_uid)
         _cleanup(patient_uid)
         _cleanup(caregiver_uid)
+
+
+def test_saving_profile_info_with_an_emergency_contact(monkeypatch):
+    uid = "pytest-emergency-contact-save"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post(
+            "/api/me/profile-info",
+            json={
+                "name": "陳大文", "birthday": "",
+                "emergency_contact_name": "陳太", "emergency_contact_phone": "91234567",
+            },
+            headers=headers,
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["emergency_contact_name"] == "陳太"
+        assert body["emergency_contact_phone"] == "91234567"
+    finally:
+        _cleanup(uid)
+
+
+def test_emergency_contact_is_optional(monkeypatch):
+    uid = "pytest-emergency-contact-optional"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        response = client.post("/api/me/profile-info", json={"name": "陳大文", "birthday": ""}, headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert body["emergency_contact_name"] is None
+        assert body["emergency_contact_phone"] is None
+    finally:
+        _cleanup(uid)
+
+
+def test_patient_can_read_a_linked_caregivers_contacts(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-contacts-sync-patient", "pytest-contacts-sync-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        _authenticate_as(monkeypatch, caregiver_uid)
+        caregiver_headers = {"Authorization": "Bearer caregiver"}
+        client.post(
+            "/api/account/contacts", json={"name": "女兒", "detail": "91234567"}, headers=caregiver_headers,
+        )
+
+        _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, patient_uid)
+        listing = client.get("/api/account/contacts", headers={"Authorization": "Bearer patient"})
+        assert listing.status_code == 200
+        names = [c["name"] for c in listing.json()]
+        assert "女兒" in names
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_patient_without_a_linked_caregiver_sees_no_contacts(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-contacts-sync-unlinked"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.get("/api/account/contacts", headers={"Authorization": "Bearer fake"})
+        assert response.json() == []
+    finally:
+        _cleanup(uid)
+
+
+def test_caregiver_does_not_see_a_linked_patients_contacts(monkeypatch, tmp_path):
+    # Sync is one-directional: a caregiver curates the shared contact book,
+    # a linked patient reads it — not the other way around.
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-contacts-sync-reverse-patient", "pytest-contacts-sync-reverse-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        listing = client.get("/api/account/contacts", headers={"Authorization": "Bearer caregiver"})
+        assert listing.json() == []
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)

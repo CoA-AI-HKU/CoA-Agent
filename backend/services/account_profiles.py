@@ -165,8 +165,15 @@ def choose_identity(firebase_uid: str, role: str) -> WebAccountProfile:
         db.close()
 
 
-def record_profile_info(firebase_uid: str, name: str, birthday: str) -> WebAccountProfile:
-    """Save the self-reported name/birthday collected on first login.
+def record_profile_info(
+    firebase_uid: str,
+    name: str,
+    birthday: str,
+    emergency_contact_name: str = "",
+    emergency_contact_phone: str = "",
+) -> WebAccountProfile:
+    """Save the self-reported name/birthday (and, mainly for a patient
+    account, an emergency contact) collected on first login.
 
     Not one-time like choose_identity — a typo in your own birthday should
     be fixable, so this can be called again later (e.g. from a future
@@ -182,6 +189,8 @@ def record_profile_info(firebase_uid: str, name: str, birthday: str) -> WebAccou
             raise PreferenceValidationError("no profile found for this account")
         profile.name = name
         profile.birthday = birthday.strip() or None
+        profile.emergency_contact_name = emergency_contact_name.strip() or None
+        profile.emergency_contact_phone = emergency_contact_phone.strip() or None
         db.commit()
         db.refresh(profile)
         return profile
@@ -222,6 +231,8 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
         "name": profile.name,
         "birthday": profile.birthday,
         "email": profile.email,
+        "emergency_contact_name": profile.emergency_contact_name,
+        "emergency_contact_phone": profile.emergency_contact_phone,
         "preferences": {
             "recognition_language": profile.recognition_language,
             "talk_mode": profile.talk_mode,

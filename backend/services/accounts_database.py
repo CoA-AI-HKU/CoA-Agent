@@ -89,6 +89,14 @@ class WebAccountProfile(Base):
     # caregiver without a live Firebase Admin lookup per request — Firebase
     # itself remains the actual identity/auth authority.
     email = Column(String, nullable=True)
+    # Collected alongside name/birthday on the profile-info screen — a
+    # single, always-first-priority contact for Companion Mode's "call
+    # caregiver"/emergency button (see handleCallCaregiver() in
+    # web/index.html), distinct from the general contact list a caregiver
+    # manages (which a patient can also read — see
+    # _readable_contact_owner_ids in backend/api/web_account.py).
+    emergency_contact_name = Column(String, nullable=True)
+    emergency_contact_phone = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -122,6 +130,8 @@ def _migrate_add_missing_columns() -> None:
             "name": "VARCHAR",
             "birthday": "VARCHAR",
             "email": "VARCHAR",
+            "emergency_contact_name": "VARCHAR",
+            "emergency_contact_phone": "VARCHAR",
         }
         for column, ddl_type in additions.items():
             if column not in existing_columns:
