@@ -1438,11 +1438,19 @@
       }
     }
 
-    // Shows the "generate a pairing code" affordance (in both Companion
-    // Mode and Caregiver Mode) only while this account has never been
-    // paired as someone's care recipient yet — once a caregiver is linked,
-    // there's no reason to keep offering to generate another code.
+    // Shows Companion Mode's "generate a pairing code" affordance only for
+    // a companion (patient) account that has never been paired as someone's
+    // care recipient yet — once a caregiver is linked, there's no reason to
+    // keep offering to generate another code. A caregiver (or developer)
+    // account can also reach Companion Mode via the mode switcher, but
+    // "generate a code to give my caregiver" makes no sense for an account
+    // that isn't itself a patient, so it's hidden unconditionally for those
+    // roles rather than following the hasCaregiver check below.
     async function loadLinkedCaregivers() {
+      if (!meProfile || meProfile.role !== "companion") {
+        companionPairingCodeSection.hidden = true;
+        return;
+      }
       let hasCaregiver = false;
       try {
         const res = await apiFetch("/api/me/linked-caregivers");

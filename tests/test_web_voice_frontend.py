@@ -119,6 +119,19 @@ def test_generate_pairing_code_ui_hides_once_already_paired():
     assert '"/api/me/linked-caregivers"' in fn
 
 
+def test_pairing_code_ui_never_shows_for_a_caregiver_account_in_companion_mode():
+    # A caregiver account can also reach Companion Mode via the mode
+    # switcher (see availableModes()) — "generate a code to give my
+    # caregiver" makes no sense there, since the account isn't itself a
+    # patient. This must be hidden unconditionally for non-companion roles,
+    # not merely once /api/me/linked-caregivers happens to return something.
+    fn = INDEX[INDEX.index("async function loadLinkedCaregivers"):INDEX.index("async function loadLinkedCaregivers") + 800]
+    role_check = fn.index('meProfile.role !== "companion"')
+    early_hide = fn.index("companionPairingCodeSection.hidden = true;")
+    fetch_call = fn.index('"/api/me/linked-caregivers"')
+    assert role_check < early_hide < fetch_call
+
+
 def test_caregiver_mode_has_no_generate_own_code_section():
     # Generating a pairing code (to be paired AS a patient) only makes
     # sense from Companion Mode / the info gate now — Caregiver Mode kept a
