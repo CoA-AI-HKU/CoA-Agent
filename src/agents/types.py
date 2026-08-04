@@ -25,10 +25,12 @@ Route = Literal[
     "rag_qa",
     "memory",
     "routine",
+    "routine_cancel",
     "activity",
     "supportive",
     "general",
     "daily_life",
+    "weather",
     "unknown",
 ]
 

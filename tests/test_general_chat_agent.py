@@ -70,16 +70,20 @@ def test_llm_exception_falls_back_to_fixed_response(monkeypatch) -> None:
 
 
 def test_unknown_intent_gets_real_answer_when_llm_available(monkeypatch) -> None:
+    # Regression note: this used to be "今日天氣幾好" (today's weather is
+    # nice) — now correctly classified as weather_query (see
+    # src/agents/weather_agent.py), so it no longer exercises the "unknown"
+    # fallback this test is actually about. Swapped to an unrelated topic.
     monkeypatch.setattr(
         "src.agents.general_chat_agent.create_chat_answer",
-        lambda config: (lambda prompt: "係呀，今日天氣幾舒服，適合出去行下。"),
+        lambda config: (lambda prompt: "係呀，呢套戲幾好睇，好多人都推薦。"),
     )
-    decision = _decision_for("今日天氣幾好")
+    decision = _decision_for("呢套戲好唔好睇")
     assert decision.route == "unknown"
 
-    result = answer_general_conversation("今日天氣幾好", decision, "unknown")
+    result = answer_general_conversation("呢套戲好唔好睇", decision, "unknown")
 
-    assert result["answer"] == "係呀，今日天氣幾舒服，適合出去行下。"
+    assert result["answer"] == "係呀，呢套戲幾好睇，好多人都推薦。"
     assert result["answer"] != UNKNOWN_RESPONSE
 
 

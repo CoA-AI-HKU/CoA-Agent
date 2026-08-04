@@ -29,6 +29,13 @@ REMINDER_SCHEDULER_AUTOSTART = (
     # too late for this module-import-time check).
     and "pytest" not in sys.modules
 )
+# Same reasoning and same opt-out mechanism as REMINDER_SCHEDULER_AUTOSTART,
+# kept as its own env var so an operator can run one poller without the
+# other (e.g. disable weather alerts without touching reminder delivery).
+WEATHER_SCHEDULER_AUTOSTART = (
+    os.getenv("WEATHER_SCHEDULER_AUTOSTART", "true").strip().lower() in {"1", "true", "yes", "on"}
+    and "pytest" not in sys.modules
+)
 
 
 def create_app() -> FastAPI:
@@ -51,6 +58,19 @@ def create_app() -> FastAPI:
         @app.on_event("shutdown")
         def _stop_reminder_scheduler() -> None:
             scheduler = getattr(app.state, "reminder_scheduler", None)
+            if scheduler is not None:
+                scheduler.shutdown()
+
+    if WEATHER_SCHEDULER_AUTOSTART:
+        @app.on_event("startup")
+        def _start_weather_scheduler() -> None:
+            from src.weather.scheduler import start_weather_scheduler
+
+            app.state.weather_scheduler = start_weather_scheduler()
+
+        @app.on_event("shutdown")
+        def _stop_weather_scheduler() -> None:
+            scheduler = getattr(app.state, "weather_scheduler", None)
             if scheduler is not None:
                 scheduler.shutdown()
 

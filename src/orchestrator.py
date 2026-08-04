@@ -22,6 +22,7 @@ from .agents.memory_routine_agent import (
 from .agents.response_simplifier_agent import simplify_response
 from .agents.rag_evidence_agent import answer_with_dementia_evidence
 from .agents.safety_agent import handle_medical_boundary, handle_safety
+from .agents.weather_agent import handle_weather_query
 from .agents.screening_agent import (
     handle_caregiver_observation_guidance,
     handle_cognitive_concern_screening,
@@ -118,6 +119,8 @@ def handle_dementia_user_message(
         result = handle_cancel_reminder_request(
             message, user_id, channel=channel, message_id=message_id, sender_id=sender_id,
         )
+    elif decision.route == "weather":
+        result = handle_weather_query(message, user_id)
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":

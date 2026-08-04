@@ -17,6 +17,7 @@ Intent = Literal[
     "personal_memory",
     "reminder_request",
     "cancel_reminder",
+    "weather_query",
     "cognitive_activity",
     "emotional_support",
     "safety_sensitive",
@@ -439,6 +440,56 @@ _CANCEL_REMINDER_ENGLISH_PATTERN = re.compile(
     r"|\bstop remind(ing)?\b"
 )
 
+# Deliberately compound/context-bearing phrases ("而家幾多度", not a bare
+# "幾多度") rather than single generic words — a bare degree/temperature word
+# would also match a fever question like "佢體溫38度". This list is only the
+# no-LLM fallback (see priority_rules below); when the LLM semantic router is
+# available, its own "weather_query" description explicitly excludes body
+# temperature, giving it the first and more context-aware say.
+WEATHER_QUERY_TERMS = [
+    "天氣",
+    "天气",
+    "落雨",
+    "落唔落雨",
+    "會唔會落雨",
+    "会唔会落雨",
+    "會落雨",
+    "会落雨",
+    "落雨警告",
+    "暴雨警告",
+    "黑雨",
+    "紅雨",
+    "红雨",
+    "黃雨",
+    "黄雨",
+    "打風",
+    "打风",
+    "颱風",
+    "台风",
+    "今日天氣",
+    "今日氣溫",
+    "今日气温",
+    "戶外溫度",
+    "户外温度",
+    "室外溫度",
+    "室外温度",
+    "而家幾多度",
+    "依家幾多度",
+    "今日幾多度",
+    "weather",
+    "temperature outside",
+    "temperature today",
+    "how hot is it",
+    "is it raining",
+    "will it rain",
+    "raining today",
+    "rain today",
+    "weather forecast",
+    "heatwave",
+    "heat warning",
+    "rainstorm warning",
+]
+
 PERSONAL_MEMORY_TERMS = [
     "我叫什麼",
     "我叫咩",
@@ -803,6 +854,7 @@ def classify_intent(message: str) -> IntentResult:
             "Matched medication or diagnosis boundary terms.",
         ),
         ("reminder_request", REMINDER_TERMS, 0.85, "Matched reminder or schedule terms."),
+        ("weather_query", WEATHER_QUERY_TERMS, 0.85, "Matched a weather or extreme-weather query."),
         ("personal_memory", PERSONAL_MEMORY_TERMS, 0.8, "Matched personal memory terms."),
         ("cognitive_activity", ACTIVITY_TERMS, 0.8, "Matched activity or engagement terms."),
         ("emotional_support", EMOTIONAL_TERMS, 0.8, "Matched emotional support terms."),
