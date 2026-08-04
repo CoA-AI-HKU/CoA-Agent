@@ -1,417 +1,274 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-HK">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Privacy Policy & Consent | CoA-Agent</title>
-    <style>
-        /* ===== RESET & BASE ===== */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>私隱政策與同意書 | CoA-Agent</title>
+  <style>
+    /* Design tokens below are copied directly from web/index.html rather
+       than reinvented — this page used to be its own unrelated design
+       system (different palette, radii, font stack, button markup) despite
+       being reachable both standalone (QR/Telegram landing) and as an
+       in-app link from the consent gate. See the WCAG 2.1 AA audit,
+       "Consistent Identification" (SC 3.2.4). */
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, "Noto Sans HK", "PingFang HK", sans-serif;
+      font-size: 125%;
+      color: #16324f;
+      background: #eef6f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-width: 280px;
+      min-height: 100vh;
+      margin: 0;
+      padding: 2.5rem 1.25rem 4rem;
+      background: linear-gradient(180deg, #e8f4f5 0%, #f8fbfb 100%);
+    }
+    [hidden] { display: none !important; }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #e8f0fe 0%, #d4e4f7 100%);
-            min-height: 100vh;
-            padding: 30px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    a { color: #075b64; }
+    input:focus-visible, a:focus-visible, button:focus-visible {
+      outline: 4px solid #a35800;
+      outline-offset: 4px;
+    }
 
-        .container {
-            max-width: 700px;
-            width: 100%;
-        }
+    .skip-link {
+      position: absolute;
+      top: -4rem;
+      left: 1rem;
+      z-index: 2000;
+      padding: .75rem 1.25rem;
+      border-radius: 0 0 10px 10px;
+      background: #076b75;
+      color: #fff;
+      font-weight: 750;
+      text-decoration: none;
+      transition: top .15s ease;
+    }
+    .skip-link:focus-visible { top: 0; }
 
-        .card {
-            background: #ffffff;
-            border-radius: 30px;
-            padding: 40px 35px;
-            box-shadow: 0 20px 60px rgba(0, 20, 40, 0.15);
-        }
+    .page { width: min(94vw, 640px); margin: 0 auto; }
 
-        h1 {
-            font-size: 28px;
-            color: #1a2a4a;
-            margin-bottom: 4px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .card {
+      padding: 1.75rem 1.5rem;
+      border: 1px solid #b7cfd2;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 5px 16px rgba(34, 77, 83, .1);
+      text-align: left;
+    }
 
-        .subtitle {
-            font-size: 16px;
-            color: #5a6a8a;
-            margin-bottom: 25px;
-            border-bottom: 2px solid #eef2f7;
-            padding-bottom: 15px;
-        }
+    h1 {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: clamp(1.6rem, 6vw, 2.1rem);
+      color: #103b4a;
+      margin: 0 0 .25rem;
+    }
+    .subtitle {
+      margin: 0 0 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid #d8e6e8;
+      color: #3a5a5f;
+      font-size: .95rem;
+    }
 
-        /* ===== SECTIONS ===== */
-        .section {
-            margin-bottom: 25px;
-        }
+    .a11y-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin: 0 0 1.5rem;
+      padding: .5rem .8rem;
+      border: 1px solid #b7cfd2;
+      border-radius: 100px;
+      background: #f2f8f8;
+      color: #4c6a6f;
+      font-size: .82rem;
+      font-weight: 650;
+    }
 
-        .section h2 {
-            font-size: 18px;
-            color: #1a2a4a;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+    .policy-section { margin-bottom: 1.5rem; }
+    .policy-section h2 {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      font-size: 1.1rem;
+      color: #103b4a;
+      margin: 0 0 .5rem;
+    }
+    .policy-section h2 .lang-tag {
+      padding: .15rem .6rem;
+      border-radius: 100px;
+      background: #e6f1f1;
+      color: #075b64;
+      font-size: .68rem;
+      font-weight: 700;
+    }
+    .policy-section p { margin: 0 0 .5rem; line-height: 1.6; }
+    .policy-section p:last-child { margin-bottom: 0; }
 
-        .section h2 .lang-tag {
-            font-size: 12px;
-            font-weight: 400;
-            color: #8a9aaa;
-            background: #f0f4fa;
-            padding: 2px 10px;
-            border-radius: 20px;
-        }
+    .highlight-box {
+      margin: .6rem 0;
+      padding: 1rem 1.25rem;
+      border: 2px solid #b42318;
+      border-radius: 14px;
+      background: #fef0ef;
+      color: #7a1610;
+    }
+    .highlight-box p { margin: 0 0 .4rem; }
+    .highlight-box p:last-child { margin-bottom: 0; }
 
-        .section p {
-            font-size: 15px;
-            line-height: 1.7;
-            color: #2a3a5a;
-            margin-bottom: 6px;
-        }
+    .consent-box {
+      margin: 1.5rem 0 1rem;
+      padding: 1rem;
+      border: 1px solid #b7cfd2;
+      border-radius: 14px;
+      background: #f2f8f8;
+    }
+    .consent-box h2 { font-size: 1.05rem; color: #103b4a; margin: 0 0 1rem; }
+    .consent-item { display: flex; align-items: flex-start; gap: .75rem; margin-bottom: 1rem; }
+    .consent-item:last-child { margin-bottom: 0; }
+    .consent-item input[type="checkbox"] { width: 26px; min-height: 26px; flex-shrink: 0; accent-color: #075b64; }
+    .consent-item label { margin: 0; font-size: .95rem; font-weight: 400; line-height: 1.5; }
 
-        .section p.zh {
-            color: #3a4a6a;
-            font-weight: 400;
-        }
+    .cta-group { display: grid; gap: .75rem; margin-top: 1.5rem; }
+    .action-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 58px;
+      padding: .7rem 1rem;
+      border: 2px solid #076b75;
+      border-radius: 10px;
+      font: inherit;
+      font-weight: 750;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .send-button { color: #fff; background: #076b75; }
+    .send-button:hover { background: #055862; }
+    .send-button[aria-disabled="true"] { opacity: .55; cursor: not-allowed; pointer-events: none; }
+    .secondary-button { color: #075b64; background: #fff; }
+    .secondary-button:hover { background: #e6f3f4; }
 
-        .section ul {
-            padding-left: 20px;
-            margin: 6px 0 8px 0;
-        }
-
-        .section ul li {
-            font-size: 15px;
-            line-height: 1.6;
-            color: #2a3a5a;
-            margin-bottom: 4px;
-        }
-
-        .highlight-box {
-            background: #f8faff;
-            border-left: 4px solid #2a8cff;
-            padding: 15px 18px;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-
-        /* ===== CONSENT CHECKBOX ===== */
-        .consent-box {
-            background: #f5f8fe;
-            border-radius: 16px;
-            padding: 20px 22px;
-            margin: 20px 0 12px 0;
-            border: 2px solid #e0e8f5;
-        }
-
-        .consent-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 14px;
-        }
-
-        .consent-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .consent-item input[type="checkbox"] {
-            width: 22px;
-            height: 22px;
-            margin-top: 2px;
-            accent-color: #2a8cff;
-            flex-shrink: 0;
-            cursor: pointer;
-        }
-
-        .consent-item label {
-            font-size: 16px;
-            line-height: 1.5;
-            color: #1a2a4a;
-            cursor: pointer;
-        }
-
-        .consent-item label .zh {
-            font-weight: 400;
-            color: #3a4a6a;
-        }
-
-        /* ===== BUTTONS ===== */
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-top: 20px;
-        }
-        /* .btn-group's own `display: flex` above outranks the browser's
-           default `[hidden] { display: none }` rule, so setting the
-           `hidden` attribute alone (see the ?context=policy script below)
-           silently did nothing to this element — this makes hidden win. */
-        .btn-group[hidden] {
-            display: none;
-        }
-
-        .btn {
-            display: block;
-            width: 100%;
-            padding: 16px 20px;
-            border-radius: 16px;
-            font-size: 18px;
-            font-weight: 600;
-            text-decoration: none;
-            text-align: center;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.15s ease, box-shadow 0.15s ease;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #2a8cff, #1a6bc4);
-            color: #ffffff;
-        }
-
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        .btn-secondary {
-            background: #eef2f7;
-            color: #2a3a5a;
-        }
-
-        .btn-secondary:hover {
-            background: #e2e8f0;
-        }
-
-        /* ===== FOOTER ===== */
-        .footer {
-            margin-top: 25px;
-            padding-top: 18px;
-            border-top: 2px solid #eef2f7;
-            font-size: 13px;
-            color: #8a9aaa;
-            text-align: center;
-        }
-
-        .footer a {
-            color: #2a8cff;
-            text-decoration: none;
-        }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 480px) {
-            .card {
-                padding: 25px 18px;
-            }
-
-            h1 {
-                font-size: 22px;
-            }
-
-            .section h2 {
-                font-size: 16px;
-            }
-
-            .section p,
-            .section ul li {
-                font-size: 14px;
-            }
-
-            .consent-item label {
-                font-size: 14px;
-            }
-        }
-    </style>
+    footer.page-footer {
+      margin-top: 1.5rem;
+      padding-top: 1.25rem;
+      border-top: 1px solid #d8e6e8;
+      color: #3a5a5f;
+      font-size: .85rem;
+      text-align: center;
+    }
+    footer.page-footer nav { display: inline-flex; gap: 1rem; margin-top: .4rem; }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="card">
+  <a href="#mainContent" class="skip-link">跳到主要內容</a>
 
-            <!-- Header -->
-            <h1>🔒 Privacy &amp; Consent</h1>
-            <p class="subtitle">私隱政策與同意書</p>
+  <div class="page">
+    <main id="mainContent" tabindex="-1">
+      <div class="card">
+        <h1>🔒 私隱政策與同意書</h1>
+        <p class="subtitle" lang="en">Privacy Policy &amp; Consent</p>
 
-            <!-- ============================================ -->
-            <!-- SECTION 1: DATA COLLECTION                   -->
-            <!-- ============================================ -->
-            <div class="section">
-                <h2>
-                    📊 Data Collection &amp; Usage
-                    <span class="lang-tag">數據收集與使用</span>
-                </h2>
-                <p><strong>English:</strong> CoA-Agent is designed with your privacy as our top priority.</p>
-                <ul>
-                    <li><strong>We DO NOT store raw conversation text.</strong> We only log anonymous, structured metadata (e.g., interaction count, intent category).</li>
-                    <li>Your conversations are processed in real-time and not saved to any database.</li>
-                    <li>No personally identifiable information (PII) is required or stored.</li>
-                </ul>
-                <p class="zh"><strong>中文：</strong>CoA-Agent 以您的私隱為最優先考量。</p>
-                <ul class="zh">
-                    <li><strong>我們不會儲存任何對話原始內容。</strong>僅記錄匿名結構化數據（例如：互動次數、問題類別）。</li>
-                    <li>您的對話會即時處理，不會儲存到任何資料庫。</li>
-                    <li>無需亦不會儲存任何個人識別資料（如姓名、電話）。</li>
-                </ul>
-            </div>
+        <p class="a11y-mark">♿ 本網站設計上遵循 WCAG 2.1 Level AA 無障礙標準。</p>
 
-            <!-- ============================================ -->
-            <!-- SECTION 2: MEDICAL DISCLAIMER                 -->
-            <!-- ============================================ -->
-            <div class="section">
-                <h2>
-                    ⚠️ Medical Disclaimer
-                    <span class="lang-tag">醫療免責聲明</span>
-                </h2>
-                <div class="highlight-box">
-                    <p><strong>CoA-Agent is <u>NOT</u> a medical device.</strong></p>
-                    <p>All responses are for informational and supportive purposes only. They do <strong>NOT</strong> replace professional medical advice, diagnosis, or treatment.</p>
-                    <p style="margin-top:6px;"><strong>If you are in immediate danger or a medical emergency, call 999 or your local emergency number immediately.</strong></p>
-                </div>
-                <p class="zh"><strong>中文：</strong>CoA-Agent <strong>並非醫療器材</strong>。</p>
-                <p class="zh">所有回應僅供參考及支持用途，<strong>不能</strong>取代專業醫療建議、診斷或治療。</p>
-                <p class="zh" style="margin-top:4px;"><strong>如有即時危險或醫療緊急情況，請立即撥打 999 或當地緊急熱線。</strong></p>
-            </div>
+        <section class="policy-section">
+          <h2>📊 數據收集與使用 <span class="lang-tag" lang="en">Data Collection</span></h2>
+          <p>CoA-Agent 以你嘅私隱為最優先考量。我哋只會收集提供呢個服務所需嘅帳戶資料，例如你儲存嘅聯絡人同偏好設定；對話內容唔會以原文形式長期保存——只有喺你嘅照顧者提示功能入面，先會儲存一句好簡短嘅提示原因（例如「對日期感到混亂」），唔會儲存完整對話。</p>
+          <p lang="en">CoA-Agent treats your privacy as the top priority. We only collect the account data the service actually needs — such as saved contacts and preferences. Conversations are not kept verbatim; only the caregiver-alert feature stores a short reason (e.g. "confused about the date"), never a full conversation.</p>
+        </section>
 
-            <!-- ============================================ -->
-            <!-- SECTION 3: USER RIGHTS                        -->
-            <!-- ============================================ -->
-            <div class="section">
-                <h2>
-                    🛡️ Your Rights
-                    <span class="lang-tag">您的權利</span>
-                </h2>
-                <ul>
-                    <li><strong>Withdraw anytime:</strong> You can stop using CoA-Agent at any time by simply closing the chat.</li>
-                    <li><strong>No data retention:</strong> Since we don't store conversation history, there is no data to delete.</li>
-                    <li><strong>No profiling:</strong> We do not build user profiles or use your data for any purpose other than improving our support response in real-time.</li>
-                </ul>
-                <ul class="zh">
-                    <li><strong>隨時退出：</strong>您只需關閉聊天即可隨時停止使用 CoA-Agent。</li>
-                    <li><strong>不留存數據：</strong>由於我們不儲存對話紀錄，因此無需刪除任何數據。</li>
-                    <li><strong>不進行用戶畫像：</strong>我們不會建立用戶檔案，亦不會將您的數據用於即時支持以外的任何用途。</li>
-                </ul>
-            </div>
+        <section class="policy-section">
+          <h2>⚠️ 醫療免責聲明 <span class="lang-tag" lang="en">Medical Disclaimer</span></h2>
+          <div class="highlight-box">
+            <p><strong>CoA-Agent 並非醫療器材。</strong>所有回應僅供參考及支持用途，<strong>不能</strong>取代專業醫療建議、診斷或治療。<strong>如有即時危險或醫療緊急情況，請立即撥打 999 或當地緊急熱線，不要等候使用本應用程式。</strong></p>
+            <p lang="en"><strong>CoA-Agent is not a medical device.</strong> All responses are for informational and supportive purposes only, and do <strong>not</strong> replace professional medical advice, diagnosis, or treatment. <strong>If you are in immediate danger or a medical emergency, call 999 or your local emergency number now — do not wait to use this app.</strong></p>
+          </div>
+        </section>
 
-            <!-- ============================================ -->
-            <!-- SECTION 4: CONTACT                           -->
-            <!-- ============================================ -->
-            <div class="section">
-                <h2>
-                    📬 Contact Us
-                    <span class="lang-tag">聯絡我們</span>
-                </h2>
-                <p>If you have any questions about this policy, please contact us:</p>
-                <ul>
-                    <li><strong>Email:</strong> <a href="mailto:ageing@hku.hk" style="color:#2a8cff;">ageing@hku.hk</a></li>
-                </ul>
-                <p class="zh">如對本政策有任何疑問，請聯絡我們：</p>
-                <ul class="zh">
-                    <li><strong>電郵：</strong> <a href="mailto:ageing@hku.hk" style="color:#2a8cff;">ageing@hku.hk</a></li>
-                </ul>
-            </div>
+        <section class="policy-section">
+          <h2>🛡️ 你的權利 <span class="lang-tag" lang="en">Your Rights</span></h2>
+          <p>你可以隨時停止使用 CoA-Agent。如果你係照顧者，只有你連結咗嘅照顧對象嘅安全或認知狀況提示先會顯示俾你，唔會顯示日常對話內容。如果你想連結或者解除連結照顧對象，隨時可以喺照顧者模式入面處理。</p>
+          <p lang="en">You can stop using CoA-Agent at any time. If you're a caregiver, only safety or cognitive-status alerts for a patient you've linked to are ever shown to you — never their day-to-day conversation content. Linking or unlinking a care recipient can be done at any time from Caregiver Mode.</p>
+        </section>
 
-            <!-- ============================================ -->
-            <!-- SECTION 5: CONSENT FORM                       -->
-            <!-- ============================================ -->
-            <div class="consent-box" id="consentSection">
-                <h2 style="font-size:18px; margin-bottom:12px; display:flex; align-items:center; gap:8px;">
-                    ✅ Consent / 同意書
-                </h2>
+        <section class="policy-section">
+          <h2>📬 聯絡我們 <span class="lang-tag" lang="en">Contact</span></h2>
+          <p>如對呢份政策有任何疑問，請電郵至 <a href="mailto:ageing@hku.hk">ageing@hku.hk</a>。</p>
+          <p lang="en">If you have any questions about this policy, please email <a href="mailto:ageing@hku.hk">ageing@hku.hk</a>.</p>
+        </section>
 
-                <div class="consent-item">
-                    <input type="checkbox" id="consent1" onchange="checkConsent()">
-                    <label for="consent1">
-                        I understand that CoA-Agent is <strong>not a medical device</strong> and does <strong>not</strong> replace professional medical advice.
-                        <br><span class="zh">我明白 CoA-Agent <strong>並非醫療器材</strong>，<strong>不能</strong>取代專業醫療建議。</span>
-                    </label>
-                </div>
-
-                <div class="consent-item">
-                    <input type="checkbox" id="consent2" onchange="checkConsent()">
-                    <label for="consent2">
-                        I consent to the collection of <strong>anonymous</strong> usage data (e.g., interaction count, intent type) for service improvement.
-                        <br><span class="zh">我同意收集<strong>匿名</strong>使用數據（例如：互動次數、意圖類型）以改善服務。</span>
-                    </label>
-                </div>
-
-                <div class="consent-item">
-                    <input type="checkbox" id="consent3" onchange="checkConsent()">
-                    <label for="consent3">
-                        I understand that I can <strong>withdraw</strong> from using this service at any time.
-                        <br><span class="zh">我明白我<strong>可以隨時退出</strong>使用此服務。</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- ===== BUTTONS =====
-                 Hidden entirely when opened from inside the web app (see the
-                 script below) — someone reading this as a policy reference
-                 from an already-logged-in, already-consented session has no
-                 reason to be pushed toward Telegram or asked to re-consent;
-                 that flow is only for the QR-code / Telegram-first landing
-                 case, where this page IS the entry point. -->
-            <div class="btn-group" id="ctaButtons">
-                <a href="https://t.me/Ako_saka_Bot" id="proceedBtn" class="btn btn-primary" style="pointer-events:none; opacity:0.5;">
-                    ✅ I Agree &amp; Open Telegram
-                    <br><span style="font-weight:400; font-size:14px;">我同意並前往 Telegram</span>
-                </a>
-                <a href="index.html" class="btn btn-secondary">
-                    ⬅️ Back to Home / 返回主頁
-                </a>
-            </div>
-
-            <div class="footer">
-                © 2026 CoA-Agent Lab, HKU · <a href="index.html">Home</a>
-            </div>
-
+        <div class="consent-box" id="consentSection">
+          <h2>✅ 同意書 <span class="lang-tag" lang="en">Consent</span></h2>
+          <div class="consent-item">
+            <input type="checkbox" id="consent1" onchange="checkConsent()">
+            <label for="consent1">我明白 CoA-Agent <strong>並非醫療器材</strong>，<strong>不能</strong>取代專業醫療建議、診斷或治療。</label>
+          </div>
+          <div class="consent-item">
+            <input type="checkbox" id="consent2" onchange="checkConsent()">
+            <label for="consent2">我同意收集必要嘅帳戶資料（例如聯絡人、偏好設定）以提供呢個服務。</label>
+          </div>
+          <div class="consent-item">
+            <input type="checkbox" id="consent3" onchange="checkConsent()">
+            <label for="consent3">我明白我可以隨時停止使用呢個服務。</label>
+          </div>
         </div>
-    </div>
 
-    <!-- ===== JAVASCRIPT FOR CONSENT CHECK ===== -->
-    <script>
-        function checkConsent() {
-            const c1 = document.getElementById('consent1').checked;
-            const c2 = document.getElementById('consent2').checked;
-            const c3 = document.getElementById('consent3').checked;
-            const btn = document.getElementById('proceedBtn');
+        <!-- Hidden entirely when opened from inside the web app (see the
+             script below) — someone reading this as a policy reference from
+             an already-logged-in, already-consented session has no reason
+             to be pushed toward Telegram or asked to re-consent; that flow
+             is only for the QR-code / Telegram-first landing case, where
+             this page IS the entry point. -->
+        <div class="cta-group" id="ctaButtons">
+          <a href="https://t.me/Ako_saka_Bot" id="proceedBtn" class="action-button send-button" aria-disabled="true">
+            ✅ 我同意，前往 Telegram
+          </a>
+          <a href="index.html" class="action-button secondary-button">⬅️ 返回主頁</a>
+        </div>
 
-            if (c1 && c2 && c3) {
-                btn.style.pointerEvents = 'auto';
-                btn.style.opacity = '1';
-            } else {
-                btn.style.pointerEvents = 'none';
-                btn.style.opacity = '0.5';
-            }
-        }
+        <footer class="page-footer">
+          © 2026 CoA-Agent Lab, HKU
+          <nav aria-label="頁面導航"><a href="index.html">主頁</a></nav>
+        </footer>
+      </div>
+    </main>
+  </div>
 
-        // ?context=policy is how the web app links here (see web/index.html's
-        // consent gate) when someone just wants to read the policy — not the
-        // QR-code/Telegram landing case, which is this page's default
-        // behavior with no query string.
-        if (new URLSearchParams(window.location.search).get('context') === 'policy') {
-            document.getElementById('consentSection').hidden = true;
-            document.getElementById('ctaButtons').hidden = true;
-        }
-    </script>
+  <script>
+    function checkConsent() {
+      var allChecked = document.getElementById('consent1').checked
+        && document.getElementById('consent2').checked
+        && document.getElementById('consent3').checked;
+      document.getElementById('proceedBtn').setAttribute('aria-disabled', String(!allChecked));
+    }
+
+    // aria-disabled alone only *announces* the disabled state to assistive
+    // tech — unlike a real disabled attribute, it does not stop the link
+    // from activating. This is what actually blocks the "I Agree" link
+    // before all three boxes are checked (covers both mouse clicks and
+    // keyboard Enter, since browsers fire a click event for both). Without
+    // it, a keyboard or screen-reader user could open Telegram without ever
+    // completing the consent form.
+    document.getElementById('proceedBtn').addEventListener('click', function (event) {
+      if (this.getAttribute('aria-disabled') === 'true') event.preventDefault();
+    });
+
+    // ?context=policy is how the web app links here (see web/index.html's
+    // consent gate) when someone just wants to read the policy — not the
+    // QR-code/Telegram landing case, which is this page's default
+    // behavior with no query string.
+    if (new URLSearchParams(window.location.search).get('context') === 'policy') {
+      document.getElementById('consentSection').hidden = true;
+      document.getElementById('ctaButtons').hidden = true;
+    }
+  </script>
 
 </body>
 </html>

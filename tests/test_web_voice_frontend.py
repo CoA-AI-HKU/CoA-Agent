@@ -149,8 +149,48 @@ def test_info_gate_collects_name_birthday_and_offers_a_pairing_code():
 def test_deleting_a_patient_account_requires_typed_hk_confirmation_phrase():
     assert 'const DELETE_PATIENT_CONFIRMATION_PHRASE = "確定刪除"' in INDEX
     fn = INDEX[INDEX.index("async function deletePatientAccount"):INDEX.index("async function deletePatientAccount") + 1200]
-    assert "typed.trim() !== DELETE_PATIENT_CONFIRMATION_PHRASE" in fn
+    # The typed-phrase check itself now lives inside openConfirmDialog()'s
+    # confirm handler (see test_destructive_actions_use_an_accessible_dialog)
+    # — deletePatientAccount just supplies the required phrase and only ever
+    # receives back the already-validated phrase or null.
+    assert "requirePhrase: DELETE_PATIENT_CONFIRMATION_PHRASE" in fn
     assert '"/account"' in fn
+
+
+def test_destructive_actions_use_an_accessible_dialog_not_native_confirm():
+    # window.confirm()/prompt() are a known rough edge across some
+    # browser/screen-reader combinations — unstyled, blocking, and not
+    # fully consistent. Every destructive action goes through the same
+    # focus-trapped, role="alertdialog" replacement instead.
+    assert 'confirm("確定要解除' not in INDEX
+    assert 'confirm("確定要刪除' not in INDEX
+    assert "const typed = prompt(" not in INDEX
+    assert 'role="alertdialog"' in INDEX
+    assert 'aria-modal="true"' in INDEX
+
+    delete_contact_fn = INDEX[INDEX.index("async function deleteContact"):INDEX.index("async function deleteContact") + 400]
+    assert "await openConfirmDialog(" in delete_contact_fn
+
+    unlink_patient_fn = INDEX[INDEX.index("async function unlinkPatient"):INDEX.index("async function unlinkPatient") + 400]
+    assert "await openConfirmDialog(" in unlink_patient_fn
+
+
+def test_confirm_dialog_traps_focus_and_closes_on_escape():
+    fn = INDEX[INDEX.index("function handleConfirmDialogKeydown"):INDEX.index("function openConfirmDialog")]
+    assert 'event.key === "Escape"' in fn
+    assert "closeConfirmDialog(null)" in fn
+    assert 'event.key !== "Tab"' in fn
+
+
+def test_confirm_dialog_mismatched_phrase_re_prompts_instead_of_silently_failing():
+    # The old prompt()-based flow closed on a wrong phrase and left the user
+    # to notice a page message and start over from scratch. The dialog
+    # instead shows an inline, aria-live error and lets them retry in place.
+    fn = INDEX[INDEX.index('confirmDialogConfirmButton.addEventListener("click"'):]
+    fn = fn[: fn.index("\n    // ===== 8. CAREGIVER TOOLS")]
+    assert "typed !== confirmDialogRequiredPhrase" in fn
+    assert "confirmDialogError.hidden = false" in fn
+    assert '<p id="confirmDialogError" class="form-message error-message" aria-live="assertive" hidden>' in INDEX
 
 
 def test_caregiver_default_mode_is_set_to_caregiver_on_the_backend():
@@ -178,6 +218,80 @@ def test_call_caregiver_prefers_the_dedicated_emergency_contact():
     emergency_check = fn.index("meProfile.emergency_contact_phone")
     contacts_fetch = fn.index('apiFetch("/api/account/contacts")')
     assert emergency_check < contacts_fetch
+
+
+def test_root_font_size_is_relative_not_a_fixed_pixel_value():
+    # A fixed px root font-size doesn't respond to the browser/OS default
+    # text-size setting the way a relative unit does — see WCAG 2.1 SC 1.4.4
+    # Resize Text. 125% of a 16px default lands at the same ~20px this app
+    # has always used, but now it scales with the user's own preference.
+    assert "font-size: 125%;" in INDEX
+    assert "font-size: 20px;" not in INDEX
+
+
+def test_companion_mode_has_a_heading():
+    # Every other view (both auth gates, Caregiver/Developer Mode,
+    # privacy.html) opens with a heading; Companion Mode — the screen most
+    # patients land on by default — previously had none. Visually hidden
+    # rather than shown, since Companion Mode is deliberately a single big
+    # button with no visual clutter (see its own CSS section comment) —
+    # this is for screen-reader/structural navigation only.
+    companion_section = INDEX[INDEX.index('<section id="companionMode"'):INDEX.index('<section id="caregiverMode"')]
+    assert '<h1 class="visually-hidden">' in companion_section
+
+
+def test_consent_scroll_hint_is_announced_to_screen_readers():
+    # Every other .form-message in the app carries aria-live="polite" so its
+    # text is announced automatically; this was the one exception — the
+    # message explaining *why* the consent checkboxes are still disabled
+    # was silent for screen reader users.
+    assert '<p id="consentScrollHint" class="form-message" aria-live="polite">' in INDEX
+
+
+def test_talk_button_aria_label_updates_with_companion_state():
+    # aria-label always wins over visible text content for assistive tech —
+    # a static aria-label would tell a screen reader "press to talk" no
+    # matter what state the button was actually in, even while its visible
+    # label and color both changed live. See WCAG 2.1 SC 4.1.2.
+    fn = INDEX[INDEX.index("function setCompanionState"):INDEX.index("function companionError")]
+    assert 'talkButton.setAttribute("aria-label", COMPANION_STATE_LABEL[state]' in fn
+
+
+def test_conversation_flag_timestamp_has_a_real_contrast_margin():
+    # #5a7a7f measured ~4.64:1 on white — technically over the 4.5:1
+    # minimum but by almost nothing. Darkened for a real safety margin.
+    assert '"#5a7a7f"' not in INDEX
+    assert 'when.style.color = "#4c6a6f";' in INDEX
+
+
+def test_skip_link_lets_keyboard_users_bypass_the_top_bar():
+    assert '<a href="#mainContent" class="skip-link">跳到主要內容</a>' in INDEX
+    assert '<main id="mainContent" tabindex="-1">' in INDEX
+
+
+def test_consent_form_states_wcag_conformance():
+    gate = INDEX[INDEX.index('<div id="consentGate"'):INDEX.index('<div id="appShell"')]
+    assert "WCAG 2.1" in gate
+    assert "a11y-mark" in gate
+
+
+def test_focus_ring_and_input_border_clear_the_3_to_1_ui_component_minimum():
+    # WCAG 2.1 SC 1.4.11 Non-text Contrast requires UI component boundaries
+    # (input borders, focus indicators) to reach 3:1, separately from SC
+    # 1.4.3's 4.5:1 text minimum. The original amber focus ring (#f2a900,
+    # ~2.0:1 on white) and input border (#789da2, ~2.9:1) both silently
+    # failed this — a visible-looking focus outline that doesn't actually
+    # meet the contrast bar isn't "visible" for the purposes of SC 2.4.7
+    # either.
+    assert "#f2a900" not in INDEX
+    assert "#789da2" not in INDEX
+    assert "outline: 4px solid #a35800;" in INDEX
+    assert "border: 2px solid #5f7d82;" in INDEX
+
+
+def test_consent_policy_end_marker_has_a_real_contrast_margin():
+    assert 'color:#5a7a7f' not in INDEX
+    assert 'color:#4c6a6f' in INDEX
 
 
 def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():

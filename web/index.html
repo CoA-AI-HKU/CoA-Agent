@@ -8,7 +8,12 @@
     :root {
       color-scheme: light;
       font-family: system-ui, -apple-system, "Noto Sans HK", "PingFang HK", sans-serif;
-      font-size: 20px;
+      /* Relative to the browser/OS default text size (not a fixed px
+         value) so a user's own text-size preference actually scales this —
+         125% of a 16px default lands at the same ~20px this app has always
+         used, but now it responds to that setting instead of overriding it.
+         See WCAG 2.1 SC 1.4.4 Resize Text. */
+      font-size: 125%;
       color: #16324f;
       background: #eef6f7;
     }
@@ -23,6 +28,23 @@
     }
 
     [hidden] { display: none !important; }
+
+    /* Present to assistive tech (unlike [hidden]/display:none, which would
+       remove it from the accessibility tree entirely) but takes no visual
+       space — used where a heading is structurally needed but Companion
+       Mode's deliberately clutter-free one-button design has no room for a
+       visible title (see #companionMode's own CSS comment below). */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: -1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
 
     /* ===== Auth gate / pre-login ===== */
     .auth-gate {
@@ -97,7 +119,7 @@
       width: 100%;
       min-height: 56px;
       padding: .65rem .8rem;
-      border: 2px solid #789da2;
+      border: 2px solid #5f7d82;
       border-radius: 10px;
       color: #102f3d;
       background: #fff;
@@ -105,7 +127,7 @@
     }
 
     input:focus-visible, select:focus-visible, a:focus-visible, button:focus-visible, textarea:focus-visible {
-      outline: 4px solid #f2a900;
+      outline: 4px solid #a35800;
       outline-offset: 4px;
     }
 
@@ -124,6 +146,20 @@
     .consent-item label { margin: 0; font-size: 1rem; font-weight: 400; line-height: 1.5; }
     .form-message { min-height: 1.7rem; margin: .8rem 0 0; font-weight: 700; color: #075b64; }
     .form-message.error-message { color: #9b1c1c; }
+
+    .a11y-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: .4rem;
+      margin: 0 0 1rem;
+      padding: .5rem .8rem;
+      border: 1px solid #b7cfd2;
+      border-radius: 100px;
+      background: #f2f8f8;
+      color: #4c6a6f;
+      font-size: .82rem;
+      font-weight: 650;
+    }
 
     .action-button {
       min-height: 58px;
@@ -172,6 +208,24 @@
     .mode-switch-button[aria-current="true"] { background: #076b75; color: #fff; }
 
     main { width: min(100% - 2rem, 760px); margin: 0 auto; padding: 1.5rem 0 3rem; }
+
+    /* Off-screen until focused, so a keyboard/screen-reader user can jump
+       straight past the top bar (mode switcher + sign-out) instead of
+       tabbing through it on every single visit. See WCAG 2.1 SC 2.4.1. */
+    .skip-link {
+      position: absolute;
+      top: -4rem;
+      left: 1rem;
+      z-index: 2000;
+      padding: .75rem 1.25rem;
+      border-radius: 0 0 10px 10px;
+      background: #076b75;
+      color: #fff;
+      font-weight: 750;
+      text-decoration: none;
+      transition: top .15s ease;
+    }
+    .skip-link:focus-visible { top: 0; }
 
     .mode-view h1 { text-align: center; font-size: clamp(1.8rem, 7vw, 2.5rem); color: #103b4a; margin: 0 0 1rem; }
 
@@ -288,7 +342,7 @@
       min-height: 140px;
       resize: vertical;
       padding: .9rem;
-      border: 2px solid #789da2;
+      border: 2px solid #5f7d82;
       border-radius: 10px;
       color: #102f3d;
       background: #fff;
@@ -325,9 +379,34 @@
     @media (min-width: 560px) {
       .companion-controls { grid-template-columns: 1fr 1fr; }
     }
+
+    /* ===== Accessible confirm dialog (see the markup near end of <body>) ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(16, 43, 49, .55);
+    }
+    .modal {
+      width: min(92vw, 440px);
+      padding: 1.5rem;
+      border-radius: 18px;
+      background: #fff;
+      box-shadow: 0 12px 40px rgba(16, 43, 49, .35);
+      text-align: left;
+    }
+    .modal h2 { margin: 0 0 .6rem; font-size: 1.25rem; color: #103b4a; }
+    .modal p { margin: 0 0 1rem; line-height: 1.6; color: #16324f; }
+    .modal .mode-buttons { margin: .5rem 0 0; }
   </style>
 </head>
 <body>
+
+  <a href="#mainContent" class="skip-link">跳到主要內容</a>
 
   <!-- ========== AUTH GATE ==========
        Shown until Firebase reports whether a session exists, so the app
@@ -502,8 +581,10 @@
 
         <h2 style="font-size:1.05rem; margin:1rem 0 .4rem;">📬 聯絡我們</h2>
         <p>如對呢份政策有任何疑問，請電郵至 <a href="mailto:ageing@hku.hk">ageing@hku.hk</a>。</p>
-        <p id="consentPolicyEndMarker" style="margin-top:1rem; color:#5a7a7f; font-size:.85rem;">— 政策內容完 —</p>
+        <p id="consentPolicyEndMarker" style="margin-top:1rem; color:#4c6a6f; font-size:.85rem;">— 政策內容完 —</p>
       </div>
+
+      <p class="a11y-mark">♿ 本網站設計上遵循 WCAG 2.1 Level AA 無障礙標準。</p>
 
       <div class="consent-box">
         <div class="consent-item">
@@ -519,7 +600,7 @@
           <label for="consentCheck3">我明白我可以隨時停止使用呢個服務。</label>
         </div>
       </div>
-      <p id="consentScrollHint" class="form-message">請先捲動閱讀以上政策內容，先可以勾選同意。</p>
+      <p id="consentScrollHint" class="form-message" aria-live="polite">請先捲動閱讀以上政策內容，先可以勾選同意。</p>
       <button id="consentAgreeButton" class="action-button send-button" type="button" style="width:100%;" disabled>✅ 我同意，繼續</button>
       <div id="consentMessage" class="form-message" aria-live="polite"></div>
     </div>
@@ -532,9 +613,10 @@
       <button id="signOutButton" class="action-button secondary-button small-button" type="button">登出</button>
     </header>
 
-    <main>
+    <main id="mainContent" tabindex="-1">
       <!-- ===== Companion Mode ===== -->
       <section id="companionMode" class="mode-view">
+        <h1 class="visually-hidden">陪伴模式</h1>
         <button id="talkButton" class="talk-button" type="button" aria-label="按下說話">
           <svg aria-hidden="true" viewBox="0 0 24 24">
             <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Zm-1 3.93V21H8a1 1 0 1 0 0 2h8a1 1 0 1 0 0-2h-3v-3.07A7 7 0 0 0 19 11a1 1 0 1 0-2 0 5 5 0 0 1-10 0 1 1 0 1 0-2 0 7 7 0 0 0 6 6.93Z"/>
@@ -690,6 +772,30 @@
 
   <button id="emergencyButton" class="emergency-fab" type="button" aria-label="緊急求助" hidden>🆘</button>
 
+  <!-- ========== ACCESSIBLE CONFIRM DIALOG ==========
+       Replaces window.confirm()/prompt() for every destructive action
+       (delete a contact, unlink a patient, delete a patient's whole
+       account) — native dialogs are a known rough edge across some
+       browser/screen-reader combinations: unstyled, blocking, and not
+       fully consistent. This is a small, focus-trapped, Escape-to-cancel,
+       role="alertdialog" replacement — see openConfirmDialog() below. -->
+  <div id="confirmOverlay" class="modal-overlay" hidden>
+    <div id="confirmDialog" class="modal" role="alertdialog" aria-modal="true"
+         aria-labelledby="confirmDialogTitle" aria-describedby="confirmDialogMessage">
+      <h2 id="confirmDialogTitle"></h2>
+      <p id="confirmDialogMessage"></p>
+      <div class="form-field" id="confirmDialogPhraseField" hidden>
+        <label id="confirmDialogPhraseLabel" for="confirmDialogPhraseInput"></label>
+        <input id="confirmDialogPhraseInput" type="text" autocomplete="off">
+      </div>
+      <p id="confirmDialogError" class="form-message error-message" aria-live="assertive" hidden></p>
+      <div class="mode-buttons">
+        <button id="confirmDialogCancelButton" class="action-button secondary-button" type="button">取消</button>
+        <button id="confirmDialogConfirmButton" class="action-button danger-button" type="button">確定</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     "use strict";
     /*
@@ -794,6 +900,17 @@
     const devSpeakButton = document.getElementById("devSpeakButton");
 
     const emergencyButton = document.getElementById("emergencyButton");
+
+    const confirmOverlay = document.getElementById("confirmOverlay");
+    const confirmDialogEl = document.getElementById("confirmDialog");
+    const confirmDialogTitle = document.getElementById("confirmDialogTitle");
+    const confirmDialogMessage = document.getElementById("confirmDialogMessage");
+    const confirmDialogPhraseField = document.getElementById("confirmDialogPhraseField");
+    const confirmDialogPhraseLabel = document.getElementById("confirmDialogPhraseLabel");
+    const confirmDialogPhraseInput = document.getElementById("confirmDialogPhraseInput");
+    const confirmDialogError = document.getElementById("confirmDialogError");
+    const confirmDialogCancelButton = document.getElementById("confirmDialogCancelButton");
+    const confirmDialogConfirmButton = document.getElementById("confirmDialogConfirmButton");
 
     // ===== Global auth/session/preferences state =====
     // firebaseIdToken is set only via window.__setFirebaseIdToken, called
@@ -1014,12 +1131,25 @@
       thinking: "正在思考……",
       speaking: "正在回答……",
     };
+    // The button's own accessible name, kept in sync with its visible label
+    // and color below — aria-label always wins over visible text content
+    // for assistive tech, so leaving it static here would silently tell a
+    // screen reader user "press to talk" no matter what state the button
+    // was actually in (see WCAG 2.1 SC 4.1.2 Name, Role, Value).
+    const COMPANION_STATE_LABEL = {
+      idle: "按下說話",
+      listening: "正在聆聽，再按一下停止",
+      thinking: "正在思考，請稍候",
+      speaking: "正在回答",
+      error: "按下說話",
+    };
 
     function setCompanionState(state, message) {
       companionState = state;
       talkButton.className = "talk-button" + (state === "idle" ? "" : " " + state);
       talkButton.disabled = state === "thinking";
       talkButtonLabel.textContent = state === "listening" ? "正在聆聽" : "按下說話";
+      talkButton.setAttribute("aria-label", COMPANION_STATE_LABEL[state] || "按下說話");
       companionStatus.textContent = message || COMPANION_STATE_TEXT[state] || "";
       companionStatus.classList.toggle("error-message", state === "error");
       tryAgainButton.hidden = state !== "error";
@@ -1115,6 +1245,90 @@
     devSendButton.addEventListener("click", sendDeveloperTranscript);
     devSpeakButton.addEventListener("click", function () { speak(lastAnswer, lastAnswerLanguage); });
 
+    // ===== 7b. ACCESSIBLE CONFIRM DIALOG =====
+    // A small, focus-trapped, Escape-to-cancel, role="alertdialog"
+    // replacement for window.confirm()/prompt() — see the markup near the
+    // end of <body>. openConfirmDialog() returns a Promise:
+    //   - no requirePhrase: resolves true on confirm, null on cancel.
+    //   - requirePhrase set: resolves the (already-validated, matching)
+    //     typed string on confirm, null on cancel — the dialog itself
+    //     re-prompts inline on a mismatch rather than closing, so callers
+    //     never see a wrong value.
+    let confirmDialogResolve = null;
+    let confirmDialogRequiredPhrase = null;
+    let confirmDialogTriggerElement = null;
+
+    function confirmDialogFocusableElements() {
+      return Array.prototype.slice
+        .call(confirmDialogEl.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+        .filter(function (el) { return !el.disabled && el.offsetParent !== null; });
+    }
+
+    function handleConfirmDialogKeydown(event) {
+      if (event.key === "Escape") { event.preventDefault(); closeConfirmDialog(null); return; }
+      if (event.key !== "Tab") return;
+      const focusables = confirmDialogFocusableElements();
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    }
+
+    function openConfirmDialog(options) {
+      return new Promise(function (resolve) {
+        confirmDialogResolve = resolve;
+        confirmDialogRequiredPhrase = options.requirePhrase || null;
+        confirmDialogTriggerElement = document.activeElement;
+        confirmDialogTitle.textContent = options.title;
+        confirmDialogMessage.textContent = options.message;
+        confirmDialogConfirmButton.textContent = options.confirmLabel || "確定";
+        confirmDialogConfirmButton.className = "action-button " + (options.danger === false ? "send-button" : "danger-button");
+        confirmDialogError.hidden = true;
+        confirmDialogError.textContent = "";
+        if (confirmDialogRequiredPhrase) {
+          confirmDialogPhraseField.hidden = false;
+          confirmDialogPhraseLabel.textContent = "請輸入「" + confirmDialogRequiredPhrase + "」以確認：";
+          confirmDialogPhraseInput.value = "";
+        } else {
+          confirmDialogPhraseField.hidden = true;
+        }
+        confirmOverlay.hidden = false;
+        document.addEventListener("keydown", handleConfirmDialogKeydown, true);
+        (confirmDialogRequiredPhrase ? confirmDialogPhraseInput : confirmDialogCancelButton).focus();
+      });
+    }
+
+    function closeConfirmDialog(result) {
+      confirmOverlay.hidden = true;
+      document.removeEventListener("keydown", handleConfirmDialogKeydown, true);
+      if (confirmDialogTriggerElement && typeof confirmDialogTriggerElement.focus === "function") {
+        confirmDialogTriggerElement.focus();
+      }
+      const resolve = confirmDialogResolve;
+      confirmDialogResolve = null;
+      if (resolve) resolve(result);
+    }
+
+    confirmDialogCancelButton.addEventListener("click", function () { closeConfirmDialog(null); });
+    confirmOverlay.addEventListener("click", function (event) {
+      if (event.target === confirmOverlay) closeConfirmDialog(null);
+    });
+    confirmDialogConfirmButton.addEventListener("click", function () {
+      if (confirmDialogRequiredPhrase) {
+        const typed = confirmDialogPhraseInput.value.trim();
+        if (typed !== confirmDialogRequiredPhrase) {
+          confirmDialogError.textContent = "輸入唔正確，請再試一次。";
+          confirmDialogError.hidden = false;
+          confirmDialogPhraseInput.focus();
+          return;
+        }
+        closeConfirmDialog(typed);
+        return;
+      }
+      closeConfirmDialog(true);
+    });
+
     // ===== 8. CAREGIVER TOOLS =====
     const FLAG_TYPE_LABELS = { safety: "⚠️ 安全提示", cognitive_decline: "🧠 認知狀況" };
 
@@ -1138,7 +1352,10 @@
         reason.textContent = " " + flag.reason;
         when.textContent = new Date(flag.created_at).toLocaleString("zh-HK");
         when.style.display = "block";
-        when.style.color = "#5a7a7f";
+        // #5a7a7f previously here measured ~4.64:1 on white — technically
+        // above the 4.5:1 minimum but with almost no margin. Darkened for a
+        // real safety buffer (WCAG 2.1 SC 1.4.3).
+        when.style.color = "#4c6a6f";
         item.append(label, reason, when);
         conversationFlagsList.append(item);
       });
@@ -1186,16 +1403,14 @@
     const DELETE_PATIENT_CONFIRMATION_PHRASE = "確定刪除";
 
     async function deletePatientAccount(patientUserId, displayName) {
-      const typed = prompt(
-        "呢個操作會永久刪除「" + displayName + "」嘅整個帳戶，包括登入、聯絡人同提示記錄，唔可以復原。\n" +
-        "如果要繼續，請喺下面輸入「" + DELETE_PATIENT_CONFIRMATION_PHRASE + "」：",
-      );
-      if (typed === null) return;
-      if (typed.trim() !== DELETE_PATIENT_CONFIRMATION_PHRASE) {
-        linkPatientMessage.textContent = "輸入唔正確，帳戶未有被刪除。";
-        linkPatientMessage.classList.add("error-message");
-        return;
-      }
+      const typed = await openConfirmDialog({
+        title: "刪除帳戶",
+        message: "呢個操作會永久刪除「" + displayName + "」嘅整個帳戶，包括登入、聯絡人同提示記錄，唔可以復原。",
+        confirmLabel: "永久刪除",
+        requirePhrase: DELETE_PATIENT_CONFIRMATION_PHRASE,
+      });
+      if (typed === null) return; // cancelled — the dialog only ever resolves the
+      // exact matching phrase or null, so no separate mismatch check is needed here.
       try {
         const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/account", {
           method: "DELETE",
@@ -1240,7 +1455,12 @@
     }
 
     async function unlinkPatient(patientUserId) {
-      if (!confirm("確定要解除呢個連結嗎？")) return;
+      const confirmed = await openConfirmDialog({
+        title: "解除連結",
+        message: "確定要解除呢個連結嗎？",
+        confirmLabel: "解除連結",
+      });
+      if (!confirmed) return;
       try {
         const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId), { method: "DELETE" });
         if (!res.ok) throw new Error("failed to unlink patient");
@@ -1331,7 +1551,12 @@
     }
 
     async function deleteContact(contactId) {
-      if (!confirm("確定要刪除呢個聯絡人嗎？")) return;
+      const confirmed = await openConfirmDialog({
+        title: "刪除聯絡人",
+        message: "確定要刪除呢個聯絡人嗎？",
+        confirmLabel: "刪除",
+      });
+      if (!confirmed) return;
       try {
         const res = await apiFetch("/api/account/contacts/" + contactId, { method: "DELETE" });
         if (!res.ok) throw new Error("delete failed");
