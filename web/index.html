@@ -320,12 +320,22 @@
       .talk-button.listening span { animation: none; }
     }
 
-    .high-contrast-mode * {
+    .high-contrast-mode {
+      color: black !important;
+    }
+
+    .high-contrast-mode .action-button,
+    .high-contrast-mode .talk-button,
+    .high-contrast-mode input,
+    .high-contrast-mode select,
+    .high-contrast-mode textarea,
+    .high-contrast-mode button,
+    .high-contrast-mode .pref-row input[type="checkbox"] {
       border: 3px solid black !important;
       box-shadow: none !important;
       font-weight: 900 !important;
       color: black !important;
-      background: white !important;
+      background-color: white !important;
     }
 
     .high-contrast-mode .talk-button {
@@ -731,33 +741,6 @@
           <p id="conversationFlagsMessage" class="form-message" aria-live="polite"></p>
         </div>
 
-        <!-- ===== Monitoring settings =====
-             Which flag categories (see src/user/conversation_flags.py)
-             actually get recorded for each linked patient — decided per
-             patient, since a caregiver may manage more than one. Meant to
-             be a joint decision with the patient, not a unilateral one —
-             see the explanatory copy below. -->
-        <div class="subpage-section">
-          <h2>🎚️ 監測設定</h2>
-          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
-            揀選要監測邊啲提示類別——建議同你照顧嘅對象商量後，一齊決定。兩者預設為開啟。
-          </p>
-          <div class="form-field">
-            <label for="monitoringPatientSelect">照顧對象</label>
-            <select id="monitoringPatientSelect"></select>
-          </div>
-          <div class="pref-row">
-            <label for="monitorSafetyCheckbox">⚠️ 安全提示（例如提到跌倒、走失、藥物混亂等）</label>
-            <input id="monitorSafetyCheckbox" type="checkbox">
-          </div>
-          <div class="pref-row">
-            <label for="monitorCognitiveCheckbox">🧠 認知狀況提示（例如重複提問、對時間地點感到混亂）</label>
-            <input id="monitorCognitiveCheckbox" type="checkbox">
-          </div>
-          <button id="saveMonitoringButton" class="action-button send-button" type="button">儲存設定</button>
-          <p id="monitoringMessage" class="form-message" aria-live="polite"></p>
-        </div>
-
         <div class="subpage-section">
           <h2>🔗 連結照顧對象</h2>
           <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
@@ -789,38 +772,6 @@
           </form>
           <p id="contactMessage" class="form-message" aria-live="polite"></p>
           <ul id="contactList" class="contact-list" aria-label="已加入的聯絡人"></ul>
-        </div>
-
-        <!-- ===== Patient-specific contacts =====
-             Distinct from the "📞 聯絡人" section above, which is the
-             caregiver's own shared list — every linked patient reads it
-             (see _readable_contact_owner_ids in backend/api/web_account.py).
-             A contact added here instead goes straight onto one specific
-             patient's own account (WebContact.firebase_uid = that patient's
-             sender_id), so it's only ever visible to them, not every
-             patient this caregiver is linked to. -->
-        <div class="subpage-section">
-          <h2>📇 照顧對象專屬聯絡人</h2>
-          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
-            喺呢度可以直接為其中一位照顧對象新增聯絡人，只有嗰位照顧對象先會見到。
-          </p>
-          <div class="form-field">
-            <label for="patientContactSelect">照顧對象</label>
-            <select id="patientContactSelect"></select>
-          </div>
-          <form id="patientContactForm">
-            <div class="form-field">
-              <label for="patientContactNameInput">姓名</label>
-              <input id="patientContactNameInput" name="patientContactNameInput" required>
-            </div>
-            <div class="form-field">
-              <label for="patientContactDetailInput">電話或聯絡資料</label>
-              <input id="patientContactDetailInput" name="patientContactDetailInput" inputmode="tel" required>
-            </div>
-            <button class="action-button send-button" type="submit">新增聯絡人</button>
-          </form>
-          <p id="patientContactMessage" class="form-message" aria-live="polite"></p>
-          <ul id="patientContactList" class="contact-list" aria-label="照顧對象嘅專屬聯絡人"></ul>
         </div>
 
         <div class="subpage-section">
@@ -1009,19 +960,8 @@
     const contactForm = document.getElementById("contactForm");
     const contactList = document.getElementById("contactList");
     const contactMessage = document.getElementById("contactMessage");
-    const patientContactSelect = document.getElementById("patientContactSelect");
-    const patientContactForm = document.getElementById("patientContactForm");
-    const patientContactNameInput = document.getElementById("patientContactNameInput");
-    const patientContactDetailInput = document.getElementById("patientContactDetailInput");
-    const patientContactMessage = document.getElementById("patientContactMessage");
-    const patientContactList = document.getElementById("patientContactList");
     const conversationFlagsList = document.getElementById("conversationFlagsList");
     const conversationFlagsMessage = document.getElementById("conversationFlagsMessage");
-    const monitoringPatientSelect = document.getElementById("monitoringPatientSelect");
-    const monitorSafetyCheckbox = document.getElementById("monitorSafetyCheckbox");
-    const monitorCognitiveCheckbox = document.getElementById("monitorCognitiveCheckbox");
-    const saveMonitoringButton = document.getElementById("saveMonitoringButton");
-    const monitoringMessage = document.getElementById("monitoringMessage");
     const linkPatientForm = document.getElementById("linkPatientForm");
     const pairingCodeInput = document.getElementById("pairingCodeInput");
     const linkPatientMessage = document.getElementById("linkPatientMessage");
@@ -1215,11 +1155,7 @@
       // onresult already accumulates every "final" segment into
       // finalTranscript, so this needs no other changes to work correctly.
       recognition.continuous = true;
-      // >1 doesn't change what the top guess is (alternatives are already
-      // returned ranked by the recognizer's own confidence) — this is
-      // purely so Developer Mode can show what else it considered when
-      // diagnosing an unclear/slurred result.
-      recognition.maxAlternatives = 3;
+      recognition.maxAlternatives = 1;
       let finalTranscript = "";
       let stoppedIntentionally = false;
       let lowestFinalConfidence = null;
@@ -1708,188 +1644,11 @@
       try {
         const res = await apiFetch("/api/me/linked-patients");
         if (!res.ok) throw new Error("failed to load linked patients");
-        const patients = (await res.json()).linked_patients || [];
-        renderLinkedPatients(patients);
-        renderPatientContactSelect(patients);
-        renderMonitoringPatientSelect(patients);
+        renderLinkedPatients((await res.json()).linked_patients || []);
       } catch (err) {
         linkPatientMessage.textContent = "無法載入已連結嘅照顧對象，請稍後再試。";
       }
     }
-
-    // ===== Monitoring settings (see the subsection's own HTML comment) =====
-    function renderMonitoringPatientSelect(patients) {
-      const previousValue = monitoringPatientSelect.value;
-      monitoringPatientSelect.replaceChildren();
-      if (!patients.length) {
-        monitorSafetyCheckbox.disabled = true;
-        monitorCognitiveCheckbox.disabled = true;
-        saveMonitoringButton.disabled = true;
-        monitoringMessage.textContent = "未有連結任何照顧對象，請先喺上面連結一位。";
-        monitoringMessage.classList.remove("error-message");
-        return;
-      }
-      monitorSafetyCheckbox.disabled = false;
-      monitorCognitiveCheckbox.disabled = false;
-      saveMonitoringButton.disabled = false;
-      patients.forEach(function (patient) {
-        const option = document.createElement("option");
-        option.value = patient.user_id;
-        option.textContent = patient.display_name;
-        monitoringPatientSelect.append(option);
-      });
-      const stillLinked = patients.some(function (patient) { return patient.user_id === previousValue; });
-      monitoringPatientSelect.value = stillLinked ? previousValue : patients[0].user_id;
-      loadMonitoringPreferences(monitoringPatientSelect.value);
-    }
-
-    async function loadMonitoringPreferences(patientUserId) {
-      if (!patientUserId) return;
-      monitoringMessage.textContent = "";
-      monitoringMessage.classList.remove("error-message");
-      try {
-        const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring");
-        if (!res.ok) throw new Error("failed to load monitoring preferences");
-        const preferences = await res.json();
-        monitorSafetyCheckbox.checked = preferences.safety;
-        monitorCognitiveCheckbox.checked = preferences.cognitive_decline;
-      } catch (err) {
-        monitoringMessage.textContent = "無法載入監測設定，請稍後再試。";
-        monitoringMessage.classList.add("error-message");
-      }
-    }
-
-    monitoringPatientSelect.addEventListener("change", function () {
-      loadMonitoringPreferences(monitoringPatientSelect.value);
-    });
-
-    saveMonitoringButton.addEventListener("click", async function () {
-      const patientUserId = monitoringPatientSelect.value;
-      if (!patientUserId) return;
-      try {
-        const res = await apiFetch(
-          "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring",
-          {
-            method: "PUT",
-            body: JSON.stringify({
-              safety: monitorSafetyCheckbox.checked,
-              cognitive_decline: monitorCognitiveCheckbox.checked,
-            }),
-          },
-        );
-        if (!res.ok) throw new Error("failed to save monitoring preferences");
-        monitoringMessage.textContent = "監測設定已儲存。";
-        monitoringMessage.classList.remove("error-message");
-      } catch (err) {
-        monitoringMessage.textContent = "儲存失敗，請稍後再試。";
-        monitoringMessage.classList.add("error-message");
-      }
-    });
-
-    // ===== Patient-specific contacts (see the subsection's own HTML
-    // comment for why this is separate from the caregiver's own shared
-    // contact list) =====
-    function renderPatientContactSelect(patients) {
-      const previousValue = patientContactSelect.value;
-      patientContactSelect.replaceChildren();
-      if (!patients.length) {
-        patientContactForm.hidden = true;
-        patientContactList.replaceChildren();
-        patientContactMessage.textContent = "未有連結任何照顧對象，請先喺上面連結一位。";
-        patientContactMessage.classList.remove("error-message");
-        return;
-      }
-      patientContactForm.hidden = false;
-      patients.forEach(function (patient) {
-        const option = document.createElement("option");
-        option.value = patient.user_id;
-        option.textContent = patient.display_name;
-        patientContactSelect.append(option);
-      });
-      const stillLinked = patients.some(function (patient) { return patient.user_id === previousValue; });
-      patientContactSelect.value = stillLinked ? previousValue : patients[0].user_id;
-      loadPatientContacts(patientContactSelect.value);
-    }
-
-    async function loadPatientContacts(patientUserId) {
-      if (!patientUserId) { patientContactList.replaceChildren(); return; }
-      try {
-        const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/contacts");
-        if (!res.ok) throw new Error("failed to load patient contacts");
-        renderPatientContactList(await res.json(), patientUserId);
-      } catch (err) {
-        patientContactMessage.textContent = "無法載入呢位照顧對象嘅聯絡人，請稍後再試。";
-        patientContactMessage.classList.add("error-message");
-      }
-    }
-
-    function renderPatientContactList(contactsData, patientUserId) {
-      patientContactList.replaceChildren();
-      if (!contactsData.length) {
-        const empty = document.createElement("li");
-        empty.className = "contact-item";
-        empty.textContent = "未有為呢位照顧對象新增聯絡人。";
-        patientContactList.append(empty);
-        return;
-      }
-      contactsData.forEach(function (contact) {
-        const item = document.createElement("li");
-        const details = document.createElement("span");
-        const deleteButton = document.createElement("button");
-        item.className = "contact-item";
-        details.textContent = contact.name + "：" + contact.detail;
-        deleteButton.className = "action-button danger-button small-button";
-        deleteButton.type = "button";
-        deleteButton.textContent = "刪除";
-        deleteButton.addEventListener("click", async function () {
-          const confirmed = await openConfirmDialog({
-            title: "刪除聯絡人",
-            message: "確定要刪除呢個聯絡人嗎？",
-            confirmLabel: "刪除",
-          });
-          if (!confirmed) return;
-          try {
-            const res = await apiFetch(
-              "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/contacts/" + contact.id,
-              { method: "DELETE" },
-            );
-            if (!res.ok) throw new Error("delete failed");
-            loadPatientContacts(patientUserId);
-          } catch (err) {
-            patientContactMessage.textContent = "刪除失敗，請稍後再試。";
-            patientContactMessage.classList.add("error-message");
-          }
-        });
-        item.append(details, deleteButton);
-        patientContactList.append(item);
-      });
-    }
-
-    patientContactSelect.addEventListener("change", function () {
-      loadPatientContacts(patientContactSelect.value);
-    });
-
-    patientContactForm.addEventListener("submit", async function (event) {
-      event.preventDefault();
-      const patientUserId = patientContactSelect.value;
-      const name = patientContactNameInput.value.trim();
-      const detail = patientContactDetailInput.value.trim();
-      if (!patientUserId || !name || !detail) return;
-      try {
-        const res = await apiFetch(
-          "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/contacts",
-          { method: "POST", body: JSON.stringify({ name: name, detail: detail }) },
-        );
-        if (!res.ok) throw new Error("save failed");
-        patientContactMessage.textContent = "已為呢位照顧對象新增聯絡人。";
-        patientContactMessage.classList.remove("error-message");
-        patientContactForm.reset();
-        loadPatientContacts(patientUserId);
-      } catch (err) {
-        patientContactMessage.textContent = "新增失敗，請稍後再試。";
-        patientContactMessage.classList.add("error-message");
-      }
-    });
 
     // Shows Companion Mode's "generate a pairing code" affordance only for
     // a companion (patient) account that has never been paired as someone's
