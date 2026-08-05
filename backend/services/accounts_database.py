@@ -60,6 +60,7 @@ class WebAccountProfile(Base):
     voice_name = Column(String, nullable=True)
     auto_speak = Column(Boolean, nullable=False, default=True)
     transcript_visible = Column(Boolean, nullable=False, default=True)
+    high_contrast_mode = Column(Boolean, nullable=False, default=False)
     # False = "review before send" — reply is transcribed but held for the
     # user (or, in practice, mainly the developer role) to check before it's
     # actually sent to the chat pipeline.
@@ -124,6 +125,7 @@ def _migrate_add_missing_columns() -> None:
             "voice_name": "VARCHAR",
             "auto_speak": "BOOLEAN NOT NULL DEFAULT 1",
             "transcript_visible": "BOOLEAN NOT NULL DEFAULT 1",
+            "high_contrast_mode": "BOOLEAN NOT NULL DEFAULT 0",
             "auto_send": "BOOLEAN NOT NULL DEFAULT 1",
             "consent_accepted_at": "DATETIME",
             "identity_confirmed": "BOOLEAN NOT NULL DEFAULT 0",

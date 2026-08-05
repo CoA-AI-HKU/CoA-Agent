@@ -6,6 +6,7 @@ from typing import Any
 
 from src.safety.medication_guard import detect_red_flags
 from src.user.conversation_flags_database import ConversationFlag, SessionLocal
+from src.user.monitoring_preferences import get_monitoring_preferences
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,12 @@ def maybe_flag_turn(
     (see src/agents/general_chat_agent.py) — passed in rather than built
     here so this never needs its own opinion about which provider/config to
     use, and so it can be skipped entirely (None) when no LLM is configured.
+
+    Each flag category is independently gated by this sender's own
+    monitoring preferences (see src/user/monitoring_preferences.py) — a
+    caregiver and patient may decide together to turn either one off, e.g.
+    a caregiver who finds the cognitive-decline classifier too noisy for
+    their situation without wanting to also lose safety alerts.
     """
     sender_id = str(sender_id or "").strip()
     message = str(message or "").strip()
@@ -83,12 +90,13 @@ def maybe_flag_turn(
         return
 
     try:
-        red_flags = detect_red_flags(message)
+        preferences = get_monitoring_preferences(sender_id)
+        red_flags = detect_red_flags(message) if preferences["safety"] else []
         if red_flags:
             _record(sender_id, "safety", f"提及：{'、'.join(red_flags[:3])}")
             return  # a safety flag already covers this turn; skip the decline check
 
-        if answer_callable is not None:
+        if preferences["cognitive_decline"] and answer_callable is not None:
             reason = _classify_decline_signs(message, context, answer_callable)
             if reason:
                 _record(sender_id, "cognitive_decline", reason)

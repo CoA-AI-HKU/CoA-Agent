@@ -843,7 +843,12 @@ def _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid, *, patie
     linked = client.post(
         "/api/me/link-patient", json={"code": code}, headers={"Authorization": "Bearer caregiver"},
     ).json()["linked_patients"]
-    return linked[0]["user_id"]
+    # The newly-redeemed link is appended, not prepended — linked[0] only
+    # happens to be "the patient just linked" when the caregiver has no
+    # other links yet. linked[-1] is correct for both that case and a
+    # caregiver with multiple linked patients (see
+    # test_patient_specific_contact_is_scoped_to_that_one_patient).
+    return linked[-1]["user_id"]
 
 
 def test_deleting_a_linked_patient_account_removes_their_profile(monkeypatch, tmp_path):
@@ -1040,3 +1045,220 @@ def test_caregiver_does_not_see_a_linked_patients_contacts(monkeypatch, tmp_path
     finally:
         _cleanup(patient_uid)
         _cleanup(caregiver_uid)
+
+
+def test_caregiver_can_add_a_contact_directly_to_a_linked_patients_account(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-patient-contact-add-patient", "pytest-patient-contact-add-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        response = client.post(
+            f"/api/me/linked-patients/{patient_user_id}/contacts",
+            json={"name": "家庭醫生", "detail": "91234567"},
+            headers={"Authorization": "Bearer caregiver"},
+        )
+        assert response.status_code == 201
+        assert response.json()["name"] == "家庭醫生"
+
+        # Stored directly under the patient's own account — it shows up the
+        # moment the patient reads their own contacts, same as the
+        # caregiver's blanket-shared list already does.
+        _authenticate_as(monkeypatch, patient_uid)
+        listing = client.get("/api/account/contacts", headers={"Authorization": "Bearer patient"})
+        names = [c["name"] for c in listing.json()]
+        assert "家庭醫生" in names
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_patient_specific_contact_is_scoped_to_that_one_patient(monkeypatch, tmp_path):
+    # A caregiver with two linked patients adds a contact for only one of
+    # them — it must not leak to the other, unlike the caregiver's own
+    # blanket contact list (see test_patient_can_read_a_linked_caregivers_contacts).
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_a_uid = "pytest-patient-contact-scope-a"
+    patient_b_uid = "pytest-patient-contact-scope-b"
+    caregiver_uid = "pytest-patient-contact-scope-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_a_user_id = _link_patient_to_caregiver(monkeypatch, patient_a_uid, caregiver_uid)
+        patient_b_user_id = _link_patient_to_caregiver(monkeypatch, patient_b_uid, caregiver_uid)
+        assert patient_a_user_id != patient_b_user_id
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        client.post(
+            f"/api/me/linked-patients/{patient_a_user_id}/contacts",
+            json={"name": "只俾A嘅聯絡人", "detail": "91111111"},
+            headers={"Authorization": "Bearer caregiver"},
+        )
+
+        _authenticate_as(monkeypatch, patient_b_uid)
+        listing = client.get("/api/account/contacts", headers={"Authorization": "Bearer patient-b"})
+        names = [c["name"] for c in listing.json()]
+        assert "只俾A嘅聯絡人" not in names
+    finally:
+        _cleanup(patient_a_uid)
+        _cleanup(patient_b_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_caregiver_can_list_and_delete_a_patients_specific_contact(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid, caregiver_uid = "pytest-patient-contact-crud-patient", "pytest-patient-contact-crud-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        headers = {"Authorization": "Bearer caregiver"}
+        created = client.post(
+            f"/api/me/linked-patients/{patient_user_id}/contacts",
+            json={"name": "護士", "detail": "91234567"},
+            headers=headers,
+        ).json()
+
+        listing = client.get(f"/api/me/linked-patients/{patient_user_id}/contacts", headers=headers)
+        assert listing.status_code == 200
+        assert [c["name"] for c in listing.json()] == ["護士"]
+
+        deletion = client.delete(
+            f"/api/me/linked-patients/{patient_user_id}/contacts/{created['id']}", headers=headers,
+        )
+        assert deletion.status_code == 200
+
+        listing_after = client.get(f"/api/me/linked-patients/{patient_user_id}/contacts", headers=headers)
+        assert listing_after.json() == []
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_adding_a_contact_for_a_non_linked_patient_is_rejected(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-patient-contact-not-linked-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.post(
+            "/api/me/linked-patients/patient_doesnotexist/contacts",
+            json={"name": "陌生人", "detail": "91234567"},
+            headers={"Authorization": "Bearer fake"},
+        )
+        assert response.status_code == 404
+    finally:
+        _cleanup(uid)
+
+
+def test_monitoring_preferences_default_to_both_enabled(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    patient_uid, caregiver_uid = "pytest-monitoring-default-patient", "pytest-monitoring-default-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+        _authenticate_as(monkeypatch, caregiver_uid)
+        response = client.get(
+            f"/api/me/linked-patients/{patient_user_id}/monitoring", headers={"Authorization": "Bearer caregiver"},
+        )
+        assert response.status_code == 200
+        assert response.json() == {"safety": True, "cognitive_decline": True}
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_caregiver_can_toggle_a_linked_patients_monitoring_preferences(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    patient_uid, caregiver_uid = "pytest-monitoring-toggle-patient", "pytest-monitoring-toggle-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_user_id = _link_patient_to_caregiver(monkeypatch, patient_uid, caregiver_uid)
+        _authenticate_as(monkeypatch, caregiver_uid)
+        headers = {"Authorization": "Bearer caregiver"}
+
+        response = client.put(
+            f"/api/me/linked-patients/{patient_user_id}/monitoring", json={"cognitive_decline": False}, headers=headers,
+        )
+        assert response.status_code == 200
+        assert response.json() == {"safety": True, "cognitive_decline": False}
+
+        # Persisted, and a partial update doesn't clobber the other category.
+        listing = client.get(f"/api/me/linked-patients/{patient_user_id}/monitoring", headers=headers)
+        assert listing.json() == {"safety": True, "cognitive_decline": False}
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_monitoring_preferences_are_scoped_to_that_one_patient(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    patient_a_uid = "pytest-monitoring-scope-a"
+    patient_b_uid = "pytest-monitoring-scope-b"
+    caregiver_uid = "pytest-monitoring-scope-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", caregiver_uid)
+    try:
+        patient_a_user_id = _link_patient_to_caregiver(monkeypatch, patient_a_uid, caregiver_uid)
+        patient_b_user_id = _link_patient_to_caregiver(monkeypatch, patient_b_uid, caregiver_uid)
+
+        _authenticate_as(monkeypatch, caregiver_uid)
+        headers = {"Authorization": "Bearer caregiver"}
+        client.put(f"/api/me/linked-patients/{patient_a_user_id}/monitoring", json={"safety": False}, headers=headers)
+
+        listing_b = client.get(f"/api/me/linked-patients/{patient_b_user_id}/monitoring", headers=headers)
+        assert listing_b.json() == {"safety": True, "cognitive_decline": True}
+    finally:
+        _cleanup(patient_a_uid)
+        _cleanup(patient_b_uid)
+        _cleanup(caregiver_uid)
+
+
+def test_updating_monitoring_for_a_non_linked_patient_is_rejected(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-monitoring-not-linked-caregiver"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", uid)
+    _authenticate_as(monkeypatch, uid)
+    try:
+        response = client.put(
+            "/api/me/linked-patients/patient_doesnotexist/monitoring",
+            json={"safety": False},
+            headers={"Authorization": "Bearer fake"},
+        )
+        assert response.status_code == 404
+    finally:
+        _cleanup(uid)
+
+
+def test_updating_monitoring_requires_caregiver_mode_permission(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-monitoring-companion-forbidden"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)  # companion role by default
+        response = client.put("/api/me/linked-patients/whatever/monitoring", json={"safety": False}, headers=headers)
+        assert response.status_code == 403
+    finally:
+        _cleanup(uid)
+
+
+def test_adding_a_patient_contact_requires_caregiver_mode_permission(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-patient-contact-companion-forbidden"
+    _authenticate_as(monkeypatch, uid)
+    headers = {"Authorization": "Bearer fake"}
+    try:
+        client.get("/api/me", headers=headers)  # companion role by default
+        response = client.post(
+            "/api/me/linked-patients/whatever/contacts",
+            json={"name": "陌生人", "detail": "91234567"},
+            headers=headers,
+        )
+        assert response.status_code == 403
+    finally:
+        _cleanup(uid)

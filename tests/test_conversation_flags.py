@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from src.user import conversation_flags
+from src.user import conversation_flags, monitoring_preferences
 from src.user.conversation_flags_database import ConversationFlag, SessionLocal
 
 
@@ -104,6 +104,45 @@ def test_flags_older_than_retention_window_are_purged():
         db.close()
     try:
         assert conversation_flags.get_recent_flags(sender_id) == []
+    finally:
+        _cleanup(sender_id)
+
+
+def test_safety_flags_are_skipped_when_that_category_is_turned_off(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-safety-disabled"
+    monitoring_preferences.set_monitoring_preferences(sender_id, safety=False)
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "我突然胸口好痛 chest pain", answer_callable=None)
+        assert conversation_flags.get_recent_flags(sender_id) == []
+    finally:
+        _cleanup(sender_id)
+
+
+def test_cognitive_decline_flags_are_skipped_when_that_category_is_turned_off(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-decline-disabled"
+    monitoring_preferences.set_monitoring_preferences(sender_id, cognitive_decline=False)
+
+    def fail_if_called(_prompt: str) -> str:
+        raise AssertionError("decline classifier must not be called when that category is disabled")
+
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "今日禮拜幾呀？我唔記得咗", answer_callable=fail_if_called)
+        assert conversation_flags.get_recent_flags(sender_id) == []
+    finally:
+        _cleanup(sender_id)
+
+
+def test_disabling_one_category_leaves_the_other_active(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-one-disabled"
+    monitoring_preferences.set_monitoring_preferences(sender_id, cognitive_decline=False)
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "我突然胸口好痛 chest pain", answer_callable=None)
+        flags = conversation_flags.get_recent_flags(sender_id)
+        assert len(flags) == 1
+        assert flags[0]["flag_type"] == "safety"
     finally:
         _cleanup(sender_id)
 
