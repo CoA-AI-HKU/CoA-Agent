@@ -1159,6 +1159,11 @@
       network: "網絡連線暫時有問題，請稍後再試。",
       "recognition-failed": "語音辨識未能完成，請再試一次。",
       "chat-failed": "未能連接到 CoA-Agent，請稍後再試。",
+      // Heard something, but the recognizer's own confidence in the words
+      // was too low to trust — see LOW_CONFIDENCE_THRESHOLD. Framed as "not
+      // clear" rather than "wrong" or "didn't hear you", since something
+      // genuinely was picked up.
+      "unclear-speech": "聽到你講嘢，但唔係好清楚。可以講慢啲、大聲少少，再試一次嗎？",
     };
 
     function friendlyError(code) {
@@ -1181,7 +1186,20 @@
       return (meProfile && meProfile.preferences && meProfile.preferences.recognition_language) || "zh-HK";
     }
 
-    // callbacks: { onStart, onInterim(text), onFinal(text), onEnd(finalText), onError(code) }
+    // Below this, the recognizer's own confidence in a *final* transcript is
+    // treated as "heard something, but not clearly" rather than trusted at
+    // face value — see createBrowserSpeechProvider's onresult handler. We
+    // cannot retrain or tune the browser's underlying recognition model
+    // (slurred/unclear articulation is ultimately its problem to solve,
+    // not something client-side JS can fix), but we CAN detect when it
+    // says it isn't sure, and respond more gracefully than silently
+    // forwarding a low-confidence guess into the chat pipeline — especially
+    // important here, since a misheard word (e.g. a medication name) could
+    // otherwise produce a confidently-wrong reply.
+    const LOW_CONFIDENCE_THRESHOLD = 0.4;
+
+    // callbacks: { onStart, onInterim(text), onEnd(finalText, info), onError(code) }
+    // info passed to onEnd is { lowConfidence: boolean }.
     function createBrowserSpeechProvider(callbacks) {
       if (!BrowserSpeechRecognition) return null;
       const recognition = new BrowserSpeechRecognition();
@@ -1197,16 +1215,36 @@
       // onresult already accumulates every "final" segment into
       // finalTranscript, so this needs no other changes to work correctly.
       recognition.continuous = true;
-      recognition.maxAlternatives = 1;
+      // >1 doesn't change what the top guess is (alternatives are already
+      // returned ranked by the recognizer's own confidence) — this is
+      // purely so Developer Mode can show what else it considered when
+      // diagnosing an unclear/slurred result.
+      recognition.maxAlternatives = 3;
       let finalTranscript = "";
       let stoppedIntentionally = false;
+      let lowestFinalConfidence = null;
 
       recognition.onstart = function () { callbacks.onStart && callbacks.onStart(); };
       recognition.onresult = function (event) {
         let interim = "";
         for (let i = event.resultIndex; i < event.results.length; i += 1) {
-          const text = event.results[i][0].transcript;
-          if (event.results[i].isFinal) finalTranscript += text; else interim += text;
+          const result = event.results[i];
+          const text = result[0].transcript;
+          if (result.isFinal) {
+            finalTranscript += text;
+            // Some browsers always report 0 for confidence (not measured)
+            // rather than a genuine score — only a positive value is
+            // trusted as a real signal, so an unmeasured 0 never gets
+            // mistaken for "definitely unclear."
+            const confidence = result[0].confidence;
+            if (typeof confidence === "number" && confidence > 0) {
+              lowestFinalConfidence = lowestFinalConfidence === null
+                ? confidence
+                : Math.min(lowestFinalConfidence, confidence);
+            }
+          } else {
+            interim += text;
+          }
         }
         callbacks.onInterim && callbacks.onInterim(finalTranscript + interim, finalTranscript);
       };
@@ -1215,13 +1253,20 @@
         callbacks.onError && callbacks.onError(event.error);
       };
       recognition.onend = function () {
-        callbacks.onEnd && callbacks.onEnd(finalTranscript.trim());
+        const lowConfidence = lowestFinalConfidence !== null && lowestFinalConfidence < LOW_CONFIDENCE_THRESHOLD;
+        callbacks.onEnd && callbacks.onEnd(finalTranscript.trim(), { lowConfidence: lowConfidence });
         finalTranscript = "";
+        lowestFinalConfidence = null;
         stoppedIntentionally = false;
       };
 
       return {
-        start: function () { finalTranscript = ""; stoppedIntentionally = false; recognition.start(); },
+        start: function () {
+          finalTranscript = "";
+          lowestFinalConfidence = null;
+          stoppedIntentionally = false;
+          recognition.start();
+        },
         stop: function () { stoppedIntentionally = true; recognition.stop(); },
         abort: function () { stoppedIntentionally = true; recognition.abort(); },
       };
@@ -1350,18 +1395,59 @@
       }
     }
 
+    // Set right before the one automatic retry below, and reset whenever a
+    // fresh, user-initiated listening session starts — so a session only
+    // ever silently retries once, never loops.
+    let companionNoSpeechRetried = false;
+    // Incremented on every _startCompanionListeningSession() call so a
+    // stale callback from a session already superseded by a retry (its
+    // onend can still fire after the retry's own provider is created,
+    // since the old browser SpeechRecognition object's lifecycle isn't
+    // actually cancelled, just abandoned) is ignored instead of showing an
+    // error for what the retry may already be handling. Same generation
+    // pattern speak() below uses for the same reason.
+    let companionListeningGeneration = 0;
+
     function startCompanionListening() {
       playBeep();
+      companionNoSpeechRetried = false;
+      _startCompanionListeningSession();
+    }
+
+    function _startCompanionListeningSession() {
       if (!speechRecognitionSupported()) { companionError("unsupported"); return; }
       cancelSpeech();
       companionAnswer.textContent = "";
+      companionListeningGeneration += 1;
+      const currentListeningGeneration = companionListeningGeneration;
       companionProvider = createBrowserSpeechProvider({
-        onStart: function () { setCompanionState("listening"); },
+        onStart: function () {
+          if (currentListeningGeneration === companionListeningGeneration) setCompanionState("listening");
+        },
         onInterim: function () { /* Companion Mode intentionally shows no live transcript — see developer mode for that. */ },
-        onError: function (code) { companionError(code); },
-        onEnd: function (finalText) {
+        onError: function (code) {
+          if (currentListeningGeneration !== companionListeningGeneration) return; // superseded by a retry
+          // A quieter or slower speaker is more likely to trip a false
+          // "no-speech" than someone who starts talking immediately —
+          // one silent, automatic retry avoids making them notice an
+          // error and manually tap to try again for what's often just
+          // the recognizer starting a beat before they did.
+          if (code === "no-speech" && !companionNoSpeechRetried) {
+            companionNoSpeechRetried = true;
+            _startCompanionListeningSession();
+            return;
+          }
+          companionError(code);
+        },
+        onEnd: function (finalText, info) {
+          if (currentListeningGeneration !== companionListeningGeneration) return; // superseded by a retry
           if (companionState !== "listening") return; // already handled as an error
           if (!finalText) { companionError("no-speech"); return; }
+          // Heard something, but the recognizer itself wasn't confident in
+          // it — see LOW_CONFIDENCE_THRESHOLD. Asking to repeat here is
+          // safer than forwarding a possibly-wrong guess into the chat
+          // pipeline (e.g. a misheard medication name).
+          if (info && info.lowConfidence) { companionError("unclear-speech"); return; }
           submitToCompanionChat(finalText);
         },
       });
@@ -1410,8 +1496,9 @@
           devTranscriptInput.value = combined;
         },
         onError: function (code) { logDevError(code); },
-        onEnd: function (finalText) {
+        onEnd: function (finalText, info) {
           if (finalText) devTranscriptInput.value = finalText;
+          if (info && info.lowConfidence) logDevError("unclear-speech", "低信心度轉錄，見 LOW_CONFIDENCE_THRESHOLD");
           if (devAutoSend.checked && finalText) sendDeveloperTranscript();
         },
       });

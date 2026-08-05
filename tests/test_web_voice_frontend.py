@@ -51,6 +51,68 @@ def test_speech_recognition_stays_open_across_pauses():
     assert "recognition.continuous = false;" not in fn
 
 
+def test_speech_provider_tracks_lowest_final_confidence():
+    # Some browsers always report 0 (not measured) rather than a genuine
+    # score — only a positive value should ever be trusted as a real
+    # confidence signal, so an unmeasured 0 never gets mistaken for
+    # "definitely unclear."
+    fn = INDEX[INDEX.index("function createBrowserSpeechProvider"):INDEX.index("recognition.onerror")]
+    assert "recognition.maxAlternatives = 3;" in fn
+    assert "typeof confidence === \"number\" && confidence > 0" in fn
+    assert "Math.min(lowestFinalConfidence, confidence)" in fn
+
+
+def test_speech_provider_reports_low_confidence_on_end():
+    fn = INDEX[INDEX.index("recognition.onend = function"):INDEX.index("return {\n        start:")]
+    assert "lowestFinalConfidence < LOW_CONFIDENCE_THRESHOLD" in fn
+    assert "callbacks.onEnd && callbacks.onEnd(finalTranscript.trim(), { lowConfidence: lowConfidence });" in fn
+
+
+def test_unclear_speech_has_a_friendly_message_distinct_from_no_speech():
+    assert '"unclear-speech":' in INDEX
+    unclear_message = INDEX[INDEX.index('"unclear-speech":') : INDEX.index('"unclear-speech":') + 120]
+    assert "唔係好清楚" in unclear_message
+
+
+def test_companion_mode_asks_to_repeat_on_low_confidence_instead_of_submitting():
+    fn = INDEX[INDEX.index("function _startCompanionListeningSession"):INDEX.index("function stopCompanionListening")]
+    on_end = fn[fn.index("onEnd: function") :]
+    low_confidence_check = on_end.index("info.lowConfidence")
+    submit_call = on_end.index("submitToCompanionChat(finalText)")
+    assert low_confidence_check < submit_call
+    assert 'companionError("unclear-speech")' in on_end
+
+
+def test_companion_mode_silently_retries_once_on_no_speech():
+    fn = INDEX[INDEX.index("function _startCompanionListeningSession"):INDEX.index("function stopCompanionListening")]
+    on_error = fn[fn.index("onError: function") : fn.index("onEnd: function")]
+    assert 'code === "no-speech" && !companionNoSpeechRetried' in on_error
+    assert "companionNoSpeechRetried = true;" in on_error
+    assert "_startCompanionListeningSession();" in on_error
+
+
+def test_start_companion_listening_resets_the_retry_flag_for_a_fresh_session():
+    fn = INDEX[INDEX.index("function startCompanionListening"):INDEX.index("function _startCompanionListeningSession")]
+    assert "companionNoSpeechRetried = false;" in fn
+
+
+def test_stale_callbacks_from_a_superseded_listening_session_are_ignored():
+    # A retried-away-from session's onend can still fire after the retry's
+    # own provider is created (the old SpeechRecognition object isn't
+    # actually cancelled, just abandoned) — without this guard, that stale
+    # callback would show an error for what the retry may already be
+    # handling successfully.
+    fn = INDEX[INDEX.index("function _startCompanionListeningSession"):INDEX.index("function stopCompanionListening")]
+    assert fn.count("currentListeningGeneration !== companionListeningGeneration") >= 2
+    assert "companionListeningGeneration += 1;" in fn
+
+
+def test_developer_mode_logs_low_confidence_transcripts():
+    fn = INDEX[INDEX.index("function startDeveloperListening"):INDEX.index("async function sendDeveloperTranscript")]
+    assert "info.lowConfidence" in fn
+    assert 'logDevError("unclear-speech"' in fn
+
+
 def test_starting_companion_listening_cancels_any_playback_in_progress():
     start = INDEX[INDEX.index("function startCompanionListening"):INDEX.index("function stopCompanionListening")]
     assert "cancelSpeech()" in start
