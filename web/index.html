@@ -271,8 +271,8 @@
        3. 添加文字闪烁，进一步强调“正在聆聽”。
     */
     .talk-button.listening {
-      background: #ff3b30;
-      animation: pulse 1.2s ease-in-out infinite;
+      background: #e53935;
+      animation: pulse 1.0s cubic-bezier(0.4, 0, 0.2, 1) infinite, ring-wave 1.8s ease-out infinite;
     }
     .talk-button.thinking { background: #8a6d00; }
     .talk-button.speaking { background: #1f7a3d; }
@@ -286,11 +286,23 @@
       animation: iconPulse 1.2s ease-in-out infinite;
     }
 
-    /* 修改说明：让动画更加显眼，红色脉冲更亮。 */
     @keyframes pulse {
-      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.85); }
-      50% { transform: scale(1.04); box-shadow: 0 0 0 36px rgba(255, 59, 48, 0.18); }
-      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 59, 48, 0); }
+      0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.8); }
+      70% { transform: scale(1.1); box-shadow: 0 0 0 60px rgba(229, 57, 53, 0); }
+      100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(229, 57, 53, 0); }
+    }
+
+    @keyframes ring-wave {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+        box-shadow: 0 0 0 0 rgba(229, 57, 53, 0.5);
+      }
+      100% {
+        transform: scale(1.8);
+        opacity: 0;
+        box-shadow: 0 0 0 40px rgba(229, 57, 53, 0);
+      }
     }
 
     @keyframes textPulse {
@@ -323,10 +335,22 @@
     .companion-status {
       min-height: 2.6rem;
       margin-bottom: 1.75rem;
-      font-size: 1.4rem;
-      font-weight: 750;
+      font-size: 1.8rem;
+      font-weight: 900;
       color: #16324f;
       max-width: 26rem;
+    }
+
+    .companion-status.error-message { color: #9b1c1c; }
+
+    .companion-status.listening-animation {
+      animation: text-pulse 1.0s ease-in-out infinite;
+      color: #b42318;
+    }
+
+    @keyframes text-pulse {
+      0%, 100% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.08); opacity: 1; }
     }
 
     .companion-status.error-message { color: #9b1c1c; }
@@ -1209,6 +1233,12 @@
       talkButtonLabel.textContent = state === "listening" ? "正在聆聽" : "按下說話";
       talkButton.setAttribute("aria-label", COMPANION_STATE_LABEL[state] || "按下說話");
       companionStatus.textContent = message || COMPANION_STATE_TEXT[state] || "";
+      // 🔥 让状态文字伴随状态同步添加/移除动画
+      if (state === 'listening') {
+        companionStatus.classList.add('listening-animation');
+      } else {
+        companionStatus.classList.remove('listening-animation');
+      }
       companionStatus.classList.toggle("error-message", state === "error");
       tryAgainButton.hidden = state !== "error";
       repeatAnswerButton.disabled = !lastAnswer;
@@ -1223,24 +1253,19 @@
     function playBeep() {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const playSound = function () {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.value = 880;
-          gain.gain.value = 0.45;
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start();
-          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
-          osc.stop(ctx.currentTime + 0.18);
-          osc.onended = function () { try { ctx.close(); } catch (err) {} };
-        };
         if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
-          ctx.resume().then(playSound).catch(playSound);
-        } else {
-          playSound();
+          ctx.resume();
         }
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = 1000;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.5);
       } catch (e) {
         // Some browsers may not support AudioContext, ignore silently.
       }
