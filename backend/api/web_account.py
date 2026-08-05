@@ -74,6 +74,7 @@ class PreferencesUpdateRequest(BaseModel):
     voice_name: str | None = None
     auto_speak: bool | None = None
     transcript_visible: bool | None = None
+    high_contrast_mode: bool | None = None
     auto_send: bool | None = None
 
 
