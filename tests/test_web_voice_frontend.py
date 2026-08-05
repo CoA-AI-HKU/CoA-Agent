@@ -40,6 +40,17 @@ def test_companion_answer_is_shown_before_being_spoken():
     assert 'stopSpeakingButton.addEventListener("click", cancelSpeech)' in INDEX
 
 
+def test_speech_recognition_stays_open_across_pauses():
+    # continuous = false made the browser auto-end recognition after the
+    # first short pause (~1-2s) — reported as "cuts off before I finish
+    # talking." Especially relevant for elderly/dementia users, who may
+    # pause mid-sentence. The user (tap-again or hold-release) still fully
+    # controls when it actually stops.
+    fn = INDEX[INDEX.index("function createBrowserSpeechProvider"):INDEX.index("recognition.onstart")]
+    assert "recognition.continuous = true;" in fn
+    assert "recognition.continuous = false;" not in fn
+
+
 def test_starting_companion_listening_cancels_any_playback_in_progress():
     start = INDEX[INDEX.index("function startCompanionListening"):INDEX.index("function stopCompanionListening")]
     assert "cancelSpeech()" in start
@@ -157,6 +168,71 @@ def test_info_gate_collects_name_birthday_and_offers_a_pairing_code():
     assert 'id="profileBirthdayInput"' in info_section
     assert 'id="infoPairingCodeButton"' in info_section
     assert '"/api/me/profile-info"' in INDEX
+
+
+def test_caregiver_mode_has_a_monitoring_settings_menu():
+    caregiver_section = INDEX[INDEX.index('<section id="caregiverMode"'):INDEX.index('<section id="developerMode"')]
+    assert 'id="monitoringPatientSelect"' in caregiver_section
+    assert 'id="monitorSafetyCheckbox"' in caregiver_section
+    assert 'id="monitorCognitiveCheckbox"' in caregiver_section
+    assert 'id="saveMonitoringButton"' in caregiver_section
+    # Framed as a joint decision, per the actual request — not a unilateral
+    # caregiver-only setting.
+    assert "商量" in caregiver_section
+
+
+def test_monitoring_settings_disabled_when_no_linked_patients():
+    fn = INDEX[INDEX.index("function renderMonitoringPatientSelect"):INDEX.index("async function loadMonitoringPreferences")]
+    assert "monitorSafetyCheckbox.disabled = true" in fn
+    assert "monitorCognitiveCheckbox.disabled = true" in fn
+    assert "saveMonitoringButton.disabled = true" in fn
+
+
+def test_monitoring_preferences_load_for_the_selected_patient():
+    fn = INDEX[INDEX.index("async function loadMonitoringPreferences"):INDEX.index("monitoringPatientSelect.addEventListener")]
+    assert '"/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring"' in fn
+    assert "monitorSafetyCheckbox.checked = preferences.safety" in fn
+    assert "monitorCognitiveCheckbox.checked = preferences.cognitive_decline" in fn
+
+
+def test_saving_monitoring_preferences_sends_both_checkbox_states():
+    start = INDEX.index("saveMonitoringButton.addEventListener")
+    fn = INDEX[start : start + 900]
+    assert 'method: "PUT"' in fn
+    assert "safety: monitorSafetyCheckbox.checked" in fn
+    assert "cognitive_decline: monitorCognitiveCheckbox.checked" in fn
+
+
+def test_caregiver_mode_has_a_patient_specific_contacts_section():
+    caregiver_section = INDEX[INDEX.index('<section id="caregiverMode"'):INDEX.index('<section id="developerMode"')]
+    assert 'id="patientContactSelect"' in caregiver_section
+    assert 'id="patientContactForm"' in caregiver_section
+    assert 'id="patientContactList"' in caregiver_section
+    # Distinct from the caregiver's own blanket "📞 聯絡人" form/list ids —
+    # this must not be the same element reused.
+    assert 'id="patientContactSelect"' != 'id="contactForm"'
+
+
+def test_patient_specific_contact_writes_to_the_selected_patients_endpoint():
+    start = INDEX.index('patientContactForm.addEventListener("submit"')
+    fn = INDEX[start : start + 900]
+    assert "patientContactSelect.value" in fn
+    assert '"/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/contacts"' in fn
+    assert '{ method: "POST"' in fn
+
+
+def test_patient_contact_select_repopulates_from_linked_patients():
+    fn = INDEX[INDEX.index("function renderPatientContactSelect"):INDEX.index("async function loadPatientContacts")]
+    assert "patientContactForm.hidden = true" in fn  # no linked patients yet
+    assert "patientContactForm.hidden = false" in fn
+    assert "loadPatientContacts(patientContactSelect.value)" in fn
+
+
+def test_deleting_a_patient_specific_contact_uses_the_accessible_dialog():
+    fn = INDEX[INDEX.index("function renderPatientContactList"):INDEX.index("patientContactSelect.addEventListener")]
+    assert "await openConfirmDialog(" in fn
+    assert '"/contacts/" + contact.id' in fn
+    assert '{ method: "DELETE" }' in fn
 
 
 def test_deleting_a_patient_account_requires_typed_hk_confirmation_phrase():

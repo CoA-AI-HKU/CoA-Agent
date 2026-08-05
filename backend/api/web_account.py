@@ -21,6 +21,7 @@ from backend.services.account_profiles import (
 from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
 from backend.services.firebase_auth import FirebaseUser, delete_user, is_configured, verify_id_token
 from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags
+from src.user.monitoring_preferences import get_monitoring_preferences, set_monitoring_preferences
 from src.user.user_registry import (
     create_pairing_code,
     get_caregiver_records_for_user,
@@ -406,3 +407,114 @@ def delete_contact(contact_id: int, user: FirebaseUser = Depends(require_firebas
     if not deleted:
         raise HTTPException(status_code=404, detail="contact not found")
     return {"removed": deleted}
+
+
+def _resolve_linked_patient_sender_id(user: FirebaseUser, patient_user_id: str) -> str:
+    """The patient's own chat/account identity, only for a patient actually
+    linked to this caregiver — shared guard for every /linked-patients/{id}/
+    contacts endpoint below."""
+    if patient_user_id not in get_linked_user_ids(user.uid):
+        raise HTTPException(status_code=404, detail="patient not found or not linked to this account")
+    sender_id, _ = get_user_record_by_user_id(patient_user_id)
+    if not sender_id:
+        raise HTTPException(status_code=404, detail="patient has no resolvable account")
+    return sender_id
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/contacts", response_model=list[ContactResponse])
+def list_linked_patient_contacts(
+    patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user),
+) -> list[WebContact]:
+    # What's stored directly on this one patient's account — distinct from
+    # the caregiver's own /api/account/contacts list, which is shared across
+    # every patient they're linked to (see _readable_contact_owner_ids).
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    db = SessionLocal()
+    try:
+        return (
+            db.query(WebContact)
+            .filter(WebContact.firebase_uid == sender_id)
+            .order_by(WebContact.id)
+            .all()
+        )
+    finally:
+        db.close()
+
+
+@me_router.post(
+    "/api/me/linked-patients/{patient_user_id}/contacts", response_model=ContactResponse, status_code=201,
+)
+def add_linked_patient_contact(
+    patient_user_id: str, payload: ContactRequest, user: FirebaseUser = Depends(require_firebase_user),
+) -> WebContact:
+    # Stored under the patient's own firebase_uid, not the caregiver's — it
+    # shows up the moment the patient reads /api/account/contacts (as one of
+    # "this account's own contacts", see _readable_contact_owner_ids) and
+    # stays scoped to this one patient, unlike the caregiver's blanket
+    # contact list, which every linked patient reads.
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    db = SessionLocal()
+    try:
+        contact = WebContact(firebase_uid=sender_id, name=payload.name.strip(), detail=payload.detail.strip())
+        db.add(contact)
+        db.commit()
+        db.refresh(contact)
+        return contact
+    finally:
+        db.close()
+
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}/contacts/{contact_id}")
+def delete_linked_patient_contact(
+    patient_user_id: str, contact_id: int, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, int]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    db = SessionLocal()
+    try:
+        deleted = (
+            db.query(WebContact)
+            .filter(WebContact.id == contact_id, WebContact.firebase_uid == sender_id)
+            .delete(synchronize_session=False)
+        )
+        db.commit()
+    finally:
+        db.close()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="contact not found")
+    return {"removed": deleted}
+
+
+class MonitoringPreferencesRequest(BaseModel):
+    # Both optional — a caregiver can toggle one category at a time without
+    # having to resend the other's current value (see
+    # set_monitoring_preferences's partial-update semantics).
+    safety: bool | None = None
+    cognitive_decline: bool | None = None
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/monitoring")
+def get_linked_patient_monitoring(
+    patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, bool]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    return get_monitoring_preferences(sender_id)
+
+
+@me_router.put("/api/me/linked-patients/{patient_user_id}/monitoring")
+def put_linked_patient_monitoring(
+    patient_user_id: str,
+    payload: MonitoringPreferencesRequest,
+    user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, bool]:
+    # Which flag categories (see src/user/conversation_flags.py) get
+    # recorded for this one patient going forward — meant to be a decision
+    # the caregiver and patient make together (see the UI copy in
+    # web/index.html), operated from the caregiver's side since that's
+    # where the rest of the monitoring/alerts surface already lives.
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    return set_monitoring_preferences(sender_id, safety=payload.safety, cognitive_decline=payload.cognitive_decline)
