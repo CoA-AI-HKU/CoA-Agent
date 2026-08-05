@@ -1220,7 +1220,34 @@
       logDevError(code);
     }
 
+    function playBeep() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const playSound = function () {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = 880;
+          gain.gain.value = 0.45;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start();
+          gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.18);
+          osc.stop(ctx.currentTime + 0.18);
+          osc.onended = function () { try { ctx.close(); } catch (err) {} };
+        };
+        if (ctx.state === 'suspended' && typeof ctx.resume === 'function') {
+          ctx.resume().then(playSound).catch(playSound);
+        } else {
+          playSound();
+        }
+      } catch (e) {
+        // Some browsers may not support AudioContext, ignore silently.
+      }
+    }
+
     function startCompanionListening() {
+      playBeep();
       if (!speechRecognitionSupported()) { companionError("unsupported"); return; }
       cancelSpeech();
       companionAnswer.textContent = "";
