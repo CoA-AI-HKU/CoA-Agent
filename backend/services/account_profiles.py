@@ -54,7 +54,7 @@ SELF_SERVICE_ROLES = ("companion", "caregiver")
 
 PREFERENCE_FIELDS = (
     "default_mode", "recognition_language", "talk_mode", "speech_speed",
-    "voice_name", "auto_speak", "transcript_visible", "auto_send",
+    "voice_name", "auto_speak", "transcript_visible", "high_contrast_mode", "auto_send",
 )
 
 
@@ -240,6 +240,7 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
             "voice_name": profile.voice_name,
             "auto_speak": profile.auto_speak,
             "transcript_visible": profile.transcript_visible,
+            "high_contrast_mode": profile.high_contrast_mode,
             "auto_send": profile.auto_send,
         },
     }
@@ -315,6 +316,8 @@ def update_preferences(firebase_uid: str, updates: dict[str, Any]) -> WebAccount
             profile.auto_speak = bool(updates["auto_speak"])
         if "transcript_visible" in updates:
             profile.transcript_visible = bool(updates["transcript_visible"])
+        if "high_contrast_mode" in updates:
+            profile.high_contrast_mode = bool(updates["high_contrast_mode"])
         if "auto_send" in updates:
             profile.auto_send = bool(updates["auto_send"])
 
