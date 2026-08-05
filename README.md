@@ -1,40 +1,42 @@
 # CoA-Agent dementia support system
 
-A safety-aware, privacy-first dementia knowledge and daily-support assistant for general users, people with memory concerns, and caregivers. It combines deterministic routing, bounded agentic retrieval (A-RAG), medication and urgent-safety boundaries, structured event logging, and a caregiver dashboard.
+A safety-aware, privacy-first daily-support assistant for older adults, people with memory concerns, and their caregivers — available both as a Telegram bot and as a WCAG 2.1 AA–compliant web app. It combines deterministic + LLM intent routing, bounded agentic retrieval (A-RAG) over a curated dementia knowledge base, medication and urgent-safety boundaries, reminders, live weather alerts, and privacy-filtered caregiver tools.
 
 Live: https://104-131-176-48.sslip.io/
 
 ## Project structure
 
-- `backend/` — the single FastAPI application, transport-neutral chat services, and API routers for web and channel clients.
-- `src/reminders/` — reminder persistence, chat-triggered reminder creation (including multi-turn "what time?" follow-ups via `src/user/pending_reminder.py`), and the scheduler that delivers them over Telegram. No REST API or caregiver-dashboard login — reminders are set by talking to the bot.
-- `src/user/message_router.py` — production entrypoint, role routing, one structured event per message, and final output guard.
-- `src/orchestrator.py` — coordinator and route-specific dispatch; it does not duplicate transport logging.
-- `src/agents/` — managers, safety, screening, RAG evidence, general-chat, simplification, and user-facing formatting.
-- `src/rag/` — A-RAG retrieval tools, context tracking, route policy, evidence sufficiency, and internal traces.
-- `src/pipeline/` — documents, chunking, embeddings, vector storage, prompts, language selection, and shared RAG runtime.
-- `src/safety/` and `src/meds/` — medication boundaries, red flags, medicine aliases, and normalization.
-- `src/metrics.py` and `src/insights.py` — privacy-filtered events and caregiver analytics, served via `src/web_server.py` to the web dashboard.
+- `backend/` — FastAPI app (`backend.main:app`). `backend/api/` holds the web account/auth, chat, and caregiver routers; `backend/services/` holds Firebase auth, account profiles/permissions, and the conversation service shared with Telegram.
+- `web/` — the web app: `index.html` (single-file SPA — chat, voice, account, caregiver mode) and `privacy.html` (consent/policy page), both symlinked to the repo root for deployment. `dashboard.html`/`screening.html` are the older privacy-filtered caregiver dashboard and standalone cognitive screening exercise.
+- `src/user/message_router.py` — production entrypoint for Telegram/WhatsApp: role routing, internal commands, structured event logging, output guarding.
+- `src/orchestrator.py` — coordinator and route-specific dispatch for the shared conversation pipeline (used by both Telegram and the web app).
+- `src/intent_router.py` / `src/agents/semantic_intent_router.py` — deterministic keyword/regex gates first (safety, medication, reminder cancel), then an LLM-based semantic router for everything else.
+- `src/agents/` — per-route agents: safety, screening, RAG evidence, reminders/routines, weather, general chat, caregiver guidance, response formatting.
+- `src/reminders/` — reminder persistence, chat-triggered creation and cancellation, and the delivery scheduler. No reminder REST API — reminders are set and cancelled entirely by talking to the bot.
+- `src/weather/` — Hong Kong Observatory integration: on-demand weather Q&A plus a proactive scheduler that Telegram-alerts patients on extreme heat (>34°C) or an active Rainstorm Warning Signal.
+- `src/user/` — per-user state: registry, session/monitoring preferences, conversation flags (safety / cognitive-decline signals, 14-day retention, no raw text stored), pending multi-turn flows.
+- `src/rag/`, `src/pipeline/` — A-RAG retrieval tools, route policy, evidence sufficiency, chunking/embedding/vector storage, prompts.
+- `src/safety/`, `src/meds/` — medication boundaries, red-flag detection, medicine alias normalization.
 - `src/ingest/` — PDF and website-to-Markdown ingestion.
-- `scripts/` — demo-data and local A-RAG regression evaluation runners.
-- `tests/` — unit, routing, safety, dashboard, leakage, A-RAG policy, evidence, trace, and end-to-end tests.
-- `docs/` — integration and debugging guides, including [A-RAG integration](docs/arag_integration.md).
-- `data/` — source documents, generated corpus, aliases, profiles, and private runtime state.
-- `web/` — caregiver dashboard and screening assets, served directly by nginx.
+- `data/` — source documents, generated corpus, aliases, and private runtime state (JSON files, SQLite DBs).
+- `tests/` — unit, routing, safety, accessibility, weather, web-account API, and end-to-end tests.
+- `docs/` — see [Backend API](docs/backend_api.md), [web voice chat](docs/web_voice_chat.md), [A-RAG integration](docs/arag_integration.md).
 
-See [Backend API](docs/backend_api.md) for the chat contract, authentication, startup, and adapter configuration.
+## Web app
 
+Firebase Authentication (phone SMS or email/password) backs four roles — `companion` (patient), `caregiver`, `developer`, `admin` — with a `ROLE_PERMISSIONS` table in `backend/services/account_profiles.py` gating each API. Caregivers can link multiple patients and, per patient, manage contacts and toggle which conversation-flag categories (safety / cognitive decline) get monitored — framed as a joint decision with the patient, both on by default.
 
-## Telegram and WhatsApp internal commands
+Accessibility: the site is built to WCAG 2.1 AA (4.5:1 text contrast, 3:1 UI-component contrast, skip link, visible focus, semantic headings, accessible custom dialogs replacing native `confirm()`/`prompt()`, typed-phrase confirmation for account deletion). A conformance mark appears on the consent page.
 
-Telegram `/start` returns the normal self-introduction and registration prompt.
-The undocumented `\initiate` alias invokes the same response for developer testing.
-Administrative security-layer bypass should be configured with the immutable numeric
-Telegram ID in `ADMIN_TELEGRAM_SENDER_IDS`. The optional
-`ADMIN_TELEGRAM_USERNAMES=ainezhang` compatibility setting requires the gateway to
-pass Telegram's verified username to the message handler.
+Voice input uses the browser's own Speech Recognition API. Low-confidence transcripts (below a 0.4 confidence threshold, when the browser reports one) prompt the user to repeat instead of being silently submitted, and a spurious "no speech detected" error is retried once automatically before surfacing to the user.
 
-These commands are handled inside the RAG message router when sent through Telegram or WhatsApp. They intentionally begin with a backslash so Telegram does not treat them as native bot-menu commands. Nanobot must pass the complete message and platform sender ID to `handle_incoming_message`.
+See [docs/web_voice_chat.md](docs/web_voice_chat.md) and [docs/backend_api.md](docs/backend_api.md) for the chat contract, auth, and deployment notes.
+
+## Telegram internal commands
+
+Telegram `/start` returns the normal self-introduction and registration prompt. The undocumented `\initiate` alias invokes the same response for developer testing. Administrative security-layer bypass should be configured with the immutable numeric Telegram ID in `ADMIN_TELEGRAM_SENDER_IDS`. The optional `ADMIN_TELEGRAM_USERNAMES=ainezhang` compatibility setting requires the gateway to pass Telegram's verified username to the message handler.
+
+These commands are handled inside the message router when sent through Telegram or WhatsApp, and intentionally begin with a backslash so Telegram does not treat them as native bot-menu commands.
 
 ```text
 \register patient DISPLAY_NAME
@@ -53,37 +55,46 @@ These commands are handled inside the RAG message router when sent through Teleg
 \start_check
 ```
 
-- `\register patient DISPLAY_NAME` registers the sender as a patient account.
-- `\register caregiver DISPLAY_NAME` registers the sender as a caregiver account.
+- `\register patient|caregiver DISPLAY_NAME` registers the sender in that role.
 - `\whichroleami` shows the sender's registered role and linkage state.
-- `\paircode` creates a patient-owned, one-time caregiver invitation code that expires after 15 minutes.
-- `\link CODE` adds the patient to a caregiver account.
-- `\relink CODE` replaces the caregiver's existing patient link.
-- `\unlink` removes all links for a caregiver, or revokes every caregiver when sent by a patient.
-- `\unlink PATIENT_ID` removes one patient from a caregiver account.
-- `\dashboard` gives a paired caregiver a private dashboard link that expires after 30 minutes. The dashboard only exposes patients paired to that caregiver.
-- `\clearhistory` displays a deletion warning.
-- `\clearhistory confirm` lets a patient delete their structured chat-derived event history. Caregivers cannot delete patient history.
-- `\accountcommands` displays the internal command list in chat.
-- `\send_screening` and `\start_check` let a paired caregiver send a consent-first, non-diagnostic check-in invitation. Links are issued only after the user agrees and only in private chat.
+- `\paircode` creates a patient-owned, one-time caregiver invitation code that expires after 15 minutes; `\link CODE` / `\relink CODE` consume it.
+- `\unlink` removes all links for a caregiver, or revokes every caregiver when sent by a patient; `\unlink PATIENT_ID` removes one patient from a caregiver account.
+- `\dashboard` gives a paired caregiver a private dashboard link that expires after 30 minutes, scoped to their own patients.
+- `\clearhistory` warns, `\clearhistory confirm` lets a patient delete their structured event history (caregivers cannot delete patient history).
+- `\accountcommands` lists these commands in chat.
+- `\send_screening` / `\start_check` let a paired caregiver send a consent-first, non-diagnostic check-in invitation.
 
-The patient generates and shares the pairing code; there is no permanent shared password. Pairing and history management are private chat functions and are not exposed in the screening website or caregiver dashboard. Forward-slash variants remain parser-compatible for existing integrations but are not the documented interface.
+Reminders and weather are not slash commands — just talk to the bot naturally ("remind me to take my pills at 8pm", "cancel my reminders", "will it rain today?"). Forward-slash variants remain parser-compatible for existing integrations but are not the documented interface.
 
-## Current status
+## Routing and safety
 
-- Local dementia/MCI RAG pipeline is working from Markdown files under `data/mds/`.
-- Dementia QA and caregiver care-advice routes use bounded A-RAG with keyword search, semantic search, selected chunk reads, and evidence sufficiency checks.
-- Safety, wandering, medication, unknown/out-of-scope, and caregiver-summary routes skip or strictly limit retrieval; safety boundaries control the final answer.
-- PDF and website ingestion write Markdown into `data/mds/`, then the CLI/runtime chunks and embeds that corpus into Chroma.
-- `handle_incoming_message(message, sender_id, channel)` is the production entrypoint for Nanobot, Telegram, and WhatsApp. It handles role separation, internal commands, account pairing, structured event logging, and normal RAG routing.
-- Safety and medication/diagnosis boundaries run before normal RAG and do not provide medication advice.
-- Repeated memory-related concerns on separate days can trigger a gentle offer of the standalone screening exercise. Its link is sent only after the patient agrees.
-- The standalone screening supports Traditional Chinese, Simplified Chinese, and English, with instructions, confirmation for every task, and a clickable 10:50 clock task.
-- The caregiver dashboard remains separate from screening and reads privacy-filtered structured Telegram/WhatsApp events without displaying raw conversation text.
-- Telegram/WhatsApp routing and the caregiver dashboard use the shared project event store at `data/private/events.jsonl` by default. This avoids Windows and WSL reading different home-directory event files.
-- On first use, an existing legacy Nanobot event file under `~/.nanobot/data/private/events.jsonl` is copied into the shared project store when the shared file does not exist.
-- Citation handling classifies evidence as internal, external, or unknown. Internal Markdown files, local paths, database IDs, and Chroma references remain available in result/debug metadata but are never shown in normal Telegram/WhatsApp answers. Approved public website citations can be displayed compactly when source display is enabled.
-- Retrieval traces remain internal and record the route, tools, queries, chunks read, evidence decision, failure state, and whether RAG supported the answer.
+`src/intent_router.py` runs hard deterministic gates first — urgent safety, medication/diagnosis, reminder cancellation — before falling back to `src/agents/semantic_intent_router.py`, an LLM-based router explicitly excluded from safety-critical intents. `src/agents/coordinator_agent.py` maps the resolved intent to a route (safety, medical boundary, screening, RAG QA, reminder/routine/cancel, weather, activity, caregiver guidance, supportive, unknown). Safety and medication/diagnosis routes always override retrieval; unknown messages never invent dementia relevance. See `docs/arag_integration.md` for the full A-RAG policy.
+
+## Medicine identification
+
+Deterministic and local: `data/medicine_aliases.json` stores canonical medicine names/aliases (English, Traditional/Simplified Chinese); `src/meds/medicine_normalizer.py` matches them in messages; `src/safety/medication_guard.py` detects medication-decision questions (taking, stopping, repeating, mixing, changing dose). These bypass normal RAG — the bot never gives suitability/dosage/timing advice, only directs to a doctor, pharmacist, caregiver, or emergency services.
+
+## Knowledge base
+
+The bot answers dementia questions from a local, curated database only — never open web search. PDFs under `data/pdfs/` and web pages listed in `data/websites.txt` are converted to Markdown under `data/mds/` (`python -m src.ingest.pdf_ingest`, `python -m src.ingest.web_ingest`), then chunked (`src.pipeline.chunker`) and embedded (`src.pipeline.embedder`) into Chroma. Website ingestion crawls within the starting URL's path prefix by default; see `python -m src.ingest.web_ingest --help`-style flags (`--no-crawl`, `--url-file`, `--max-pages-per-site`, `--crawl-scope`) for tuning.
+
+Current sources: six PDF reports (WHO dementia risk guidance, World Alzheimer Reports 2023–2025, a Traditional Chinese executive summary) and ~15 Traditional Chinese / Simplified Chinese / English web pages from JCCPA, Hospital Authority Smart Patient, and the Social Welfare Department, crawled into ~180 Markdown files under `data/mds/web/`.
+
+The assistant detects the input language and answers in exactly one of Traditional Chinese (`zh-Hant`), Simplified Chinese (`zh-Hans`), or English — regardless of what language the retrieved sources are in. Override with `RAG_ANSWER_LANGUAGE`.
+
+## CLI
+
+```bash
+python -m src.cli
+```
+
+Loads `data/mds/`, indexes into the RAG agent, and starts an interactive prompt. Requires a real embedding backend by default (`sentence-transformers`, model `all-MiniLM-L6-v2`, or an OpenAI-compatible provider); dummy embeddings need explicit `EMBEDDER_PROVIDER=dummy` or `RAG_ALLOW_DUMMY=true` and are test-only — lexical matching only, weak across languages.
+
+```bash
+python -m src.cli --embedder-provider dummy --retrieve-top-k 8 --answer-top-k 3 --show-sources --debug-rag
+```
+
+`--fallback-to-top-chunk` is retrieval-debugging only; do not use it for final replies.
 
 ## Verification
 
@@ -92,200 +103,27 @@ python -m pytest -q
 python scripts/run_arag_regression_eval.py
 ```
 
-The fixed evaluation uses an in-memory corpus and the normal Python message router. It does not require Telegram, WhatsApp, Nanobot, network access, or a persistent vector index.
+The regression runner uses an in-memory corpus and the normal message router — no Telegram, WhatsApp, network access, or persistent vector index required.
 
-## Usage
+## Key environment variables
 
-1. Add PDFs under `data/pdfs/`.
-2. Convert them to markdown with `src/pdf_ingest.py`.
-3. Chunk the resulting document(s) with `src.pipeline.chunker.chunk_document` or `src.pipeline.chunker.chunk_documents`.
-4. Generate embeddings using `src.pipeline.embedder.Embedder`.
-
-### Convert PDFs into markdown
-
-Run:
-
-```bash
-python -m src.ingest.pdf_ingest
-```
-
-This scans `data/pdfs/` recursively and writes `.md` output files into `data/mds/`, preserving subdirectory structure.
-
-### Convert websites into markdown
-
-Add one URL per line in `data/websites.txt`, then run:
-
-```bash
-python -m src.ingest.web_ingest
-```
-
-This fetches the page, strips common non-content HTML, converts headings/lists/links into readable markdown, and writes the result under `data/mds/web/<host>/...`. The normal CLI indexing path will then chunk and embed it with the rest of `data/mds/`.
-
-By default, website ingestion crawls links under the starting URL path prefix. For example, starting from `https://www.jccpa.org.hk/en/about-dementia/` keeps the crawl focused under `/en/about-dementia/` instead of pulling in news, services, training, and other unrelated site sections. It skips obvious non-HTML assets and stops at bounded limits so large sites do not run forever.
-
-You can also pass URLs directly, use another list file, or disable crawling:
-
-```bash
-python -m src.ingest.web_ingest https://example.org/article
-python -m src.ingest.web_ingest --url-file urls.txt --overwrite
-python -m src.ingest.web_ingest --no-crawl https://example.org/article
-python -m src.ingest.web_ingest --max-pages-per-site 250 --max-depth 6
-python -m src.ingest.web_ingest --crawl-scope same-site
-python -m src.ingest.web_ingest --delay 0.5 --timeout 30
-```
+| Variable | Purpose |
+|---|---|
+| `RAG_ENV=production` | strict startup validation for embeddings, model loading, index identity, LLM fallback |
+| `EMBEDDER_PROVIDER` / `EMBEDDER_MODEL` | default `auto` / `all-MiniLM-L6-v2`; `dummy` only for tests |
+| `RAG_ALLOW_EXTRACTIVE_FALLBACK=true` | permits generation without a configured LLM |
+| `CHROMA_DIR` | writable Chroma index directory (default `data/private/chroma/ling_rag`) |
+| `DEEPSEEK_URL` / `DEEPSEEK_API_KEY` | remote LLM endpoint; without `DEEPSEEK_URL` the CLI prints the prompt and returns "I don't know." |
+| `TELEGRAM_BOT_TOKEN` | Telegram gateway and reminder/weather-alert delivery |
+| `ADMIN_TELEGRAM_SENDER_IDS` / `ADMIN_TELEGRAM_USERNAMES` | admin security-layer bypass |
+| `REMINDER_SCHEDULER_AUTOSTART` / `WEATHER_SCHEDULER_AUTOSTART` | start the respective background schedulers with the backend |
+| `MONITORING_PREFERENCES_PATH` | override path for per-user conversation-flag category toggles (tests) |
 
 ## Notes
 
-- PDF extraction supports `PyMuPDF` first, and falls back to `pypdf` if needed.
-- Markdown conversion is simple and aims to preserve paragraphs, lists, and heading-like text.
-- Chunking is paragraph-aware and uses default values `chunk_size=1000` and `chunk_overlap=200`.
-- The embedder tries a local `sentence-transformers` model first; if unavailable, it can use the OpenAI-compatible API with `OPENAI_API_KEY`.
+- PDF extraction supports `PyMuPDF` first, falling back to `pypdf`.
+- Chunking is paragraph-aware (`chunk_size=1000`, `chunk_overlap=200`).
+- Citation handling classifies evidence as internal, external, or unknown; internal paths/IDs/tool names are never shown in normal answers.
+- Retrieval traces (route, tools, queries, chunks read, evidence decision) stay internal for debugging.
 
-## Knowledge Sources
-
-The bot must answer from the local database only. The database is built from PDFs in `data/pdfs/` and web pages listed in `data/websites.txt`, converted into Markdown under `data/mds/`, then chunked and embedded into Chroma.
-
-### PDF Sources
-
-The current PDF source files in `data/pdfs/` are:
-
-- `chinese_foreward_executive_summary_dementia_guidelines.pdf`
-- `who-eng-risk-dementia.pdf`
-- `World-Alzheimer-Report-2023.pdf`
-- `World-Alzheimer-Report-2023_Chinese.pdf`
-- `World-Alzheimer-Report-2024.pdf`
-- `World-Alzheimer-Report-2025.pdf`
-
-Their generated top-level Markdown files in `data/mds/` are:
-
-- `chinese_foreward_executive_summary_dementia_guidelines.md`
-- `who-eng-risk-dementia.md`
-- `World-Alzheimer-Report-2023.md`
-- `World-Alzheimer-Report-2023_Chinese.md`
-- `World-Alzheimer-Report-2024.md`
-- `World-Alzheimer-Report-2025.md`
-
-### Web Sources
-
-The configured web source list is `data/websites.txt`. It currently includes:
-
-Traditional Chinese:
-
-- `https://www.jccpa.org.hk/`
-- `https://www.smartpatient.ha.org.hk/smart-patient-web/disease-management/disease-information/disease/Dementia`
-- `https://www3.ha.org.hk/cph/imh/tc/mental-health-info/4/1/2/anti-dementia-agents`
-- `https://www.elderly.gov.hk/tc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
-
-Simplified Chinese:
-
-- `https://www.jccpa.org.hk/zh-hans/`
-- `https://www.smartpatient.ha.org.hk/zh-cn/smart-patient-web/disease-management/disease-information/disease/Dementia`
-- `https://www3.ha.org.hk/cph/imh/sc/about-us`
-- `https://www.elderly.gov.hk/sc_chi/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
-
-English:
-
-- `https://www.jccpa.org.hk/en/`
-- `https://www.smartpatient.ha.org.hk/en/smart-patient-web/disease-management/disease-information/disease/Dementia`
-- `https://www3.ha.org.hk/cph/imh/en/about-us`
-- `https://www.elderly.gov.hk/english/carers_corner/caring_skills/activityprogramforpersonswithdementia.html`
-- `https://www.alzint.org/about/`
-
-Website ingestion may skip pages that do not expose enough useful content after cleaning, especially landing pages or JavaScript-heavy pages. Crawled and converted web Markdown lives under `data/mds/web/`; the current local corpus contains 182 web Markdown files.
-
-## Routing And Safety
-
-`src/intent_router.py` classifies messages into:
-
-- `knowledge_qa`
-- `personal_memory`
-- `reminder_request`
-- `cognitive_activity`
-- `emotional_support`
-- `safety_sensitive`
-- `medication_or_diagnosis`
-- `unknown`
-
-`src/agents/coordinator_agent.py` maps those intents into safety, medical boundary, screening/memory concern, caregiver guidance, RAG QA, memory, routine, activity, supportive, or unknown routes. Safety and medication/diagnosis routes override A-RAG. Unknown messages do not retrieve dementia documents or invent dementia relevance. See `docs/arag_integration.md` for the complete policy.
-
-## Medicine Identification
-
-Medicine identification is deterministic and local:
-
-- `data/medicine_aliases.json` stores canonical medicine names and aliases in English, Traditional Chinese, and Simplified Chinese.
-- `src/meds/medicine_normalizer.py` matches aliases in user messages and returns canonical names, matched aliases, confidence, and source metadata.
-- `src/safety/medication_guard.py` detects medication decision questions such as taking, stopping, repeating, mixing, or changing dose.
-- Medication and diagnosis questions bypass normal RAG. The bot does not provide medication suitability, timing, dosage, stopping, starting, or change advice; it directs the user to a doctor, pharmacist, caregiver, or emergency services when appropriate.
-
-## Asking the agent questions
-
-A minimal interactive CLI is provided at `src/cli.py`. It:
-
-- Loads Markdown files from `data/mds/`.
-- Indexes them into the RAG agent (chunking + embedding + Chroma storage).
-- Starts an interactive prompt for questions.
-
-Run the CLI:
-
-```bash
-python -m src.cli
-```
-
-The CLI requires a real embedding backend by default. Install `sentence-transformers` with the documented `all-MiniLM-L6-v2` model available, or configure the supported OpenAI-compatible embedding provider. Dummy embeddings are test-only and require explicit `EMBEDDER_PROVIDER=dummy` or `RAG_ALLOW_DUMMY=true`.
-
-For answer-mode debugging:
-
-```bash
-python -m src.cli --embedder-provider dummy --retrieve-top-k 8 --answer-top-k 3 --show-sources --debug-rag
-```
-
-`--fallback-to-top-chunk` is only for retrieval debugging. It bypasses answer synthesis and should not be used for final Telegram/Nanobot replies.
-
-The assistant detects the user's input language and answers in one language: Traditional Chinese (`zh-Hant`), Simplified Chinese (`zh-Hans`), or English (`en`). Retrieved sources may be in any of those languages, but the final answer is constrained to the detected answer language. Set `RAG_ANSWER_LANGUAGE=zh-Hant|zh-Hans|en` to override auto-detection.
-
-For production cross-language retrieval, use a real multilingual embedding model through `EMBEDDER_MODEL`. The deterministic `dummy` embedder is useful for local tests, but it is lexical and weak when the query and source are in different languages.
-
-Environment variables (optional):
-
-- `RAG_ENV=production` — enables strict startup validation for embeddings, model loading, index identity, and LLM fallback.
-- `EMBEDDER_PROVIDER` — defaults to `auto`; use `dummy` only explicitly for tests.
-- `EMBEDDER_MODEL` — defaults to the existing documented `all-MiniLM-L6-v2`.
-- `RAG_ALLOW_EXTRACTIVE_FALLBACK=true` — explicitly permits generation without a configured LLM.
-- `CHROMA_DIR` - writable Chroma index directory. Defaults to `data/private/chroma/ling_rag` under the project root.
-- `DEEPSEEK_URL` — URL of a DeepSeek or compatible generation endpoint that accepts JSON `{ "prompt": "..." }` and returns JSON with `answer` or `text`.
-- `DEEPSEEK_API_KEY` — API key for the remote DeepSeek service.
-
-If `DEEPSEEK_URL` is not set the CLI prints the prompt it would send and returns "I don't know." as a safe default.
-
-Example quick test (Python):
-
-```python
-from pathlib import Path
-from src.pipeline.markdown_loader import load_markdown_documents
-from src.pipeline.rag_agent import RagAgent
-
-# load and index
-docs = load_markdown_documents(Path('data/mds'))
-agent = RagAgent()
-agent.index_documents(docs)
-
-# ask
-print(agent.answer('What is computational linguistics?', lambda p: 'I dont know'))
-```
-
-# agent running
-python -m src.cli
-
-## Nanobot and Telegram integration
-
-See `docs/nanobot_integration.md` for:
-
-- the `dementia_rag` MCP server config snippet,
-- Telegram channel config using `TELEGRAM_BOT_TOKEN` from the environment,
-- agent policy instructions for document-grounded dementia questions.
-
-See `docs/rag_debugging.md` for retrieval/answer debugging commands and the lightweight eval:
-
-```bash
-python tests/evaluation/run_rag_eval.py
-```
+See `docs/nanobot_integration.md` for the Nanobot/MCP config, and `docs/rag_debugging.md` plus `python tests/evaluation/run_rag_eval.py` for retrieval/answer debugging.
