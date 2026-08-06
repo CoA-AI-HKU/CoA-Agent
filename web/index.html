@@ -1285,10 +1285,45 @@
 
     function resolveSpeechLanguage(language) {
       const normalized = String(language || "").toLowerCase();
-      if (normalized === "zh-tw" || normalized === "zh-hant") return "zh-TW";
+      if (normalized === "zh-tw" || normalized === "zh-hant" || normalized === "zh-hk" || normalized === "zh-hant-hk" || normalized === "yue" || normalized === "yue-hk") return "zh-HK";
       if (normalized === "zh-cn" || normalized === "zh-hans") return "zh-CN";
-      if (normalized === "en" || normalized === "en-us") return "en-US";
+      if (normalized === "en" || normalized === "en-us" || normalized === "en-gb") return "en-US";
       return "zh-HK";
+    }
+
+    function findPreferredSpeechVoice(utteranceLang, preferredVoiceName, voices) {
+      const normalizedLang = String(utteranceLang || "").toLowerCase();
+      const normalizedPreferredVoiceName = String(preferredVoiceName || "").toLowerCase();
+      const preferredLangs = [normalizedLang, "zh-hk", "zh-hant-hk", "yue-hk", "yue", "zh-hant", "zh-tw"];
+      const preferredTokens = ["cantonese", "yue", "hong kong", "廣東", "粵", "香港"];
+
+      if (normalizedPreferredVoiceName) {
+        const explicitMatch = voices.find(function (voice) {
+          return (voice.name || "").toLowerCase() === normalizedPreferredVoiceName;
+        });
+        if (explicitMatch) return explicitMatch;
+      }
+
+      const directLangMatch = voices.find(function (voice) {
+        const voiceLang = String(voice.lang || "").toLowerCase();
+        return voiceLang === normalizedLang || voiceLang.startsWith(normalizedLang + "-");
+      });
+      if (directLangMatch) return directLangMatch;
+
+      const cantoneseMatch = voices.find(function (voice) {
+        const voiceLang = String(voice.lang || "").toLowerCase();
+        const voiceName = String(voice.name || "").toLowerCase();
+        const langMatches = preferredLangs.some(function (lang) {
+          return voiceLang === lang || voiceLang.startsWith(lang + "-");
+        });
+        const tokenMatches = preferredTokens.some(function (token) {
+          return voiceName.includes(token);
+        });
+        return langMatches || tokenMatches;
+      });
+      if (cantoneseMatch) return cantoneseMatch;
+
+      return null;
     }
 
     function cancelSpeech() {
@@ -1312,9 +1347,7 @@
       utterance.volume = 1;
       const voiceName = meProfile && meProfile.preferences && meProfile.preferences.voice_name;
       const voices = window.speechSynthesis.getVoices();
-      const matchingVoice = voiceName
-        ? voices.find(function (voice) { return voice.name === voiceName; })
-        : voices.find(function (voice) { return voice.lang.toLowerCase() === utterance.lang.toLowerCase(); });
+      const matchingVoice = findPreferredSpeechVoice(utterance.lang, voiceName, voices);
       if (matchingVoice) utterance.voice = matchingVoice;
 
       utterance.onstart = function () { if (currentGeneration === speechGeneration) stopSpeakingButton.disabled = false; };
