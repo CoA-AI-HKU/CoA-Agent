@@ -972,6 +972,10 @@ def test_reminder_request() -> None:
     assert classify_intent("提醒我下午三點飲水").intent == "reminder_request"
 
 
+def test_blood_pressure_input() -> None:
+    assert classify_intent("我的血壓是120/80").intent == "blood_pressure_input"
+
+
 def test_cognitive_activity() -> None:
     assert classify_intent("我好悶，有什麼可以做？").intent == "cognitive_activity"
 

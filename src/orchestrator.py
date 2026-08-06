@@ -4,7 +4,9 @@ import os
 import sys
 import logging
 import json
+import re
 import uuid
+from datetime import datetime
 from typing import Any
 
 from .agents.coordinator_agent import coordinate_message
@@ -121,6 +123,36 @@ def handle_dementia_user_message(
         )
     elif decision.route == "weather":
         result = handle_weather_query(message, user_id)
+    elif decision.route == "blood_pressure":
+        numbers = re.findall(r'\b(\d{2,3})\b', message)
+        sys_val = numbers[0] if len(numbers) > 0 else "??"
+        dia_val = numbers[1] if len(numbers) > 1 else "??"
+
+        log_path = "data/private/health_logs.json"
+        entry = {
+            "user_id": user_id,
+            "type": "blood_pressure",
+            "systolic": sys_val,
+            "diastolic": dia_val,
+            "timestamp": datetime.now().isoformat(),
+        }
+        try:
+            os.makedirs(os.path.dirname(log_path), exist_ok=True)
+            with open(log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        except Exception as e:
+            logger.warning(f"无法写入血压日志文件: {e}")
+
+        response_text = f"收到你嘅血壓紀錄！上壓 {sys_val}，下壓 {dia_val}。我幫你記低咗啦！聽日會提你再量一次。"
+        result = {
+            "answer": response_text,
+            "intent": decision.intent,
+            "found": True,
+            "sources": [],
+            "rag_called": False,
+            "route": "blood_pressure",
+            "debug": {"agent": "orchestrator_blood_pressure"},
+        }
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)
     elif decision.route == "supportive":

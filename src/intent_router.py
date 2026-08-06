@@ -15,6 +15,7 @@ Intent = Literal[
     "caregiver_support",
     "cognitive_concern_screening",
     "personal_memory",
+    "blood_pressure_input",
     "reminder_request",
     "cancel_reminder",
     "weather_query",
@@ -812,6 +813,17 @@ def classify_intent(message: str) -> IntentResult:
     # classify_intent_semantic returns None and execution falls through,
     # unchanged, into the keyword cascade below — so this function's
     # behavior is byte-identical to before wherever no LLM is configured.
+    # ==================== 新加入：强制拦截血压输入 ====================
+    BLOOD_PRESSURE_TERMS = ["血压", "血壓", "blood pressure", "bp"]
+    bp_matches = _matched_terms(normalized, BLOOD_PRESSURE_TERMS)
+    if bp_matches:
+        return IntentResult(
+            intent="blood_pressure_input",
+            confidence=_confidence(0.95, len(bp_matches)),
+            matched_terms=bp_matches,
+            reason="Explicit blood pressure measurement intent."
+        )
+    # ================================================================
     semantic_result = classify_intent_semantic(message)
     if semantic_result is not None:
         intent, reason = semantic_result
@@ -852,6 +864,12 @@ def classify_intent(message: str) -> IntentResult:
             MEDICATION_DIAGNOSIS_TERMS,
             0.95,
             "Matched medication or diagnosis boundary terms.",
+        ),
+        (
+            "blood_pressure_input",
+            ["血压", "血壓", "blood pressure", "BP"],
+            0.85,
+            "Matched blood pressure measurement terms.",
         ),
         ("reminder_request", REMINDER_TERMS, 0.85, "Matched reminder or schedule terms."),
         ("weather_query", WEATHER_QUERY_TERMS, 0.85, "Matched a weather or extreme-weather query."),
