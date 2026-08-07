@@ -1500,6 +1500,50 @@
           // safer than forwarding a possibly-wrong guess into the chat
           // pipeline (e.g. a misheard medication name).
           if (info && info.lowConfidence) { companionError("unclear-speech"); return; }
+
+          // ===== 前端拦截：用户想玩游戏（完全前端处理） =====
+          // 🆕 建立遊戲關鍵字與外部網址的對照表
+          const gameMap = {
+            "2048": "https://play2048.co/",
+            "麻雀": "https://mahjongo.com/zh-TW/hongkong",
+            "打麻雀": "https://mahjongo.com/zh-TW/hongkong",
+            "配對": "https://thethingstech.com/games/memory-match",
+            "配对": "https://thethingstech.com/games/memory-match",
+            // 🆕 重點處理：把「成語」和「益智」指向同一個連結，避免識別錯誤
+            "成語": "https://akawagames.com/",
+            "成语": "https://akawagames.com/",
+            "益智": "https://akawagames.com/",
+            "益智遊戲": "https://akawagames.com/"
+          };
+          let targetGameUrl = null;
+          let gameName = "益智遊戲";
+
+          // 🆕 迴圈檢查使用者說的文字
+          for (const [keyword, url] of Object.entries(gameMap)) {
+            if (finalText.includes(keyword)) {
+              targetGameUrl = url;
+
+              // 🆕 針對語音辨識錯誤做修正
+              if (keyword === "成語" || keyword === "成语" || keyword === "益智" || keyword === "益智遊戲") {
+                gameName = "成語/益智遊戲";
+              } else {
+                gameName = keyword;
+              }
+              break;
+            }
+          }
+          if (targetGameUrl) {
+            // 🛠️ 核心修复：先强制停掉录音，解除卡死状态
+            if (companionProvider) companionProvider.stop();
+            setCompanionState("idle");
+
+            if (confirm(`🧠 你確定要玩「${gameName}」嗎？點擊「確定」會幫你打開新分頁喔！`)) {
+              window.open(targetGameUrl, "_blank");
+            }
+            return; // 不再发送到后端
+          }
+
+          // 非游戏意图，恢复原有后端流程
           submitToCompanionChat(finalText);
         },
       });
