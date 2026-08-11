@@ -1504,16 +1504,15 @@
           // ===== 前端拦截：用户想玩游戏（完全前端处理） =====
           // 🆕 建立遊戲關鍵字與外部網址的對照表
           const gameMap = {
-            "2048": "https://play2048.co/",
-            "麻雀": "https://mahjongo.com/zh-TW/hongkong",
-            "打麻雀": "https://mahjongo.com/zh-TW/hongkong",
-            "配對": "https://thethingstech.com/games/memory-match",
-            "配对": "https://thethingstech.com/games/memory-match",
-            // 🆕 重點處理：把「成語」和「益智」指向同一個連結，避免識別錯誤
-            "成語": "https://akawagames.com/",
-            "成语": "https://akawagames.com/",
-            "益智": "https://akawagames.com/",
-            "益智遊戲": "https://akawagames.com/"
+            "2048": "./games/2048.html",
+            "麻雀": "https://mahjongo.com/zh-TW",
+            "打麻雀": "https://mahjongo.com/zh-TW",
+            "配對": "./games/memory.html",
+            "配对": "./games/memory.html",
+            "成語": "./games/idioms.html",
+            "成语": "./games/idioms.html",
+            "益智": "https://www.ha365.com/tags/brain-games",
+            "益智遊戲": "https://www.ha365.com/tags/brain-games"
           };
           let targetGameUrl = null;
           let gameName = "益智遊戲";

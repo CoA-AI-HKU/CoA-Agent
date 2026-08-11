@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>記憶配對小遊戲</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { color: #16324f; margin-bottom: 5px; }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        select, button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            background-color: #076b75;
+            color: white;
+            cursor: pointer;
+        }
+        select:hover, button:hover { background-color: #055862; }
+        
+        .game-container {
+            display: grid;
+            gap: 15px;
+            background: white;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .card {
+            aspect-ratio: 1 / 1; /* 保证卡片始终保持正方形 */
+            background-color: #076b75;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            user-select: none;
+        }
+        .card.flipped {
+            background-color: #ffffff;
+            color: #16324f;
+            border: 2px solid #076b75;
+            cursor: default;
+        }
+        .card.matched {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: default;
+        }
+        #message {
+            font-size: 1.2rem;
+            margin-top: 20px;
+            color: #16324f;
+            font-weight: bold;
+        }
+        @media (max-width: 480px) {
+            .game-container { gap: 10px; padding: 15px; }
+            .card { font-size: 28px; }
+        }
+    </style>
+</head>
+<body>
+    <h1>🧠 記憶配對遊戲</h1>
+    <p>點擊卡片，找出相同的配對！</p>
+    
+    <div class="controls">
+        <select id="difficultySelect">
+            <option value="4x4">簡單 (4x4)</option>
+            <option value="6x6" selected>普通 (6x6)</option>
+        </select>
+        <button onclick="initGame()">🔄 重新開始</button>
+    </div>
+
+    <div id="game-board" class="game-container"></div>
+    <div id="message">加油！</div>
+
+    <script>
+        let cards = [];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let isLocked = false;
+
+        function initGame() {
+            const difficulty = document.getElementById('difficultySelect').value;
+            const board = document.getElementById('game-board');
+            let size, pairCount;
+
+            // 1. 根据难度设定棋盘大小和配对数量
+            if (difficulty === '4x4') {
+                size = 4;
+                pairCount = 8;
+                board.style.gridTemplateColumns = `repeat(4, 100px)`;
+            } else { // 6x6
+                size = 6;
+                pairCount = 18;
+                board.style.gridTemplateColumns = `repeat(6, 100px)`;
+            }
+
+            // 2. 生成对应数量的符号（这里用 0-9 数字代替 Emoji，绝对不出错）
+            const symbols = [];
+            for (let i = 0; i < pairCount; i++) {
+                symbols.push(i);
+            }
+
+            // 3. 洗牌并生成卡片数组
+            cards = [...symbols, ...symbols];
+            cards.sort(() => Math.random() - 0.5);
+            
+            matchedPairs = 0;
+            flippedCards = [];
+            isLocked = false;
+            board.innerHTML = '';
+            document.getElementById('message').textContent = `找出 ${pairCount} 對相同的數字！`;
+            
+            // 4. 渲染卡片
+            cards.forEach((symbol, index) => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.dataset.symbol = symbol;
+                card.dataset.index = index;
+                card.textContent = '❓';
+                card.onclick = () => flipCard(card);
+                board.appendChild(card);
+            });
+        }
+
+        function flipCard(card) {
+            if (isLocked) return;
+            if (card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+            card.textContent = card.dataset.symbol;
+            card.classList.add('flipped');
+            flippedCards.push(card);
+
+            if (flippedCards.length === 2) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            isLocked = true;
+            const card1 = flippedCards[0];
+            const card2 = flippedCards[1];
+            const totalPairs = cards.length / 2;
+
+            if (card1.dataset.symbol === card2.dataset.symbol) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedPairs++;
+                document.getElementById('message').textContent = `已配對 ${matchedPairs} / ${totalPairs} 對！`;
+                if (matchedPairs === totalPairs) {
+                    document.getElementById('message').textContent = '🎉 恭喜！你贏了！';
+                }
+                flippedCards = [];
+                isLocked = false;
+            } else {
+                document.getElementById('message').textContent = '唔相同，再試一次！';
+                setTimeout(() => {
+                    card1.textContent = '❓';
+                    card1.classList.remove('flipped');
+                    card2.textContent = '❓';
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    isLocked = false;
+                    document.getElementById('message').textContent = '繼續努力！';
+                }, 800);
+            }
+        }
+
+        // 监听下拉菜单变化，自动重置游戏
+        document.getElementById('difficultySelect').addEventListener('change', initGame);
+
+        // 初始加载游戏
+        initGame();
+    </script>
+</body>
+</html>

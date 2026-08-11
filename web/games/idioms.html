@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<!-- saved from url=(0023)https://akawagames.com/ -->
+<html lang="zh-TW"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="免費線上成語填字遊戲，無需下載、免註冊，打開瀏覽器立即開玩！成語填填看內建多種關卡與提示功能，邊玩邊學中文成語，適合學生、家長與所有中文學習者。">
+<meta name="keywords" content="成語填字遊戲,免費填字遊戲,成語填字遊戲線上,中文填字遊戲線上,免費成語遊戲,成語填填看,成語填空,線上成語遊戲,成語遊戲,Akawa Games">
+<title>免費成語填字遊戲線上玩｜成語填填看 - Akawa Games</title>
+
+<!-- Canonical URL -->
+<link rel="canonical" href="https://akawagames.com/">
+
+<!-- Open Graph Meta Tags -->
+<meta property="og:title" content="免費成語填字遊戲線上玩｜成語填填看">
+<meta property="og:description" content="免費線上成語填字遊戲，無需下載、免註冊，打開瀏覽器立即開玩！邊玩邊學成語，適合學生、家長與所有中文學習者。">
+<meta property="og:image" content="https://akawagames.com/images/game_thumbnail.png">
+<meta property="og:url" content="https://akawagames.com">
+<meta property="og:type" content="website">
+
+<!-- Twitter Card Meta Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="免費成語填字遊戲線上玩｜成語填填看">
+<meta name="twitter:description" content="免費線上成語填字遊戲，無需下載、免註冊，打開瀏覽器立即開玩！邊玩邊學成語，適合學生、家長與所有中文學習者。">
+<meta name="twitter:image" content="https://akawagames.com/images/game_thumbnail.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Akawa Games","url":"https://akawagames.com","description":"站長阿川的線上遊戲平台，提供免費中文教育遊戲","inLanguage":"zh-TW","potentialAction":{"@type":"SearchAction","target":"https://akawagames.com?s={search_term_string}","query-input":"required name=search_term_string"}},{"@type":"Organization","name":"Akawa Games","url":"https://akawagames.com","logo":"https://akawagames.com/images/game_thumbnail.png","sameAs":["https://www.facebook.com/akawagames"]},{"@type":"VideoGame","name":"成語填填看","url":"https://akawagames.com/idiom-fill","description":"挑戰你的成語知識！透過填字遊戲學習中文成語","image":"https://akawagames.com/images/game_thumbnail.png","genre":["Educational","Puzzle","Word Game"],"inLanguage":"zh-TW","gamePlatform":"Web browser","offers":{"@type":"Offer","price":"0","priceCurrency":"TWD","availability":"https://schema.org/InStock"}}]}
+</script>
+
+    <!-- Google tag (gtag.js) -->
+    <script async="" src="./idioms_files/js"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+
+        function gtag() {
+            dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+
+        gtag('config', 'G-MQWTYQ6DS1');
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-image:
+                linear-gradient(135deg, rgba(102, 126, 234, 0.7) 0%, rgba(118, 75, 162, 0.7) 100%),
+                url('https://akawagames.com/images/game_thumbnail.png');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 50px;
+        }
+
+        .header h1 {
+            font-size: 3.5em;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.3em;
+            opacity: 0.9;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .game-icon {
+            font-size: 4em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .game-title {
+            font-size: 1.8em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+            text-align: center;
+        }
+
+        .game-description {
+            font-size: 1em;
+            color: #666;
+            line-height: 1.6;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #667eea;
+            color: white;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-top: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .badge:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .updates-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .updates-title {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .update-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .update-item:last-child {
+            border-bottom: none;
+        }
+
+        .update-date {
+            color: #667eea;
+            font-weight: 600;
+            font-size: 0.95em;
+            min-width: 100px;
+        }
+
+        .update-content {
+            color: #666;
+            font-size: 0.95em;
+            flex: 1;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5em;
+            }
+
+            .header p {
+                font-size: 1.1em;
+            }
+
+            .game-card {
+                padding: 30px;
+            }
+
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .update-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 5px;
+            }
+
+            .update-date {
+                min-width: auto;
+            }
+        }
+
+        /* Modal 樣式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 700px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-title {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 2em;
+            color: #999;
+            cursor: pointer;
+            line-height: 1;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            transition: color 0.2s;
+        }
+
+        .close-button:hover {
+            color: #333;
+        }
+
+        .modal-update-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .modal-update-item:last-child {
+            border-bottom: none;
+        }
+
+        .view-all-link {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .view-all-link:hover {
+            opacity: 0.8;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(50px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .modal-content {
+                padding: 25px;
+                width: 95%;
+            }
+
+            .modal-title {
+                font-size: 1.5em;
+            }
+        }
+    </style>
+<link type="text/css" rel="stylesheet" href="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/css/mcafee_fonts.css"></head>
+
+<body>
+    <style>
+    .fb-banner {
+        width: 100%;
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 12px;
+        color: white;
+        padding: 12px 20px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(79, 172, 254, 0.4);
+        margin-bottom: 20px;
+    }
+
+    .fb-banner-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 0.95em;
+    }
+
+    .fb-banner-icon {
+        font-size: 1.2em;
+    }
+
+    .fb-banner-text {
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .fb-banner-link {
+        color: #4facfe;
+        background: white;
+        padding: 5px 16px;
+        border-radius: 20px;
+        text-decoration: none;
+        font-weight: 700;
+        transition: all 0.2s;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .fb-banner-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        background: #f8f9fa;
+    }
+
+    .fb-banner-link::before {
+        content: "👉";
+        font-size: 0.9em;
+    }
+
+    @media (max-width: 600px) {
+        .fb-banner {
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+
+        .fb-banner-content {
+            font-size: 0.88em;
+            gap: 6px;
+        }
+
+        .fb-banner-link {
+            padding: 4px 12px;
+            font-size: 0.95em;
+        }
+    }
+</style>
+
+<!-- Facebook 留言橫幅 -->
+<div class="fb-banner">
+    <div class="fb-banner-content">
+        <span class="fb-banner-icon">💬</span>
+        <span class="fb-banner-text">有建議或想法？歡迎到</span>
+        <a href="https://www.facebook.com/AkawaGames/posts/pfbid032F7xFD6Qt29kQquS5BcK97inLE6wvncy3Zj7En1dGfZ3s4t5efQ1Z5SEvoyyPhiUl" target="_blank" class="fb-banner-link">FB 貼文留言</a>
+        <span class="fb-banner-text">跟我說！</span>
+    </div>
+</div>
+
+    <div class="container">
+        <div class="header">
+            <h1>Akawa Games</h1>
+            <p>免費線上遊戲平台 · 益智娛樂 · 持續更新</p>
+        </div>
+
+        <!-- 遊戲卡片區 -->
+        <div class="games-grid">
+            <a href="https://akawagames.com/idiom-fill" class="game-card">
+                <div class="game-icon">
+                    <img src="./idioms_files/game_thumbnail.png" alt="成語填填看" style="width: 120px; height: 120px; object-fit: contain; border-radius: 12px;">
+                </div>
+                <h2 class="game-title">成語填填看</h2>
+                <p class="game-description">
+                    挑戰你的成語知識！
+                </p>
+                <div style="text-align: center;">
+                    <span class="badge">開始遊戲</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- SEO Content Section -->
+        <div class="updates-section" style="margin-bottom: 30px;">
+            <h2 style="font-size: 1.8em; font-weight: 600; color: #333; margin-bottom: 15px; text-align: center;">🎮
+                關於 Akawa Games</h2>
+            <div style="color: #666; line-height: 1.8; font-size: 1.05em;">
+                <p style="margin-bottom: 15px;">
+                    <strong>Akawa Games</strong> 是站長阿川的免費線上遊戲平台，致力於提供有趣且富有教育意義的益智遊戲。所有遊戲適合各年齡層玩家，完全免費、無需註冊，隨時隨地都能開始遊戲。
+                </p>
+                <p style="margin-bottom: 15px;">
+                    <strong>首發遊戲：成語填填看</strong> -
+                    一款精心設計的中文成語填字遊戲。透過有趣的填空挑戰學習成語知識，包含精選常用成語、即時提示功能、進度記錄系統等特色。無論您是想測試成語能力，或透過遊戲學習新成語，都能在這裡獲得樂趣。
+                </p>
+                <p>
+                    更多精彩遊戲正在開發中！阿川將持續推出各類益智遊戲、文字遊戲、教育遊戲，為您帶來更豐富的線上娛樂體驗。
+                </p>
+            </div>
+        </div>
+
+        <!-- 網站更新消息 -->
+        <div class="updates-section">
+            <h3 class="updates-title">📢 網站更新</h3>
+                            <div class="update-item">
+                    <span class="update-date">2026-05-26</span>
+                    <span class="update-content">新增5關。</span>
+                </div>
+                            <div class="update-item">
+                    <span class="update-date">2026-01-23</span>
+                    <span class="update-content">新增15關。</span>
+                </div>
+                            <div class="update-item">
+                    <span class="update-date">2026-01-19</span>
+                    <span class="update-content">新增15關。</span>
+                </div>
+                                        <div style="text-align: center; margin-top: 15px;">
+                    <span class="view-all-link" onclick="openModal()">查看全部更新 →</span>
+                </div>
+                    </div>
+    </div>
+
+    <!-- Modal -->
+    <div id="updatesModal" class="modal" onclick="closeModalOnOutsideClick(event)">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">📢 所有更新消息</h2>
+                <button class="close-button" onclick="closeModal()">×</button>
+            </div>
+            <div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-05-26</span>
+                            <span class="update-content">新增5關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-23</span>
+                            <span class="update-content">新增15關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-19</span>
+                            <span class="update-content">新增15關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-14</span>
+                            <span class="update-content">新增5關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-13</span>
+                            <span class="update-content">新增5關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-12</span>
+                            <span class="update-content">新增9關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-10</span>
+                            <span class="update-content">新增12關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-09</span>
+                            <span class="update-content">新增4關。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-07</span>
+                            <span class="update-content">初版測試上線，先製作10關，上線觀察一下使用情況。</span>
+                        </div>
+                    </div>
+                                    <div class="modal-update-item">
+                        <div style="display: flex; gap: 20px; align-items: flex-start;">
+                            <span class="update-date">2026-01-07</span>
+                            <span class="update-content">站長阿川開始新專案，學習開發網頁遊戲，首先是成語遊戲。</span>
+                        </div>
+                    </div>
+                            </div>
+        </div>
+    </div>
+
+    <script>
+        function openModal() {
+            document.getElementById('updatesModal').classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            document.getElementById('updatesModal').classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function closeModalOnOutsideClick(event) {
+            if (event.target.id === 'updatesModal') {
+                closeModal();
+            }
+        }
+
+        // ESC 鍵關閉 modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeModal();
+            }
+        });
+    </script>
+<script type="module" src="./idioms_files/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;9a65ff19bcb54309aeb7adb0d6f634ca&quot;,&quot;r&quot;:1}" crossorigin="anonymous"></script>
+
+
+
+<span id="PING_CONTENT_PUSH_NOTIFICATION" style="display: none;"></span><span id="PING_CONTENT_DLS_POPUP" style="display: none;"></span><div style="background-color: transparent; border-width: medium; border-style: none; border-color: currentcolor; border-image: none; bottom: 15px; display: block; margin: 0px; opacity: 1; padding: 0px; position: fixed; right: 15px; z-index: 2147483647;"><template shadowrootmode="closed"><style>/*!
+ * 
+ *     MCAFEE RESTRICTED CONFIDENTIAL
+ *     Copyright (c) 2026 McAfee, LLC
+ *
+ *     The source code contained or described herein and all documents related
+ *     to the source code ("Material") are owned by McAfee or its
+ *     suppliers or licensors. Title to the Material remains with McAfee
+ *     or its suppliers and licensors. The Material contains trade
+ *     secrets and proprietary and confidential information of McAfee or its
+ *     suppliers and licensors. The Material is protected by worldwide copyright
+ *     and trade secret laws and treaty provisions. No part of the Material may
+ *     be used, copied, reproduced, modified, published, uploaded, posted,
+ *     transmitted, distributed, or disclosed in any way without McAfee's prior
+ *     express written permission.
+ *
+ *     No license under any patent, copyright, trade secret or other intellectual
+ *     property right is granted to or conferred upon you by disclosure or
+ *     delivery of the Materials, either expressly, by implication, inducement,
+ *     estoppel or otherwise. Any license under such intellectual property rights
+ *     must be expressed and approved by McAfee in writing.
+ *
+ */
+@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Thin.ttf") format("truetype");font-weight:100;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-ThinItalic.ttf") format("truetype");font-weight:100;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-ExtraLight.ttf") format("truetype");font-weight:200;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-ExtraLightItalic.ttf") format("truetype");font-weight:200;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Light.ttf") format("truetype");font-weight:300;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-LightItalic.ttf") format("truetype");font-weight:300;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Regular.ttf") format("truetype");font-weight:400;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Italic.ttf") format("truetype");font-weight:400;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Medium.ttf") format("truetype");font-weight:500;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-MediumItalic.ttf") format("truetype");font-weight:500;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-SemiBold.ttf") format("truetype");font-weight:600;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-SemiBoldItalic.ttf") format("truetype");font-weight:600;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Bold.ttf") format("truetype");font-weight:700;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-BoldItalic.ttf") format("truetype");font-weight:700;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-ExtraBold.ttf") format("truetype");font-weight:800;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-ExtraBoldItalic.ttf") format("truetype");font-weight:800;font-style:italic}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-Black.ttf") format("truetype");font-weight:900;font-style:normal}@font-face{font-family:"McAfeePoppins";src:url("../../../fonts/Poppins-BlackItalic.ttf") format("truetype");font-weight:900;font-style:italic}*{border:0;box-sizing:border-box;font:inherit;font-family:"McAfeePoppins",Helvetica,Arial;font-size:100%;margin:0;padding:0;vertical-align:baseline;outline:none}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}html,body{background-color:#f5f6fa;font-family:"McAfeePoppins",Helvetica,Arial;line-height:1;height:100%;width:100%}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:after,blockquote:before,q:after,q:before{content:"";content:none}table{border-collapse:collapse;border-spacing:0}b{font-weight:bold}img{display:block}.dls__container{align-items:center;display:flex;margin:0 auto;margin-top:50px;position:relative}.dls__popup__expanded{align-items:center;overflow:hidden;border-radius:100px;cursor:pointer;display:flex;left:0;padding:15px;position:absolute;height:95px;width:383px;background-color:#fff;transition:all .3s ease-in-out}.dls__popup__expanded .dls__icon{height:65px;width:73px}.content{margin-left:12px}.content .content__images{display:flex;align-items:center;width:250px}.content .content__images .seperator__line{margin-left:5px;margin-right:10px}.content .content__images #dls_close_icon{cursor:pointer;margin-left:auto;margin-right:0px}.content p{font-family:"McAfeePoppins",Helvetica,Arial;font-weight:"400";font-size:14px;line-height:20px;margin-top:8px;color:#4258ff;width:250px;cursor:pointer}.shield{overflow:hidden;box-shadow:0px 2px 4px 0px rgba(33,41,52,.12),0px -1px 2px 0px rgba(0,0,0,.08);align-items:center;border-radius:100px;bottom:0;display:flex;height:95px;justify-content:center;position:absolute;right:0;width:383px;transition:all .3s ease-in-out}.shield__circle{display:flex;justify-content:center;align-items:center;width:55px;height:55px;background-color:#c01818;transition:all .6s ease-in-out .2s;z-index:1;opacity:0}
+
+/*# sourceMappingURL=../sourceMap/chrome/css/download_scan_popup.css.map*/</style><div class="dls__container">
+  <div class="shield" style="background: transparent; opacity: 0.1; display: none;">
+    <div class="shield__circle" style="opacity: 1;">
+      <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/mcafee_logo_white.svg?secret=h1mvgx" x-mcsrc="" id="dls_ballon_icon" x-mcsrcparsed="true">
+    </div>
+    <div class="dls__popup__expanded" style="opacity: 0;">
+      <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/download_scan_icon.svg?secret=h1mvgx" x-mcsrc="" class="dls__icon" x-mcsrcparsed="true">
+      <div class="content">
+        <div class="content__images">
+          <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/mcafee_logo_red.svg?secret=h1mvgx" x-mcsrc="" id="dls_mcafee_logo" x-mcsrcparsed="true">
+          <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/seperator_line.svg?secret=h1mvgx" x-mcsrc="" class="seperator__line" x-mcsrcparsed="true">
+          <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/webadvisor.svg?secret=h1mvgx" x-mcsrc="" x-mcsrcparsed="true">
+          <img src="chrome-extension://fheoggkfdfchfphceeifdbepaooicaho/images/download_scan/close-outline.svg?secret=h1mvgx" x-mcsrc="" id="dls_close_icon" x-mcsrcparsed="true">
+        </div>
+        <p id="download_scan_popup_expanded_descriptions">正在掃描您的下載內容。如發現任何問題，我們將即時通知您。</p>
+      </div>
+    </div>
+  </div>
+</div><style>/*!
+ * 
+ *     MCAFEE RESTRICTED CONFIDENTIAL
+ *     Copyright (c) 2026 McAfee, LLC
+ *
+ *     The source code contained or described herein and all documents related
+ *     to the source code ("Material") are owned by McAfee or its
+ *     suppliers or licensors. Title to the Material remains with McAfee
+ *     or its suppliers and licensors. The Material contains trade
+ *     secrets and proprietary and confidential information of McAfee or its
+ *     suppliers and licensors. The Material is protected by worldwide copyright
+ *     and trade secret laws and treaty provisions. No part of the Material may
+ *     be used, copied, reproduced, modified, published, uploaded, posted,
+ *     transmitted, distributed, or disclosed in any way without McAfee's prior
+ *     express written permission.
+ *
+ *     No license under any patent, copyright, trade secret or other intellectual
+ *     property right is granted to or conferred upon you by disclosure or
+ *     delivery of the Materials, either expressly, by implication, inducement,
+ *     estoppel or otherwise. Any license under such intellectual property rights
+ *     must be expressed and approved by McAfee in writing.
+ *
+ */
+.mc-interactive-balloon{position:absolute;right:-50px;bottom:8px;box-shadow:rgba(0,0,0,.12) 0px 0px 10px;height:40px;width:40px;background:#1671ee;border-radius:20px;display:flex;justify-content:center;align-items:center}
+
+/*# sourceMappingURL=../sourceMap/chrome/css/interactive_balloon.css.map*/</style></template></div></body></html>

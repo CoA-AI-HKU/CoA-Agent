@@ -1,0 +1,547 @@
+body {
+    background-color: #eee;
+    color: black;
+    font-family: arial, helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-repeat: repeat-y;
+    background-image: url(/image/backshade.png?v=1_06);
+    background-position: 50% 0;
+}
+
+.all {
+    position: relative;
+    width: 1150px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 25px;
+    padding-right: 25px;
+    padding-top: 40px;
+    padding-bottom: 20px;
+    -min-height: 100%;
+    height: 100%;
+}
+
+#home .all {
+    padding-top: 45px;
+}
+
+.page {
+    position: relative;
+    width: 700px;
+}
+
+#home .page {
+    width: 100%;
+    text-align: center;
+}
+
+h1 {
+    font-size: 23px;
+    margin: 0;
+    padding: 0;
+    width: 700px;
+    border-bottom: 1px solid #888;
+    margin-bottom: 30px;
+    padding-bottom: 2px;
+}
+
+a {
+    color: rgb(27,83,175);
+}
+
+.score {
+    position: absolute;
+    top: 10px;
+    right: 110px;
+    width: 100px;
+    text-align: right;
+    height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+#counter {
+    position: absolute;
+    left: 520px;
+    top: 26px;
+    width: 100px;
+    text-align: right;
+    height: 30px;
+    font-size: 11px;
+    color: gray;
+    font-weight: bold;
+    display: none;
+}
+
+.right,
+.wrong {
+    font-weight: bold;
+    margin-bottom: 30px;
+}
+
+.right {
+    color: green;
+}
+
+.wrong {
+    color: red;
+}
+
+#continueDelay {
+    display: none;
+}
+
+.brainTip {
+    background-color: #eee;
+    padding: 8px;
+    border-radius: 5px 5px 5px 5px;
+    margin-bottom: 25px;
+    margin-top: 20px;
+    text-align: center;
+    width: 280px;
+}
+
+.categoryImage {
+    margin-top: 22px;
+}
+
+.adText {
+    width: 200px;
+}
+
+#adMessage {
+    font-size: 11px;
+    font-weight: bold;
+    position: absolute;
+    left: 10px;
+    top: 65px;
+    width: 400px;
+    height: 30px;
+    color: #fff;
+}
+
+#adMessage a {
+    color: #fff;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+#adMessage a:hover {
+    text-decoration: underline;
+}
+
+.instructions {
+    color: #777;
+    margin-top: 20px;
+    width: 400px;
+    font-size: 90%;
+}
+
+.continue {
+    font-weight: bold;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+}
+
+.register {
+    font-size: 80%;
+    width: 400px;
+    color: #444;
+}
+
+.register a {
+    color: #444;
+    text-decoration: underline;
+}
+
+#navigation {
+    position: relative;
+    top: 200px;
+    left: 0;
+    height: 180px;
+    font-size: 90%;
+}
+
+#home #navigation {
+    top: 40px;
+}
+
+.mainLogo {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 137px;
+    margin-top: 20px;
+    height: 100px;
+    margin-top: 0;
+    padding-top: 0;
+    text-align: center;
+}
+
+.subTitle {
+    color: rgb(168,45,45);
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.mainLogo a,
+.mainLogoHome a {
+    text-decoration: none;
+}
+
+.mainLogoHome {
+    margin-top: 50px;
+}
+
+.mainNavigation {
+    position: absolute;
+    left: 150px;
+    top: 0;
+    width: 560px;
+    height: 120px;
+}
+
+.bannerBelowNavigation .mainNavigation {
+    height: 180px;
+}
+
+#footer {
+    clear: both;
+    position: relative;
+    top: 125px;
+    padding-top: 4px;
+    border-top: 1px solid #888;
+    padding-bottom: 10px;
+    color: #777;
+    font-size: 12px;
+    width: 700px;
+}
+
+#navigation a {
+    color: #000;
+}
+
+#navigation a img {
+    border: 0;
+}
+
+#navigation #footer a {
+    text-decoration: underline;
+    color: #777;
+}
+
+#navigation #footer strong a {
+    color: rgb(27,83,175);
+}
+
+#counterwrap {
+    width: 100px;
+    height: 6px;
+    background-color: #eee;
+    border: 1px solid #999;
+    overflow: hidden;
+    position: absolute;
+    left: 404px;
+    top: 14px;
+    z-index: 0;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+}
+
+#counterbar {
+    background-color: rgb(0,120,100);
+    width: 100px;
+}
+
+a.definition {
+    color: rgb(0,135,105);
+}
+
+.tellafriend {
+    border: 1px dashed black;
+    padding: 10px;
+    width: 280px;
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+body a .new {
+    font-size: 90%;
+    color: red;
+}
+
+.new {
+    color: red;
+}
+
+.homeNavigation {
+    font-size: 110%;
+    margin-top: 40px;
+    margin-bottom: 5px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 3.5em;
+    letter-spacing: 1px;
+    width: 880px;
+}
+
+.homeNavigation,
+.homeNavigationAll,
+.allSwitch {
+    color: rgb(130,130,130);
+}
+
+.homeNavigationAll {
+    font-size: 105%;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    margin-left: 60px;
+    margin-right: 60px;
+    line-height: 28px;
+    letter-spacing: 1px;
+}
+
+.homeAds {
+    width: 468px;
+    border-top: 1px solid #bbb;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: 6px;
+}
+
+.allLanguages {
+    font-size: 90%;
+    margin-top: 30px;
+    font-style: italic;
+}
+
+#home #footer {
+    position: relative;
+    top: 10px;
+    left: 0;
+}
+
+#home a img {
+    border: 0;
+}
+
+.navigationAds {
+    margin-top: 10px;
+    padding-top: 2px;
+    border-top: 1px solid #bbb;
+    width: 545px;
+}
+
+.content {
+    min-height: 200px;
+}
+
+#zhMainNavigation {
+    line-height: 20px;
+}
+
+div#ruMainNavigation {
+    font-size: 90%;
+}
+
+#languageSwitch {
+    font-size: 80%;
+    position: absolute;
+    top: 9px;
+    right: 20px;
+    width: 100px;
+    text-align: right;
+}
+
+#languageSwitch a {
+    color: #000;
+}
+
+.currentGame {
+    color: #555;
+}
+
+
+.currentGame .new {
+    font-size: 90%;
+    color: red;
+    font-weight: normal;
+}
+
+.largeAd {
+    position: absolute;
+    left: 575px;
+    top: 62px;
+    width: 130px;
+    height: 610px;
+}
+
+.googleSmallAd {
+    border-top: 1px solid #aaa;
+    border-bottom: 1px solid #aaa;
+    width: 300px
+}
+
+#englishWordGames {
+    background-color: rgb(230,230,230);
+    display: none;
+}
+
+#home #englishWordGames {
+    border-radius: 10px 10px 10px 10px;
+    padding: 5px;
+}
+
+#englishWordGamesLink {
+    font-weight: bold;
+    font-size: 85%;
+}
+
+#languageSelection {
+    background-color: #eee;
+    display: none;
+    width: 500px;
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 5px;
+    border-radius: 10px 10px 10px 10px;
+    line-height: 2em;
+}
+
+.homeMore {
+    margin-top: 40px;
+    font-size: 90%;
+}
+
+.embedForm {
+    font-size: 80%;
+    margin-top: 30px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #777;
+    text-align: right;
+    background-image: url(/image/bubble.png);
+    background-repeat: no-repeat;
+    background-position: 100% 0;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-right: 10px;
+}
+
+input#embed_code {
+    width: 250px;
+    color: #555;
+    font-weight: normal;
+    font-size: 11px;
+}
+
+.homeAnnounce {
+    position: relative;
+     margin-left: auto;
+     margin-right: auto;
+     background-image: url(/image/bubble.png);
+     background-repeat: no-repeat;
+     background-position;
+     50% 0;
+     width: 254px;
+     height: 28px;
+     padding: 15px;
+     font-size: 90%;
+     font-weight: bold;
+}
+
+.sponsoredGames strong {
+    color: red;
+    font-weight: normal;
+}
+
+#home .sponsoredGames {
+    font-size: 80% !important;
+}
+
+#home .sponsoredGames strong,
+#home .sponsoredGames {
+    display: block;
+}
+
+#home .sponsoredGames {
+    margin-top: 12px;
+}
+
+#navigation .sponsoredGames {
+    padding-left: 14px;
+}
+
+.belowNavigationAd {
+    width: 728px;
+    height: 90px;
+    overflow: hidden;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    margin-top: 185px;
+}
+
+#cornerInfo {
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 140px;
+    height: 50px;
+    font-size: 90%;
+    text-align: justify;
+}
+
+#footerInfo {
+    margin-top: 180px;
+    text-align: center;
+    padding-bottom: 20px;
+}
+
+#home #footerInfo {
+    margin-top: -100px;
+    opacity: .65;
+}
+
+.mainNavigation,
+.mainNavigation a {
+    color: #444 !important;
+}
+
+#tellFriend a {
+    color: #777!important;
+}
+
+#adSideBanner {
+    position: absolute;
+    top: 75px;
+    width: 300px;
+    height: 700px;
+    overflow: hidden;
+}
+
+.homeAll,
+#home #footer {
+    text-align: center;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#partnerGames {
+    clear: both;
+}
+
+#home #partnerGames {
+    font-size: 110%;
+    margin-top: 40px;
+    margin-bottom: 60px;
+}
+
+strong#partnerGamesHeadline {
+    color: #777;
+}
