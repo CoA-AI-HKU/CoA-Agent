@@ -198,3 +198,11 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Implemented voice-activated cognitive game routing within `web/index.html`. User voice commands (e.g., "我想玩2048", "打麻雀", "玩配对游戏", "玩成语游戏", "玩益智游戏") are parsed against a dynamic `gameMap` object and routed to respective external URLs (`play2048.co`, `mahjongo.com`, `thethingstech.com`, `akawagames.com`) via a native `confirm()` dialog and `window.open`.
 - Fixed a persistent browser state lock after external navigation: when the "Confirm" button is triggered, the system now explicitly calls `companionProvider.stop()` and `setCompanionState("idle")` before opening the external page. This resolves the "stuck listening" bug when returning to the agent, preventing elderly users from being forced to refresh the page.
 - Resolved a speech recognition mismatch issue where the browser's native API incorrectly transcribed "成语游戏" as "益智游戏" due to phonetic or semantic proximity. Updated the keyword mapping and fuzzy-matching logic so that both utterances route to the same URL, and the confirmation dialog displays a combined label ("成语/益智游戏") rather than the misrecognized term, preventing user confusion.
+
+### Game Integration, Asset Structuring, and External Routing (2026-08-11)
+
+- Restructured the `web/games` folder with proper `_files` directories to support local static game hosting. Successfully enabled 3 offline games (2048, Idioms, Memory) with zero advertisements and instant loading.
+- Replaced the original buggy Emoji-based memory game with a custom-developed, pure HTML/CSS/JS memory matching game. Added a user-friendly **difficulty selector** (4x4 Easy / 6x6 Medium) to adapt to different cognitive levels of older adults.
+- Diagnosed and resolved the loading failure for the `mahjong.html` file: discovered that the specific Mahjong game relies on an external backend API (generating game boards), making it impossible to run purely offline.
+- Reverted the Mahjong voice command routing in the `gameMap` from the local path back to the original external URL (`https://mahjongo.com/zh-TW/hongkong`) to ensure the gameplay functions correctly during user demonstrations.
+- Finalized the `web/index.html` `gameMap` configuration to accurately reflect the current state: 3 fully offline games + 1 external game link. 
