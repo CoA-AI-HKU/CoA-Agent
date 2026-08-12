@@ -29,6 +29,7 @@ Intent = Literal[
     "dementia_knowledge",
     "memory_concern",
     "urgent_safety",
+    "location_query",
     "unknown",
 ]
 
@@ -870,6 +871,12 @@ def classify_intent(message: str) -> IntentResult:
             ["血压", "血壓", "blood pressure", "BP"],
             0.85,
             "Matched blood pressure measurement terms.",
+        ),
+        (
+            "location_query",
+            ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "最近", "附近"],
+            0.85,
+            "Matched location or route query terms.",
         ),
         ("reminder_request", REMINDER_TERMS, 0.85, "Matched reminder or schedule terms."),
         ("weather_query", WEATHER_QUERY_TERMS, 0.85, "Matched a weather or extreme-weather query."),

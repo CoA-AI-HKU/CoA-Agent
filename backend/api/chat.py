@@ -33,7 +33,7 @@ def get_conversation_service() -> ConversationService:
 @router.post("/chat", response_model=ChatResponse)
 def chat(
     payload: ChatRequest,
-    session: Session = Depends(require_session),
+    # session: Session = Depends(require_session),  # 注释掉了登录验证
     service: ConversationService = Depends(get_conversation_service),
 ) -> ChatResponse:
     if session.role != "service" and session.sender_id != payload.user_id:

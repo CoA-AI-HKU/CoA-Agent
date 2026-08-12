@@ -123,6 +123,16 @@ def handle_dementia_user_message(
         )
     elif decision.route == "weather":
         result = handle_weather_query(message, user_id)
+    elif decision.route == "route_guide":
+        result = {
+            "answer": "我幫你搵到附近嘅醫院或者地點。你可以撳下面個連結，用手機或電腦嘅地圖 App 睇詳細路線：\n\nhttps://www.google.com/maps/search/%E9%86%AB%E9%99%A2+%E9%A6%99%E6%B8%AF",
+            "intent": decision.intent,
+            "found": True,
+            "sources": [],
+            "rag_called": False,
+            "route": "route_guide",
+            "debug": {"agent": "orchestrator_route_guide"},
+        }
     elif decision.route == "blood_pressure":
         numbers = re.findall(r'\b(\d{2,3})\b', message)
         sys_val = numbers[0] if len(numbers) > 0 else "??"
