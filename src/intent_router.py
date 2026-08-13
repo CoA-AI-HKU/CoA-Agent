@@ -814,7 +814,7 @@ def classify_intent(message: str) -> IntentResult:
     # classify_intent_semantic returns None and execution falls through,
     # unchanged, into the keyword cascade below — so this function's
     # behavior is byte-identical to before wherever no LLM is configured.
-    # ==================== 新加入：强制拦截血压输入 ====================
+    # ==================== 强制拦截血压输入 ====================
     BLOOD_PRESSURE_TERMS = ["血压", "血壓", "blood pressure", "bp"]
     bp_matches = _matched_terms(normalized, BLOOD_PRESSURE_TERMS)
     if bp_matches:
@@ -824,7 +824,19 @@ def classify_intent(message: str) -> IntentResult:
             matched_terms=bp_matches,
             reason="Explicit blood pressure measurement intent."
         )
+
+    # ==================== 强制拦截路线查询（新增） ====================
+    LOCATION_QUERY_TERMS = ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "最近", "附近"]
+    loc_matches = _matched_terms(normalized, LOCATION_QUERY_TERMS)
+    if loc_matches:
+        return IntentResult(
+            intent="location_query",
+            confidence=_confidence(0.95, len(loc_matches)),
+            matched_terms=loc_matches,
+            reason="Explicit location/route query terms detected."
+        )
     # ================================================================
+
     semantic_result = classify_intent_semantic(message)
     if semantic_result is not None:
         intent, reason = semantic_result

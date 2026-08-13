@@ -206,3 +206,9 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Diagnosed and resolved the loading failure for the `mahjong.html` file: discovered that the specific Mahjong game relies on an external backend API (generating game boards), making it impossible to run purely offline.
 - Reverted the Mahjong voice command routing in the `gameMap` from the local path back to the original external URL (`https://mahjongo.com/zh-TW/hongkong`) to ensure the gameplay functions correctly during user demonstrations.
 - Finalized the `web/index.html` `gameMap` configuration to accurately reflect the current state: 3 fully offline games + 1 external game link. 
+
+### Backend Debugging & Environment Reset (2026-08-12)
+
+- Debugged persistent backend mismatches: identified Nginx port mapping conflict (`proxy_pass` pointing to `8081`) vs Uvicorn backend running on `8000`/`8081`.
+- Temporarily bypassed Firebase authentication locally to test `blood_pressure` and `location_query` intent routing.
+- Cleaned up the server environment to protect team workspace: removed `venv`, restored Nginx reverse proxy back to `8081`, and reset uncommitted local changes (`git restore .` & `git clean -fd`).
