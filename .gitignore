@@ -24,3 +24,6 @@ data/pending_reminders.json
 # of what version was tested against.
 node_modules/
 node_modules
+venv/
+venv/
+venv/
