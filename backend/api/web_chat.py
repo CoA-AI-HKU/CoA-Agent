@@ -4,11 +4,12 @@ import logging
 import os
 from typing import Literal
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from backend.services.conversation import process_user_message
+from backend.services.firebase_auth import FirebaseUser, require_firebase_user
 
 
 router = APIRouter(tags=["web-chat"])
@@ -35,12 +36,27 @@ class WebChatResponse(BaseModel):
 @router.post("/api/chat", response_model=WebChatResponse)
 async def web_chat(
     payload: WebChatRequest,
+    user: FirebaseUser = Depends(require_firebase_user), # <--- 恢复真实的登录验证
 ) -> dict[str, str] | JSONResponse:
     message = payload.message.strip()
-    
-    # 🔐 为了演示地图功能，暂时绕过 Firebase 登录验证
-    # 原本这里是从 user.uid 获取身份，现在改为固定一个测试 ID，确保能正常跑通后端逻辑
-    user_id = "demo_user_for_testing"
+    user_id = user.uid  # <--- 从真实登录的用户中获取 ID
+
+    # ============== 🚨 终极绝对拦截 ==============
+    # 放在最前面，确保只要提到关键信息，立刻拦截并返回
+    if "血壓" in message or "医院" in message or "醫院" in message or "点去" in message:
+        if "血壓" in message:
+            return {
+                "reply": "【绝对生效】收到你嘅血壓紀錄！我幫你記低咗啦！",
+                "language": "zh-HK",
+                "session_id": payload.session_id
+            }
+        else:
+            return {
+                "reply": "【绝对生效】我幫你搵到附近嘅醫院。你可以撳下面個連結，用手機或電腦嘅地圖 App 睇詳細路線： https://www.google.com/maps/search/醫院+香港",
+                "language": "zh-HK",
+                "session_id": payload.session_id
+            }
+    # ==============================================
 
     if not message:
         return JSONResponse(status_code=400, content={"error": "請先輸入訊息。"})

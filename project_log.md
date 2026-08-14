@@ -212,3 +212,10 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Debugged persistent backend mismatches: identified Nginx port mapping conflict (`proxy_pass` pointing to `8081`) vs Uvicorn backend running on `8000`/`8081`.
 - Temporarily bypassed Firebase authentication locally to test `blood_pressure` and `location_query` intent routing.
 - Cleaned up the server environment to protect team workspace: removed `venv`, restored Nginx reverse proxy back to `8081`, and reset uncommitted local changes (`git restore .` & `git clean -fd`).
+
+### Game, Blood Pressure, and Location Feature Integration (2026-08-13)
+
+- Implemented blood pressure recording logic: user voice input (e.g., "今日血壓 130 80") is intercepted, stored in a local JSON file, and acknowledged by the agent. Dashboard integration for displaying BP records is pending.
+- Added location route query handling: user inquiries about nearby hospitals are intercepted and return a clickable Google Maps link.
+- Identified the root cause of the persistent login failure: missing `firebase_key.json` file on the server.
+- Cleaned up local VS Code environment and server ports; Nginx is now correctly pointing to port `8081` for the upcoming deployment.

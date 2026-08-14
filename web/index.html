@@ -1574,8 +1574,25 @@
     }
 
     function handleTalkPress() {
+      // 如果正在聆听，点击一下是停止
       if (companionState === "listening") { stopCompanionListening(); return; }
-      if (companionState === "thinking" || companionState === "speaking") return;
+      
+      // 🆕 核心优化：如果在"正在回答"状态按下大按钮，立刻打断播放，并重新开始聆听
+      if (companionState === "speaking") {
+        cancelSpeech();       // 立刻停止当前的语音播报
+        startCompanionListening(); // 立刻开始进入录音状态
+        return;
+      }
+
+      if (companionState === "error") {
+        setCompanionState("idle"); // 先重置回空闲状态
+        startCompanionListening(); // 立刻开始聆听
+        return;
+      }
+      
+      // 如果是思考中或报错，禁止点按
+      if (companionState === "thinking" || companionState === "error") return;
+      
       startCompanionListening();
     }
 
