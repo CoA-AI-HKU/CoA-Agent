@@ -151,7 +151,7 @@ def _cognitive_check_status(risk_flag: Any) -> str:
     if flag == "monitor":
         return "建議留意"
     if flag == "follow_up_suggested":
-        return "建議跟進"
+        return "建議照顧者跟進"
     if flag == "urgent_safety":
         return "安全問題需即時處理"
     return "尚無小練習記錄"

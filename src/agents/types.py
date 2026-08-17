@@ -40,7 +40,7 @@ class AgentDecision:
     route: Route
     intent: str
     confidence: float
-    reason: str
+    reason: str = ""
     matched_terms: list[str] = field(default_factory=list)
     rag_required: bool = False
     safety_override: bool = False

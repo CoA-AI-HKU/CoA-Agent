@@ -145,4 +145,5 @@ def test_caregiver_endpoint_returns_only_requested_patients_readings(monkeypatch
     assert result == {
         "patient_user_id": "patient-1",
         "readings": [{"patient": "patient-1", "limit": 12}],
+        "retention_days": 0,
     }

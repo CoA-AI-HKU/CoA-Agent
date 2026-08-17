@@ -52,6 +52,5 @@ def test_one_incoming_message_does_not_log_duplicate_interaction(tmp_path, monke
 
     handle_incoming_message("腦退化症是什麼？", "dedupe-user")
     events = load_events(user_id="dedupe-user", days=None)
-    matching = [event for event in events if event.get("route") == "rag_qa" and event.get("intent") == "knowledge_qa"]
+    matching = [event for event in events if event.get("route") == "rag_qa" and event.get("intent") == "dementia_knowledge"]
     assert len(matching) == 1
-

@@ -23,7 +23,7 @@ from src.user.pending_activity import consume_pending_activity_response, store_p
 from src.user.pending_reminder import consume_pending_reminder_response, store_pending_reminder
 from src.user.pending_reminder_correction import consume_reminder_correction, store_last_created_reminder
 from src.user.pending_reminder_period import consume_pending_period_response, store_pending_reminder_period
-from src.user.security import is_admin_sender
+from src.user.security import is_admin_sender, unsafe_control_request
 from src.user.session_preferences import set_avoid_patient_framing
 from src.user.user_registry import (
     create_pairing_code,
@@ -69,6 +69,8 @@ def handle_incoming_message(
     account_result = _handle_account_command(message, normalized_sender_id, role, admin)
     if account_result is not None:
         return _finalize_user_output(account_result, message)
+    if unsafe_control_request(message) and not admin:
+        return _finalize_user_output(_security_refusal(), message)
     caregiver_screening = _handle_caregiver_screening_command(message, normalized_sender_id, role, channel)
     if caregiver_screening is not None:
         return _finalize_user_output(caregiver_screening, message)

@@ -403,7 +403,7 @@ def test_forgetfulness_routes_to_self_memory_concern_without_rag() -> None:
     result = handle_dementia_user_message("最近覺得很多事情好像都有點記不住")
 
     assert result["route"] == "memory_concern"
-    assert result["intent"] == "self_memory_concern"
+    assert result["intent"] == "memory_concern"
     assert result["sources"] == []
     assert result["rag_called"] is False
     assert "記不住事情會令人很困擾" in result["answer"]
@@ -469,7 +469,7 @@ def test_caregiver_memory_risk_question_gets_guidance_not_screening(tmp_path, mo
 
     assert result["role"] == "caregiver"
     assert result["route"] == "caregiver_guidance"
-    assert result["intent"] == "caregiver_guidance"
+    assert result["intent"] == "caregiver_support"
     assert result["rag_called"] is True
     assert result["debug"]["caregiver_manager"]["command"] != "screening"
     assert "screening_classification" not in result or result["debug"].get("screening_classification") is None
@@ -497,9 +497,9 @@ def test_self_screening_question_routes_to_check_in() -> None:
     intent = classify_intent("我是不是有腦退化症？")
     result = handle_dementia_user_message("我是不是有腦退化症？")
 
-    assert intent.intent == "self_memory_concern"
+    assert intent.intent == "memory_concern"
     assert result["route"] == "memory_concern"
-    assert result["intent"] == "self_memory_concern"
+    assert result["intent"] == "memory_concern"
     assert "不能判斷是不是腦退化症" in result["answer"]
     assert "醫生或記憶診所" in result["answer"]
     _assert_no_diagnosis(result["answer"])
@@ -570,7 +570,7 @@ def test_knowledge_question_calls_rag(monkeypatch) -> None:
     result = handle_dementia_user_message("腦退化症有什麼症狀？")
 
     assert calls
-    assert result["intent"] == "knowledge_qa"
+    assert result["intent"] == "dementia_knowledge"
     assert result["rag_called"] is True
     assert result["safety_level"] == "normal"
     assert result["debug"]["source_count"] == 1
@@ -612,7 +612,7 @@ def test_safety_question_does_not_call_normal_rag(monkeypatch) -> None:
 
     result = handle_dementia_user_message("媽媽走失了，我找不到她")
 
-    assert result["intent"] == "safety_sensitive"
+    assert result["intent"] == "urgent_safety"
     assert result["rag_called"] is False
     assert result["safety_level"] == "urgent_boundary"
     assert result["sources"] == []
@@ -868,7 +868,8 @@ def test_explicit_self_disclosure_can_be_acknowledged_without_stigma(monkeypatch
 
     result = handle_dementia_user_message("醫生話我有腦退化症，我成日唔記得食飯")
 
-    assert "你有腦退化症" in result["answer"]
+    assert "你有腦退化症" not in result["answer"]
+    assert result["route"] == "memory_concern"
     assert "因為你記性不好" not in result["answer"]
     assert "可以" in result["answer"]
     assert result["debug"]["coordinator"]["user_role"] == "self_with_cognitive_concern"
@@ -957,11 +958,11 @@ def test_classify_intent_returns_intent_result() -> None:
 
 
 def test_knowledge_qa() -> None:
-    assert classify_intent("腦退化症有什麼症狀？").intent == "knowledge_qa"
+    assert classify_intent("腦退化症有什麼症狀？").intent == "dementia_knowledge"
 
 
 def test_safety_sensitive_wandering() -> None:
-    assert classify_intent("媽媽走失了，我找不到她").intent == "safety_sensitive"
+    assert classify_intent("媽媽走失了，我找不到她").intent == "urgent_safety"
 
 
 def test_medication_boundary() -> None:
@@ -993,11 +994,11 @@ def test_unknown() -> None:
 
 
 def test_safety_priority_over_knowledge() -> None:
-    assert classify_intent("腦退化症患者走失了怎麼辦？").intent == "safety_sensitive"
+    assert classify_intent("腦退化症患者走失了怎麼辦？").intent == "urgent_safety"
 
 
 def test_prevention_safety_question_stays_knowledge_qa() -> None:
-    assert classify_intent("如何預防腦退化症患者走失？").intent == "knowledge_qa"
+    assert classify_intent("如何預防腦退化症患者走失？").intent == "dementia_knowledge"
 
 
 def test_medication_priority_over_reminder() -> None:
@@ -1005,7 +1006,7 @@ def test_medication_priority_over_reminder() -> None:
 
 
 def test_english_terms() -> None:
-    assert classify_intent("What are dementia symptoms?").intent == "knowledge_qa"
+    assert classify_intent("What are dementia symptoms?").intent == "dementia_knowledge"
     assert classify_intent("Please remind me about my appointment").intent == "reminder_request"
 
 
@@ -1060,7 +1061,7 @@ def test_rag_answer_question_handles_urgent_safety_without_retrieval(tmp_path, m
     assert result["answer"] == SAFETY_SENSITIVE_RESPONSE
     assert result["found"] is False
     assert result["sources"] == []
-    assert result["debug"]["boundary_handler"] == "safety_sensitive"
+    assert result["debug"]["boundary_handler"] == "urgent_safety"
 
 
 def test_search_wrapper_includes_intent_for_empty_message() -> None:

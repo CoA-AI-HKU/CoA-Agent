@@ -85,7 +85,7 @@ def test_normal_dementia_hallucination_question_still_uses_rag(monkeypatch) -> N
     monkeypatch.setattr("src.agents.rag_evidence_agent.answer_question", fake_answer_question)
     result = handle_dementia_user_message("腦退化症會有幻覺嗎？")
 
-    assert result["intent"] == "knowledge_qa"
+    assert result["intent"] == "dementia_knowledge"
     assert result["route"] == "rag_qa"
     assert result["rag_called"] is True
     assert ".md" not in result["answer"]

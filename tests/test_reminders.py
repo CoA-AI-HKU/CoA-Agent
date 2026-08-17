@@ -14,6 +14,12 @@ from src.agents.memory_routine_agent import handle_cancel_reminder_request, hand
 from src.orchestrator import handle_dementia_user_message
 
 
+@pytest.fixture(autouse=True)
+def isolated_last_created_reminder_state(tmp_path, monkeypatch):
+    """Reminder tests must never read or modify live correction state."""
+    monkeypatch.setenv("LAST_CREATED_REMINDER_STATE_PATH", str(tmp_path / "last_created_reminders.json"))
+
+
 @pytest.fixture
 def registered_patient(tmp_path, monkeypatch):
     registry_path = tmp_path / "user_registry.json"

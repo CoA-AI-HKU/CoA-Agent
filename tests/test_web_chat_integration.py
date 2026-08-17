@@ -17,6 +17,9 @@ def explicit_test_rag_runtime(monkeypatch, tmp_path):
     monkeypatch.setenv("RAG_ALLOW_EXTRACTIVE_FALLBACK", "true")
     monkeypatch.setenv("CHROMA_DIR", str(tmp_path / "chroma"))
     monkeypatch.setenv("RAG_AUTO_INDEX", "false")
+    # API contract tests must not depend on a developer machine's live LLM
+    # credentials or network availability.
+    monkeypatch.setattr("src.agents.general_chat_agent.create_chat_answer", lambda *_args, **_kwargs: None)
 
 
 @pytest.fixture(autouse=True)

@@ -826,7 +826,9 @@ def classify_intent(message: str) -> IntentResult:
         )
 
     # ==================== 强制拦截路线查询（新增） ====================
-    LOCATION_QUERY_TERMS = ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "最近", "附近"]
+    # 「最近」 usually means "recently", not "nearest". Concrete destination
+    # terms still catch requests such as 「最近嘅醫院」 through 「醫院」.
+    LOCATION_QUERY_TERMS = ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "附近"]
     loc_matches = _matched_terms(normalized, LOCATION_QUERY_TERMS)
     if loc_matches:
         return IntentResult(
@@ -886,15 +888,15 @@ def classify_intent(message: str) -> IntentResult:
         ),
         (
             "location_query",
-            ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "最近", "附近"],
+            ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "附近"],
             0.85,
             "Matched location or route query terms.",
         ),
         ("reminder_request", REMINDER_TERMS, 0.85, "Matched reminder or schedule terms."),
         ("weather_query", WEATHER_QUERY_TERMS, 0.85, "Matched a weather or extreme-weather query."),
         ("personal_memory", PERSONAL_MEMORY_TERMS, 0.8, "Matched personal memory terms."),
-        ("cognitive_activity", ACTIVITY_TERMS, 0.8, "Matched activity or engagement terms."),
         ("emotional_support", EMOTIONAL_TERMS, 0.8, "Matched emotional support terms."),
+        ("cognitive_activity", ACTIVITY_TERMS, 0.8, "Matched activity or engagement terms."),
         ("dementia_knowledge", KNOWLEDGE_TERMS, 0.7, "Matched dementia knowledge terms."),
         ("casual_conversation", GENERAL_CONVERSATION_TERMS, 0.7, "Matched a general conversation request."),
     ]

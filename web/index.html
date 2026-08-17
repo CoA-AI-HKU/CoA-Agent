@@ -1566,7 +1566,7 @@
     async function launchGameWithConsent(game) {
       const message = game.external
         ? "「" + game.name + "」係第三方網站（" + game.provider + "）。對方嘅私隱政策表示會使用 cookies，並可能收集瀏覽器、裝置、進入時間、來源頁面、點擊及使用資料；如你註冊，亦可能收集電郵。CoA-Agent 唔會將帳戶、病人識別碼、對話、分數或表現傳送過去。私隱政策：" + game.privacyUrl
-        : "「" + game.name + "」係本網站內置遊戲。CoA-Agent 唔會記錄你有冇完成、分數、步驟或表現。遊戲只供消閒，唔係認知測試，亦唔可以用作診斷。";
+        : "「" + game.name + "」係本網站內置遊戲。CoA-Agent 唔會記錄遊戲完成情況、分數或表現。遊戲只供消閒，唔係認知測試或醫療診斷。";
       const confirmed = await openConfirmDialog({
         title: game.external ? "開啟第三方遊戲？" : "開啟內置遊戲？",
         message: message,

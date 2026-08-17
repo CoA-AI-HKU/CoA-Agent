@@ -231,6 +231,8 @@ def _supportive_fallback(message: str) -> str:
 
 def _general_fallback(message: str) -> str:
     normalized = str(message or "").lower()
+    if any(term in normalized for term in ("你好", "您好", "早晨", "午安", "晚安", "hello", "hi")):
+        return "你好！很高興見到你。今天有甚麼想聊，或需要我幫忙整理的事嗎？"
     if any(term in normalized for term in ("數獨", "数独", "sudoku")):
         return (
             "我覺得數獨幾好玩，尤其是逐步推理、終於填對整個方格時很有滿足感。"
@@ -251,7 +253,7 @@ def _general_fallback(message: str) -> str:
 
 def _unknown_fallback(message: str) -> str:
     return (
-        "我明白你的要求，但這個功能暫時未能處理。你可以問我記憶支援、腦退化症資訊或日常生活問題。"
+        "我明白你的要求，但這個功能暫時未能處理。你可以用簡單一句再問一次，或者問我日常生活方面嘅問題。"
         if _is_intelligible(message)
         else UNKNOWN_RESPONSE
     )

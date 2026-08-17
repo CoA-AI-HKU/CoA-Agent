@@ -391,4 +391,4 @@ def test_production_mcp_result_excludes_internal_source_and_debug_fields(monkeyp
 
     result = handle_incoming_message_tool("你好", "user_1", "telegram")
 
-    assert result == {"answer": "安全回答", "route": "supportive", "intent": "unknown"}
+    assert result == {"answer": "安全回答"}

@@ -82,7 +82,6 @@ def test_telegram_commands_accept_slash_backslash_and_bot_suffix(tmp_path, monke
     code_result = handle_incoming_message("/paircode@CoAHelperBot", "telegram_patient", "telegram")
     assert "expires in 15 minutes" in code_result["answer"]
     help_result = handle_incoming_message_tool("\\accountcommands", "telegram_patient", "telegram")
-    assert help_result["intent"] == "account_help"
     assert "\\relink CODE" in help_result["answer"]
 
 

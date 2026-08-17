@@ -12,7 +12,7 @@ UNCLEAR = "我未能清楚理解你的意思"
 def test_memory_concern_with_cant_recall_is_not_unclear() -> None:
     result = handle_incoming_message("總是覺得有些事情想不起來怎麽辦", "memory-concern-user", "telegram")
 
-    assert result["intent"] in {"self_memory_concern", "emotional_support"}
+    assert result["intent"] in {"memory_concern", "emotional_support"}
     assert UNCLEAR not in result["answer"]
 
 
@@ -23,7 +23,7 @@ def test_memory_concern_with_emotional_distress_is_not_unclear() -> None:
         "telegram",
     )
 
-    assert result["intent"] in {"self_memory_concern", "emotional_support"}
+    assert result["intent"] in {"memory_concern", "emotional_support"}
     assert UNCLEAR not in result["answer"]
 
 
@@ -53,4 +53,4 @@ def test_name_three_fruits_reply_uses_pending_activity(tmp_path, monkeypatch) ->
 
 def test_required_memory_and_emotional_terms_never_classify_as_unknown() -> None:
     for message in ["想不起來", "記不起", "忘記", "很鬱悶", "很煩", "不知道怎麼辦"]:
-        assert classify_intent(message).intent in {"self_memory_concern", "emotional_support"}
+        assert classify_intent(message).intent in {"memory_concern", "emotional_support"}

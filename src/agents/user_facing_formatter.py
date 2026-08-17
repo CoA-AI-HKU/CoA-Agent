@@ -225,9 +225,13 @@ def guard_user_facing_answer(
     answer = str(output.get("answer") or "")
 
     has_internal_leakage = _contains_internal_leakage(answer)
-    has_unsupported_assumption = _contains_unsupported_dementia_assumption(
-        answer,
-        message,
+    # A role-correction template explicitly *denies* an assumption (for
+    # example 「我唔會當你係…」). Its necessary wording must not be mistaken
+    # for the direct diagnosis assertions this guard is designed to remove.
+    has_unsupported_assumption = (
+        False
+        if str(output.get("route") or "") == "role_correction"
+        else _contains_unsupported_dementia_assumption(answer, message)
     )
 
     fallback_reason = (
@@ -381,21 +385,18 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
         "memory_concern",
         "caregiver_observation_guidance",
     }:
-        max_sentences = 5
+        max_chars = 650
     elif safety_level in {"urgent_boundary", "medical_boundary"}:
-        max_sentences = 3
+        max_chars = 250
     elif safety_level in {
         "conditional_daily_life_safety",
         "supportive_non_clinical",
         "casual_conversation",
         "general_conversation",
     }:
-        # General-chat routes (src/agents/general_chat_agent.py): the LLM is
-        # asked for 2-3 natural sentences, plus room for an appended safety
-        # notice, so give this bucket more headroom than the default.
-        max_sentences = 4
+        max_chars = 350
     else:
-        max_sentences = 2
+        max_chars = 220
 
     if safety_level not in {
         "screening_check_in",
@@ -404,16 +405,29 @@ def _compact_answer(answer: str, safety_level: str | None) -> str:
         normalized = _remove_excess_numbering(normalized)
 
     sentences = _split_sentences(normalized)
+    route_specific_limit = safety_level in {
+        "screening_check_in", "self_memory_concern", "memory_concern",
+        "caregiver_observation_guidance", "urgent_boundary", "medical_boundary",
+        "conditional_daily_life_safety", "supportive_non_clinical",
+        "casual_conversation", "general_conversation",
+    }
+    if len(normalized) <= max_chars and (route_specific_limit or len(sentences) <= 3):
+        return _ensure_terminal_punctuation(normalized, max_chars)
 
-    if not sentences:
-        return normalized
-
-    compacted = "".join(sentences[:max_sentences]).strip()
-
-    if compacted and compacted[-1] not in "。！？!?.":
-        compacted += "。"
-
-    return compacted
+    complete_sentences = [sentence for sentence in sentences if _has_terminal_punctuation(sentence)]
+    selected: list[str] = []
+    total = 0
+    max_sentences = None if route_specific_limit else 3
+    for sentence in complete_sentences:
+        if max_sentences is not None and len(selected) >= max_sentences:
+            break
+        if total + len(sentence) > max_chars:
+            break
+        selected.append(sentence)
+        total += len(sentence)
+    if selected:
+        return "".join(selected).strip()
+    return _truncate_at_sentence_boundary(normalized, max_chars)
 
 def _has_terminal_punctuation(text: str) -> bool:
     return bool(re.search(r"[。！？!?.]$", text.rstrip()))

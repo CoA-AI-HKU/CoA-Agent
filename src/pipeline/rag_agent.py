@@ -921,13 +921,15 @@ def rebuild_runtime_index(config: dict[str, Any] | None = None) -> dict[str, Any
         f"Rebuild started: provider={resolved['embedder_provider']} model={resolved['embedder_model']} "
         f"temporary_collection={temporary_name}", flush=True,
     )
-    agent.diagnostic_sender_id = str(config.get("sender_id") or "")
-    agent.diagnostic_intent = str(config.get("diagnostic_intent") or config.get("planner_route") or "")
     staged_agent = None
     try:
         staged_agent, debug = _build_runtime_agent({
             **resolved, "collection_name": temporary_name, "manifest_path": temporary_manifest,
         })
+        staged_agent.diagnostic_sender_id = str(resolved.get("sender_id") or "")
+        staged_agent.diagnostic_intent = str(
+            resolved.get("diagnostic_intent") or resolved.get("planner_route") or ""
+        )
         if debug["chunk_count"] <= 0:
             raise RuntimeError("Rebuild produced an empty collection; the live collection was not replaced.")
         staged_agent.vector_store.replace_collection(target_name)
