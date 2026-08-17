@@ -220,40 +220,32 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Identified the root cause of the persistent login failure: missing `firebase_key.json` file on the server.
 - Cleaned up local VS Code environment and server ports; Nginx is now correctly pointing to port `8081` for the upcoming deployment.
 
-### Structured Blood Pressure Records and Patient Data Controls (2026-08-17)
+### Backend Stabilization, Privacy Controls, and Usability Enhancements (2026-08-17)
 
-- Replaced the temporary JSON blood-pressure log and hard-coded web-chat interception with the shared authenticated conversation pipeline. Blood-pressure messages are now parsed and validated as structured systolic/diastolic readings, stored under the patient's canonical account identity, and acknowledged with a short non-diagnostic Cantonese confirmation; incomplete or invalid readings prompt for both values instead of being guessed.
-- Added strict caregiver access isolation for blood-pressure records: authenticated caregivers can retrieve or manage readings only for patients explicitly linked to their account. Added a caregiver dashboard table with measurement time, systolic pressure, diastolic pressure, optional pulse, notes, and inline correction/deletion controls.
-- Extended each reading with optional pulse and measurement notes, including chat parsing for phrases such as `血壓 128/79 脈搏 68 備註 晚飯後`. Added ownership-scoped APIs for patients to manage their own records and matching linked-patient APIs for caregivers, with record ownership included in every update/delete query to prevent cross-patient access by changing an ID.
-- Added UTF-8 CSV export for sharing readings with healthcare professionals, single-record deletion with confirmation, typed-confirmation deletion of all readings, and configurable automatic retention options (forever, 30, 90, 180, or 365 days). Existing databases are upgraded non-destructively at startup with the new pulse/notes columns and retention table.
-- Added regression coverage for parsing, storage isolation, caregiver link guards, confirmation wording, correction/deletion ownership, retention isolation, CSV/dashboard controls, and unified API routing. Python syntax, whitespace, and frontend consistency checks passed; full pytest execution remains pending because pytest is not installed in the current local environment.
+**Blood Pressure & Caregiver Data Management**
+- Replaced temporary JSON log with structured, authenticated database storage for blood pressure (systolic/diastolic). Extended parsing to support optional pulse, measurement notes, and context (e.g., "晚飯後").
+- Enforced strict caregiver isolation: caregivers can only retrieve/modify records of explicitly linked patients. Implemented inline correction/deletion controls and UTF-8 CSV export for caregivers.
+- Added patient-facing APIs for self-management, configurable auto-retention policies (30–365 days), and typed-confirmation deletion of all records. Database schema upgrades are non-destructive on startup.
 
-### Game Privacy, Third-Party Consent, and Non-Diagnostic Boundaries (2026-08-17)
+**Game Privacy & Non-Diagnostic Consent**
+- Replaced native game-launch prompts with accessible consent dialogs. Reorganized game catalogue into distinct "built-in" (Idioms, 2048, Memory) and "third-party" (MahJongo) categories, removing generic options.
+- Built a strict, privacy-safe external game launch flow: opens `noopener,noreferrer` links without passing any Firebase/patient tokens to external URLs.
+- Added explicit privacy summaries for third-party games and mandated non-diagnostic disclaimers. Game performance is not recorded or stored to prevent health misrepresentation.
 
-- Replaced the native game-launch confirmation with the app's accessible consent dialog and introduced a structured game catalogue that clearly marks each destination as built-in or third-party. Removed the generic “益智遊戲” option and its voice keywords entirely, leaving exactly four supported choices: the built-in Idioms, 2048, and Matching games, plus MahJongo as the only third-party destination.
-- Reviewed MahJongo's published privacy policy: it describes session/persistent cookies and collection of browser/device details, access time, referring/exit pages, usage and click information, plus email collection if a person registers. The external-game confirmation now summarizes those practices before the user chooses whether to leave CoA-Agent.
-- External URLs are constructed from a fixed allowlisted destination, with query strings and fragments removed, and are opened using `noopener,noreferrer`. No Firebase token, account ID, patient ID, session ID, conversation content, score, or other user field is added to the destination URL.
-- Decided not to record game starts, completion, moves, scores, or performance at all, so there is no secondary use requiring an activity-recording consent flow. Both the launcher and privacy notice state that games are recreational, not cognitive assessments, and must never be interpreted as a diagnosis.
-- Added frontend regression coverage for internal/external labelling, required confirmation, identifier/referrer stripping, absence of game-activity persistence, and the non-diagnostic wording.
+**Consent-Controlled Health Monitoring Menu**
+- Expanded monitoring categories beyond safety/cognitive concerns to include opt-in tracking for sleep, daily activity, and medication adherence. All new categories default to disabled.
+- Implemented patient-gated consent: caregivers can request categories, but monitoring only activates upon patient approval. Withdrawing consent instantly stops data collection.
+- Added configurable pause periods, 1–10 occurrence notification thresholds, and a 14-day caregiver history view with privacy-filtered event reasons (no raw chat messages stored).
 
-### Consent-Controlled Health Monitoring Menu (2026-08-17)
+**Multi-Caregiver Support & Pairing**
+- Removed the single-caregiver limitation. Patients can now generate multiple one-time pairing codes, allowing multiple caregivers to be linked to one account.
+- Added a patient-facing list of linked caregivers, supporting individual, confirmation-gated revocation without affecting other caregiver relationships.
 
-- Expanded the existing per-patient safety and cognitive monitoring menu with opt-in sleep-problem, daily-activity, and routine/medication-adherence monitoring. Existing safety and cognitive defaults remain compatible, while every new category starts disabled.
-- Added patient-controlled consent for each monitoring category. A caregiver may request a category, but it is only evaluated when the patient has also consented; withdrawing consent stops future monitoring without erasing the patient's settings.
-- Added temporary monitoring pauses, configurable 1–10 occurrence notification thresholds, and a 14-day caregiver trend/history view showing privacy-filtered event reasons and per-category counts. Raw chat messages are not stored in monitoring history.
-- Added deterministic, conservative detection for explicit sleep difficulties, daily-activity difficulties, and missed medication/routine statements. These checks run independently and do not alter the existing conversation response pipeline.
-- Added patient and linked-caregiver APIs with the existing role and relationship guards, plus regression coverage for consent gating, category isolation, pausing, thresholds, history counts, and the new dashboard controls.
+**Routing Fixes, RAG Stability & Regression Suite**
+- Fixed `最近` intent ambiguity: limited `location_query` to concrete destinations (hospitals, stations, addresses) to prevent misrouting of memory/tiredness complaints.
+- Restored character limits for general/urgent responses, fixed role-correction wording removal, and repaired RAG index rebuild errors.
+- Full regression baseline is green: **623 passed, 1 skipped, 0 failed** (remaining warnings are due to non-functional deprecations in timezone and SQLAlchemy handling).
 
-### Multiple Caregivers and Patient-Controlled Revocation (2026-08-17)
-
-- Removed the one-caregiver interface restriction: a companion can now generate another independent, one-time pairing code after a caregiver is already linked. Existing 15-minute expiry, single-use redemption, authentication, and caregiver-role checks remain unchanged.
-- Added a patient-facing list of linked caregivers and confirmation-gated individual revocation. Removing one caregiver immediately removes that patient's ID from only that caregiver's accessible-patient list, without affecting other caregiver relationships.
-- Kept pairing and caregiver management hidden from non-companion accounts, and added regression coverage for two caregivers linked to one patient, selective revocation, unlinked-caregiver rejection, and persistent pairing-button visibility.
-
-### Full Regression-Suite Repair and Routing Stabilization (2026-08-17)
-
-- Fixed the location router treating the ordinary word `最近` (“recently”) as “nearest”, which had redirected memory concerns and tiredness messages to a hospital map. Concrete destinations such as hospitals, clinics, stations, addresses, and nearby-place requests remain supported.
-- Restored 220-character general-answer and 250-character urgent/medical-answer limits, preserved complete sentence boundaries, and retained expanded limits only for explicitly longer supportive flows. Restored a clear greeting fallback and neutral out-of-scope wording.
-- Fixed role-correction text being falsely removed as a diagnosis, prioritized emotional distress over the broad activity keyword `悶`, restored data-manipulation security blocking in the main message router, and kept the current canonical intent vocabulary consistent across runtime and regression tests.
-- Fixed a real RAG index-rebuild `NameError`, restored backward compatibility for older `AgentDecision` constructors, aligned blood-pressure retention and answer-only public API contracts, and isolated reminder/web integration tests from production state and live LLM credentials.
-- Full regression baseline is green: **623 passed, 1 skipped, 0 failed**. The remaining 326 messages are deprecation warnings (primarily timezone-aware datetime migration, SQLAlchemy declarative-base import, Pydantic model config, and the TestClient compatibility layer) and are tracked as future maintenance rather than functional failures.
+**Consent-Gated Google Maps Navigation**
+- Replaced hard-coded hospital link with structured, consent-gated Google Maps navigation. Distinguishes current location, nearby search, and named destination requests.
+- Built privacy-safe URL launching: restricted to HTTPS, `google.com/maps`, `noopener/noreferrer`, with no user identifiers appended. CoA-Agent does not request or store background location data.
