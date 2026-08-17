@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -32,13 +32,14 @@ class WebChatResponse(BaseModel):
     reply: str
     language: str
     session_id: str
+    map_action: dict[str, Any] | None = None
 
 
-@router.post("/api/chat", response_model=WebChatResponse)
+@router.post("/api/chat", response_model=WebChatResponse, response_model_exclude_none=True)
 async def web_chat(
     payload: WebChatRequest,
     user: FirebaseUser = Depends(require_firebase_user), # <--- 恢复真实的登录验证
-) -> dict[str, str] | JSONResponse:
+) -> dict[str, Any] | JSONResponse:
     message = payload.message.strip()
     user_id = user.uid
 

@@ -40,6 +40,7 @@ from .pipeline.query_normalization import log_string_diagnostic
 from .rag.execution_metrics import record_retrieval
 from .reminders.trace_logging import log_reminder_checkpoint
 from .health.blood_pressure import parse_blood_pressure, record_blood_pressure
+from .location.maps import build_maps_action
 
 
 logger = logging.getLogger(__name__)
@@ -123,13 +124,15 @@ def handle_dementia_user_message(
     elif decision.route == "weather":
         result = handle_weather_query(message, user_id)
     elif decision.route == "route_guide":
+        response_text, map_action = build_maps_action(message)
         result = {
-            "answer": "我幫你搵到附近嘅醫院或者地點。你可以撳下面個連結，用手機或電腦嘅地圖 App 睇詳細路線：\n\nhttps://www.google.com/maps/search/%E9%86%AB%E9%99%A2+%E9%A6%99%E6%B8%AF",
+            "answer": response_text,
             "intent": decision.intent,
             "found": True,
             "sources": [],
             "rag_called": False,
             "route": "route_guide",
+            "map_action": map_action,
             "debug": {"agent": "orchestrator_route_guide"},
         }
     elif decision.route == "blood_pressure":

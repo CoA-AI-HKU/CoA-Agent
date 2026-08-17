@@ -71,6 +71,7 @@ class ConversationService:
                 "route": result.get("route"),
                 "safety_level": result.get("safety_level"),
                 "answer_language": result.get("answer_language") or "zh-HK",
+                "map_action": result.get("map_action"),
             },
         )
 
@@ -83,7 +84,7 @@ async def process_user_message(
     *,
     timeout_seconds: float = 30.0,
     service: ConversationService | None = None,
-) -> dict[str, str]:
+) -> dict[str, Any]:
     """Run a channel message through the shared agent pipeline.
 
     Only the small, user-safe contract returned here may cross the prototype
@@ -97,8 +98,12 @@ async def process_user_message(
         ),
         timeout=timeout_seconds,
     )
-    return {
+    response: dict[str, Any] = {
         "reply": result.response,
         "language": str(result.metadata.get("answer_language") or "zh-HK"),
         "session_id": str(session_id or "").strip(),
     }
+    map_action = result.metadata.get("map_action")
+    if isinstance(map_action, dict):
+        response["map_action"] = map_action
+    return response

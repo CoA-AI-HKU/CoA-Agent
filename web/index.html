@@ -1586,6 +1586,28 @@
       if (opened) opened.opener = null;
     }
 
+    async function launchMapWithConsent(action) {
+      if (!action || action.external !== true || typeof action.url !== "string") return;
+      let destination;
+      try {
+        destination = new URL(action.url);
+      } catch (err) {
+        return;
+      }
+      if (destination.protocol !== "https:" || destination.hostname !== "www.google.com" ||
+          !destination.pathname.startsWith("/maps/")) return;
+      const confirmed = await openConfirmDialog({
+        title: action.title || "開啟 Google 地圖？",
+        message: action.message || "即將離開 CoA-Agent 並開啟 Google 地圖。",
+        confirmLabel: action.confirm_label || "開啟地圖",
+        danger: false,
+      });
+      if (confirmed === null) return;
+      cancelSpeech();
+      const opened = window.open(destination.toString(), "_blank", "noopener,noreferrer");
+      if (opened) opened.opener = null;
+    }
+
     function startCompanionListening() {
       playBeep();
       companionNoSpeechRetried = false;
@@ -1664,6 +1686,7 @@
         } else {
           setCompanionState("idle");
         }
+        if (payload.map_action) launchMapWithConsent(payload.map_action);
       } catch (err) {
         companionError("chat-failed");
       }
@@ -1749,6 +1772,7 @@
         lastAnswer = payload.reply;
         lastAnswerLanguage = payload.language || "zh-HK";
         devReplyOutput.textContent = payload.reply;
+        if (payload.map_action) launchMapWithConsent(payload.map_action);
       } catch (err) {
         logDevError("chat-failed");
       }
