@@ -162,6 +162,33 @@ def revoke_caregivers_for_user(sender_id: str) -> int:
     return changed
 
 
+def revoke_caregiver_for_user(sender_id: str, caregiver_sender_id: str) -> int:
+    """Let a patient revoke one caregiver without affecting other links."""
+    patient = get_user_record(sender_id)
+    if str(patient.get("role") or "").lower() != "user":
+        raise ValueError("only a registered patient can revoke caregiver access")
+    user_id = str(patient.get("user_id") or normalize_sender_id(sender_id))
+    caregiver_id = normalize_sender_id(caregiver_sender_id)
+    registry = load_user_registry()
+    users = registry.get("users", {})
+    caregiver = dict(users.get(caregiver_id) or {}) if isinstance(users, dict) else {}
+    if str(caregiver.get("role") or "").lower() != "caregiver":
+        return 0
+    existing = caregiver.get("linked_user_ids") or caregiver.get("linked_user_id") or []
+    linked_ids = list(existing) if isinstance(existing, list) else [existing]
+    if user_id not in linked_ids:
+        return 0
+    retained = [value for value in linked_ids if value and value != user_id]
+    caregiver["linked_user_ids"] = retained
+    if retained:
+        caregiver["linked_user_id"] = retained[0]
+    else:
+        caregiver.pop("linked_user_id", None)
+    users[caregiver_id] = caregiver
+    save_user_registry(registry)
+    return 1
+
+
 def create_dashboard_access_token(sender_id: str, lifetime_minutes: int = 30) -> str:
     caregiver_id = normalize_sender_id(sender_id)
     record = get_user_record(caregiver_id)

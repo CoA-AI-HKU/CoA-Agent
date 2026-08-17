@@ -46,6 +46,7 @@ from src.user.user_registry import (
     get_user_record_by_user_id,
     redeem_pairing_code,
     register_account,
+    revoke_caregiver_for_user,
     revoke_caregivers_for_user,
     unlink_caregiver,
 )
@@ -229,6 +230,20 @@ def list_linked_caregivers(user: FirebaseUser = Depends(require_firebase_user)) 
             display_name = str(record.get("display_name") or "").strip() or caregiver_sender_id
             caregivers.append({"sender_id": caregiver_sender_id, "display_name": display_name})
     return {"linked_caregivers": caregivers}
+
+
+@me_router.delete("/api/me/linked-caregivers/{caregiver_sender_id}")
+def remove_linked_caregiver(
+    caregiver_sender_id: str, user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    """Patient-controlled revocation of one caregiver's access."""
+    try:
+        removed = revoke_caregiver_for_user(user.uid, caregiver_sender_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=403, detail=str(exc)) from exc
+    if not removed:
+        raise HTTPException(status_code=404, detail="caregiver not found or not linked to this account")
+    return list_linked_caregivers(user)
 
 
 class LinkPatientRequest(BaseModel):

@@ -180,16 +180,22 @@ def test_companion_mode_can_generate_a_pairing_code_without_caregiver_mode():
     assert "generatePairingCode(companionPairingCodeButton, companionPairingCodeMessage)" in INDEX
 
 
-def test_generate_pairing_code_ui_hides_once_already_paired():
-    # Companion Mode's "generate a code" affordance starts hidden in markup
-    # and only gets shown by loadLinkedCaregivers() once it confirms this
-    # account has no linked caregiver yet — see /api/me/linked-caregivers.
-    # (Caregiver Mode's copy of this was removed — see
-    # test_caregiver_mode_has_no_generate_own_code_section.)
+def test_generate_pairing_code_ui_remains_available_for_additional_caregivers():
     assert '<div id="companionPairingCodeSection" hidden>' in INDEX
     fn = INDEX[INDEX.index("async function loadLinkedCaregivers"):INDEX.index("async function loadLinkedCaregivers") + 800]
-    assert "companionPairingCodeSection.hidden = hasCaregiver" in fn
+    assert "companionPairingCodeSection.hidden = false" in fn
     assert '"/api/me/linked-caregivers"' in fn
+    assert "hasCaregiver" not in fn
+
+
+def test_companion_can_view_and_individually_revoke_linked_caregivers():
+    companion_section = INDEX[INDEX.index('<section id="companionMode"'):INDEX.index('<section id="caregiverMode"')]
+    assert 'id="linkedCaregiversList"' in companion_section
+    assert "function renderLinkedCaregivers" in INDEX
+    fn = INDEX[INDEX.index("async function revokeLinkedCaregiver"):INDEX.index("async function revokeLinkedCaregiver") + 1000]
+    assert 'method: "DELETE"' in fn
+    assert '"/api/me/linked-caregivers/"' in fn
+    assert "openConfirmDialog" in fn
 
 
 def test_pairing_code_ui_never_shows_for_a_caregiver_account_in_companion_mode():
@@ -201,8 +207,8 @@ def test_pairing_code_ui_never_shows_for_a_caregiver_account_in_companion_mode()
     fn = INDEX[INDEX.index("async function loadLinkedCaregivers"):INDEX.index("async function loadLinkedCaregivers") + 800]
     role_check = fn.index('meProfile.role !== "companion"')
     early_hide = fn.index("companionPairingCodeSection.hidden = true;")
-    fetch_call = fn.index('"/api/me/linked-caregivers"')
-    assert role_check < early_hide < fetch_call
+    show_section = fn.index("companionPairingCodeSection.hidden = false;")
+    assert role_check < early_hide < show_section
 
 
 def test_caregiver_mode_has_no_generate_own_code_section():
@@ -304,6 +310,8 @@ def test_saving_monitoring_preferences_sends_all_categories_and_controls():
     assert "routine_adherence: monitorRoutineCheckbox.checked" in fn
     assert "thresholds:" in fn
     assert "pause_until:" in fn
+    assert "const preferences = await res.json()" in fn
+    assert "loadMonitoringHistory(patientUserId, preferences)" in fn
 
 
 def test_companion_controls_monitoring_consent_and_pause():
@@ -317,9 +325,13 @@ def test_companion_controls_monitoring_consent_and_pause():
 
 
 def test_monitoring_history_is_loaded_for_selected_patient():
-    assert '"/monitoring-history"' in INDEX
+    assert '"/monitoring-history?days=14"' in INDEX
     assert "MONITORING_LABELS" in INDEX
     assert "threshold_met" in INDEX
+    history_fn = INDEX[INDEX.index("async function loadMonitoringHistory"):INDEX.index("function renderMonitoringPatientSelect")]
+    assert "return enabledCategories[category]" in history_fn
+    load_fn = INDEX[INDEX.index("async function loadMonitoringPreferences"):INDEX.index("monitoringPatientSelect.addEventListener")]
+    assert "loadMonitoringHistory(patientUserId, preferences)" in load_fn
 
 
 def test_caregiver_mode_has_a_patient_specific_contacts_section():

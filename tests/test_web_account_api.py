@@ -688,6 +688,57 @@ def test_linked_caregivers_shows_up_once_a_caregiver_redeems_the_code(monkeypatc
         _cleanup(caregiver_uid)
 
 
+def test_patient_can_link_multiple_caregivers_and_revoke_only_one(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    patient_uid = "pytest-multi-caregiver-patient"
+    caregiver_a = "pytest-multi-caregiver-a"
+    caregiver_b = "pytest-multi-caregiver-b"
+    monkeypatch.setenv("COA_BOOTSTRAP_CAREGIVER_UIDS", f"{caregiver_a},{caregiver_b}")
+    patient_headers = {"Authorization": "Bearer patient"}
+    caregiver_headers = {"Authorization": "Bearer caregiver"}
+    try:
+        _authenticate_as(monkeypatch, patient_uid)
+        code_a = client.post("/api/me/pairing-code", json={}, headers=patient_headers).json()["code"]
+        _authenticate_as(monkeypatch, caregiver_a)
+        assert client.post("/api/me/link-patient", json={"code": code_a}, headers=caregiver_headers).status_code == 200
+
+        _authenticate_as(monkeypatch, patient_uid)
+        code_b = client.post("/api/me/pairing-code", json={}, headers=patient_headers).json()["code"]
+        _authenticate_as(monkeypatch, caregiver_b)
+        assert client.post("/api/me/link-patient", json={"code": code_b}, headers=caregiver_headers).status_code == 200
+
+        _authenticate_as(monkeypatch, patient_uid)
+        linked = client.get("/api/me/linked-caregivers", headers=patient_headers).json()["linked_caregivers"]
+        assert {item["sender_id"] for item in linked} == {caregiver_a, caregiver_b}
+
+        removal = client.delete(f"/api/me/linked-caregivers/{caregiver_a}", headers=patient_headers)
+        assert removal.status_code == 200
+        assert [item["sender_id"] for item in removal.json()["linked_caregivers"]] == [caregiver_b]
+
+        _authenticate_as(monkeypatch, caregiver_a)
+        assert client.get("/api/me/linked-patients", headers=caregiver_headers).json()["linked_patients"] == []
+        _authenticate_as(monkeypatch, caregiver_b)
+        assert len(client.get("/api/me/linked-patients", headers=caregiver_headers).json()["linked_patients"]) == 1
+    finally:
+        _cleanup(patient_uid)
+        _cleanup(caregiver_a)
+        _cleanup(caregiver_b)
+
+
+def test_patient_cannot_revoke_an_unlinked_caregiver(monkeypatch, tmp_path):
+    monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
+    uid = "pytest-revoke-unlinked-patient"
+    _authenticate_as(monkeypatch, uid)
+    try:
+        client.post("/api/me/pairing-code", json={}, headers={"Authorization": "Bearer patient"})
+        response = client.delete(
+            "/api/me/linked-caregivers/not-linked", headers={"Authorization": "Bearer patient"},
+        )
+        assert response.status_code == 404
+    finally:
+        _cleanup(uid)
+
+
 def test_linked_caregivers_requires_authentication(monkeypatch):
     monkeypatch.setattr("backend.api.web_account.is_configured", lambda: True)
     response = client.get("/api/me/linked-caregivers")

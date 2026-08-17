@@ -720,11 +720,14 @@
                reach pairing-code generation — POST /api/me/pairing-code is
                open to every role, but the UI for redeeming a code lives in
                Caregiver Mode, which this account never sees. Hidden once
-               this account already has a linked caregiver — see
-               loadLinkedCaregivers() in the script below. -->
+               additional caregivers can be invited with separate one-time
+               codes, and existing links remain visible below. -->
           <div id="companionPairingCodeSection" hidden>
             <button id="companionPairingCodeButton" class="action-button secondary-button full-width" type="button">🔗 產生配對碼俾照顧者</button>
             <p id="companionPairingCodeMessage" class="form-message" aria-live="polite"></p>
+            <p style="font-size:.95rem; color:#3a5a5f;">每位照顧者使用一個獨立、15 分鐘內有效嘅配對碼。只應該交俾你信任嘅人。</p>
+            <h2 style="font-size:1.15rem;">已連結照顧者</h2>
+            <ul id="linkedCaregiversList" class="contact-list" aria-label="已連結照顧者"></ul>
           </div>
         </div>
 
@@ -1072,6 +1075,7 @@
     const companionPairingCodeSection = document.getElementById("companionPairingCodeSection");
     const companionPairingCodeButton = document.getElementById("companionPairingCodeButton");
     const companionPairingCodeMessage = document.getElementById("companionPairingCodeMessage");
+    const linkedCaregiversList = document.getElementById("linkedCaregiversList");
 
     const contactForm = document.getElementById("contactForm");
     const contactList = document.getElementById("contactList");
@@ -2134,13 +2138,15 @@
       daily_activity: "日常活動", routine_adherence: "日常安排／用藥依從",
     };
 
-    async function loadMonitoringHistory(patientUserId) {
+    async function loadMonitoringHistory(patientUserId, enabledCategories) {
       monitoringHistoryList.replaceChildren();
       try {
         const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring-history?days=14");
         if (!res.ok) throw new Error("history failed");
         const data = await res.json();
-        Object.keys(MONITORING_LABELS).forEach(function (category) {
+        Object.keys(MONITORING_LABELS).filter(function (category) {
+          return enabledCategories[category];
+        }).forEach(function (category) {
           const item = document.createElement("li"); item.className = "contact-item";
           item.textContent = MONITORING_LABELS[category] + "：" + (data.counts[category] || 0) + " 次" +
             (data.threshold_met[category] ? "（已達通知門檻）" : "");
@@ -2209,7 +2215,7 @@
             return MONITORING_LABELS[category];
           }).join("、");
         }
-        loadMonitoringHistory(patientUserId);
+        loadMonitoringHistory(patientUserId, preferences);
       } catch (err) {
         monitoringMessage.textContent = "無法載入監測設定，請稍後再試。";
         monitoringMessage.classList.add("error-message");
@@ -2244,8 +2250,9 @@
           },
         );
         if (!res.ok) throw new Error("failed to save monitoring preferences");
+        const preferences = await res.json();
         monitoringMessage.textContent = "監測設定已儲存。";
-        loadMonitoringHistory(patientUserId);
+        loadMonitoringHistory(patientUserId, preferences);
         monitoringMessage.classList.remove("error-message");
       } catch (err) {
         monitoringMessage.textContent = "儲存失敗，請稍後再試。";
@@ -2358,28 +2365,68 @@
       }
     });
 
-    // Shows Companion Mode's "generate a pairing code" affordance only for
-    // a companion (patient) account that has never been paired as someone's
-    // care recipient yet — once a caregiver is linked, there's no reason to
-    // keep offering to generate another code. A caregiver (or developer)
-    // account can also reach Companion Mode via the mode switcher, but
-    // "generate a code to give my caregiver" makes no sense for an account
-    // that isn't itself a patient, so it's hidden unconditionally for those
-    // roles rather than following the hasCaregiver check below.
+    function renderLinkedCaregivers(caregivers) {
+      linkedCaregiversList.replaceChildren();
+      if (!caregivers.length) {
+        const empty = document.createElement("li");
+        empty.className = "contact-item";
+        empty.textContent = "暫時未有已連結照顧者。";
+        linkedCaregiversList.append(empty);
+        return;
+      }
+      caregivers.forEach(function (caregiver) {
+        const item = document.createElement("li");
+        item.className = "contact-item";
+        const name = document.createElement("span");
+        name.textContent = caregiver.display_name;
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "remove-button";
+        remove.textContent = "解除連結";
+        remove.addEventListener("click", function () { revokeLinkedCaregiver(caregiver.sender_id); });
+        item.append(name, remove);
+        linkedCaregiversList.append(item);
+      });
+    }
+
+    // Every companion may generate another one-time code for another trusted
+    // caregiver. Non-companion roles never see this patient-side tool.
     async function loadLinkedCaregivers() {
       if (!meProfile || meProfile.role !== "companion") {
         companionPairingCodeSection.hidden = true;
         return;
       }
-      let hasCaregiver = false;
+      companionPairingCodeSection.hidden = false;
       try {
         const res = await apiFetch("/api/me/linked-caregivers");
-        if (res.ok) hasCaregiver = ((await res.json()).linked_caregivers || []).length > 0;
+        if (!res.ok) throw new Error("failed to load linked caregivers");
+        renderLinkedCaregivers((await res.json()).linked_caregivers || []);
       } catch (err) {
-        // Unknown state — default to showing the option rather than
-        // silently hiding a feature the account might still need.
+        linkedCaregiversList.replaceChildren();
+        const item = document.createElement("li");
+        item.className = "contact-item";
+        item.textContent = "未能載入照顧者名單。";
+        linkedCaregiversList.append(item);
       }
-      companionPairingCodeSection.hidden = hasCaregiver;
+    }
+
+    async function revokeLinkedCaregiver(caregiverSenderId) {
+      const confirmed = await openConfirmDialog({
+        title: "解除照顧者連結",
+        message: "解除後，呢位照顧者會立即失去你嘅資料存取權。確定繼續？",
+        confirmLabel: "解除連結",
+      });
+      if (!confirmed) return;
+      try {
+        const res = await apiFetch("/api/me/linked-caregivers/" + encodeURIComponent(caregiverSenderId), { method: "DELETE" });
+        if (!res.ok) throw new Error("failed to revoke caregiver");
+        renderLinkedCaregivers((await res.json()).linked_caregivers || []);
+        companionPairingCodeMessage.textContent = "已解除照顧者連結。";
+        companionPairingCodeMessage.classList.remove("error-message");
+      } catch (err) {
+        companionPairingCodeMessage.textContent = "解除連結失敗，請稍後再試。";
+        companionPairingCodeMessage.classList.add("error-message");
+      }
     }
 
     async function unlinkPatient(patientUserId) {

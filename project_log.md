@@ -243,3 +243,9 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Added temporary monitoring pauses, configurable 1–10 occurrence notification thresholds, and a 14-day caregiver trend/history view showing privacy-filtered event reasons and per-category counts. Raw chat messages are not stored in monitoring history.
 - Added deterministic, conservative detection for explicit sleep difficulties, daily-activity difficulties, and missed medication/routine statements. These checks run independently and do not alter the existing conversation response pipeline.
 - Added patient and linked-caregiver APIs with the existing role and relationship guards, plus regression coverage for consent gating, category isolation, pausing, thresholds, history counts, and the new dashboard controls.
+
+### Multiple Caregivers and Patient-Controlled Revocation (2026-08-17)
+
+- Removed the one-caregiver interface restriction: a companion can now generate another independent, one-time pairing code after a caregiver is already linked. Existing 15-minute expiry, single-use redemption, authentication, and caregiver-role checks remain unchanged.
+- Added a patient-facing list of linked caregivers and confirmation-gated individual revocation. Removing one caregiver immediately removes that patient's ID from only that caregiver's accessible-patient list, without affecting other caregiver relationships.
+- Kept pairing and caregiver management hidden from non-companion accounts, and added regression coverage for two caregivers linked to one patient, selective revocation, unlinked-caregiver rejection, and persistent pairing-button visibility.
