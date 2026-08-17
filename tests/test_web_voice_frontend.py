@@ -251,7 +251,20 @@ def test_caregiver_mode_has_blood_pressure_record_columns():
     assert '<th scope="col">記錄時間</th>' in caregiver_section
     assert '<th scope="col">上壓</th>' in caregiver_section
     assert '<th scope="col">下壓</th>' in caregiver_section
+    assert '<th scope="col">脈搏</th>' in caregiver_section
+    assert '<th scope="col">備註</th>' in caregiver_section
+    assert 'id="exportBloodPressureButton"' in caregiver_section
+    assert 'id="bloodPressureRetentionSelect"' in caregiver_section
+    assert 'id="deleteAllBloodPressureButton"' in caregiver_section
     assert '"/blood-pressure?limit=30"' in INDEX
+
+
+def test_blood_pressure_records_can_be_corrected_deleted_and_exported():
+    assert 'method: "PATCH"' in INDEX[INDEX.index("async function updateBloodPressureReading"):]
+    assert "async function deleteBloodPressureReading" in INDEX
+    assert '"/blood-pressure-export"' in INDEX
+    assert '"/blood-pressure-retention"' in INDEX
+    assert 'requirePhrase: phrase' in INDEX
 
 
 def test_monitoring_settings_disabled_when_no_linked_patients():

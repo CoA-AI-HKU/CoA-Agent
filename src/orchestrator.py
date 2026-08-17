@@ -147,6 +147,8 @@ def handle_dementia_user_message(
                 "收到你嘅血壓記錄，已經幫你記低咗。"
                 f"上壓 {parsed.systolic}、下壓 {parsed.diastolic}。"
             )
+            if parsed.pulse is not None:
+                response_text += f"脈搏 {parsed.pulse}。"
             safety_level = "blood_pressure_recorded"
             found = True
             reading_id = reading.id

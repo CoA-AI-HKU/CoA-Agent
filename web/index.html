@@ -781,10 +781,22 @@
           <div class="table-scroll">
             <table id="bloodPressureTable" class="records-table" aria-label="血壓記錄">
               <thead>
-                <tr><th scope="col">記錄時間</th><th scope="col">上壓</th><th scope="col">下壓</th></tr>
+                <tr><th scope="col">記錄時間</th><th scope="col">上壓</th><th scope="col">下壓</th><th scope="col">脈搏</th><th scope="col">備註</th><th scope="col">操作</th></tr>
               </thead>
               <tbody id="bloodPressureTableBody"></tbody>
             </table>
+          </div>
+          <div class="form-field" style="margin-top:1rem;">
+            <label for="bloodPressureRetentionSelect">自動刪除期限</label>
+            <select id="bloodPressureRetentionSelect">
+              <option value="0">永久保留</option><option value="30">30 日</option><option value="90">90 日</option>
+              <option value="180">180 日</option><option value="365">365 日</option>
+            </select>
+          </div>
+          <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
+            <button id="saveBloodPressureRetentionButton" class="action-button secondary-button" type="button">儲存期限</button>
+            <button id="exportBloodPressureButton" class="action-button secondary-button" type="button">匯出 CSV</button>
+            <button id="deleteAllBloodPressureButton" class="action-button danger-button" type="button">刪除全部記錄</button>
           </div>
           <p id="bloodPressureMessage" class="form-message" aria-live="polite"></p>
         </div>
@@ -1058,6 +1070,10 @@
     const bloodPressureTable = document.getElementById("bloodPressureTable");
     const bloodPressureTableBody = document.getElementById("bloodPressureTableBody");
     const bloodPressureMessage = document.getElementById("bloodPressureMessage");
+    const bloodPressureRetentionSelect = document.getElementById("bloodPressureRetentionSelect");
+    const saveBloodPressureRetentionButton = document.getElementById("saveBloodPressureRetentionButton");
+    const exportBloodPressureButton = document.getElementById("exportBloodPressureButton");
+    const deleteAllBloodPressureButton = document.getElementById("deleteAllBloodPressureButton");
     const linkPatientForm = document.getElementById("linkPatientForm");
     const pairingCodeInput = document.getElementById("pairingCodeInput");
     const linkPatientMessage = document.getElementById("linkPatientMessage");
@@ -1894,11 +1910,19 @@
       if (!patients.length) {
         bloodPressurePatientSelect.disabled = true;
         bloodPressureTable.hidden = true;
+        bloodPressureRetentionSelect.disabled = true;
+        saveBloodPressureRetentionButton.disabled = true;
+        exportBloodPressureButton.disabled = true;
+        deleteAllBloodPressureButton.disabled = true;
         bloodPressureMessage.textContent = "未有連結任何照顧對象。";
         return;
       }
       bloodPressurePatientSelect.disabled = false;
       bloodPressureTable.hidden = false;
+      bloodPressureRetentionSelect.disabled = false;
+      saveBloodPressureRetentionButton.disabled = false;
+      exportBloodPressureButton.disabled = false;
+      deleteAllBloodPressureButton.disabled = false;
       patients.forEach(function (patient) {
         const option = document.createElement("option");
         option.value = patient.user_id;
@@ -1924,10 +1948,30 @@
         const when = document.createElement("td");
         const systolic = document.createElement("td");
         const diastolic = document.createElement("td");
+        const pulse = document.createElement("td");
+        const notes = document.createElement("td");
+        const actions = document.createElement("td");
+        const systolicInput = document.createElement("input");
+        const diastolicInput = document.createElement("input");
+        const pulseInput = document.createElement("input");
+        const notesInput = document.createElement("input");
+        const saveButton = document.createElement("button");
+        const deleteButton = document.createElement("button");
         when.textContent = new Date(reading.measured_at).toLocaleString("zh-HK");
-        systolic.textContent = reading.systolic;
-        diastolic.textContent = reading.diastolic;
-        row.append(when, systolic, diastolic);
+        [[systolicInput, reading.systolic, "上壓"], [diastolicInput, reading.diastolic, "下壓"], [pulseInput, reading.pulse || "", "脈搏"]].forEach(function (entry) {
+          entry[0].type = "number"; entry[0].value = entry[1]; entry[0].setAttribute("aria-label", entry[2]); entry[0].style.width = "5.5rem";
+        });
+        notesInput.value = reading.notes || ""; notesInput.maxLength = 500; notesInput.setAttribute("aria-label", "備註");
+        saveButton.type = deleteButton.type = "button";
+        saveButton.className = "action-button secondary-button small-button"; saveButton.textContent = "儲存";
+        deleteButton.className = "action-button danger-button small-button"; deleteButton.textContent = "刪除";
+        saveButton.addEventListener("click", function () {
+          updateBloodPressureReading(reading.id, systolicInput.value, diastolicInput.value, pulseInput.value, notesInput.value);
+        });
+        deleteButton.addEventListener("click", function () { deleteBloodPressureReading(reading.id); });
+        systolic.append(systolicInput); diastolic.append(diastolicInput); pulse.append(pulseInput); notes.append(notesInput);
+        actions.append(saveButton, deleteButton);
+        row.append(when, systolic, diastolic, pulse, notes, actions);
         bloodPressureTableBody.append(row);
       });
     }
@@ -1940,7 +1984,9 @@
           "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/blood-pressure?limit=30",
         );
         if (!res.ok) throw new Error("failed to load blood pressure readings");
-        renderBloodPressureReadings((await res.json()).readings || []);
+        const body = await res.json();
+        bloodPressureRetentionSelect.value = String(body.retention_days || 0);
+        renderBloodPressureReadings(body.readings || []);
       } catch (err) {
         bloodPressureTableBody.replaceChildren();
         bloodPressureTable.hidden = true;
@@ -1950,6 +1996,58 @@
 
     bloodPressurePatientSelect.addEventListener("change", function () {
       loadBloodPressureReadings(bloodPressurePatientSelect.value);
+    });
+
+    function bloodPressureBaseUrl() {
+      return "/api/me/linked-patients/" + encodeURIComponent(bloodPressurePatientSelect.value) + "/blood-pressure";
+    }
+
+    async function updateBloodPressureReading(readingId, systolic, diastolic, pulse, notes) {
+      try {
+        const res = await apiFetch(bloodPressureBaseUrl() + "/" + readingId, {
+          method: "PATCH", body: JSON.stringify({
+            systolic: Number(systolic), diastolic: Number(diastolic), pulse: pulse ? Number(pulse) : null, notes: notes,
+          }),
+        });
+        if (!res.ok) throw new Error("update failed");
+        bloodPressureMessage.textContent = "已更新血壓記錄。";
+        loadBloodPressureReadings(bloodPressurePatientSelect.value);
+      } catch (err) { bloodPressureMessage.textContent = "更新失敗，請檢查輸入數值。"; }
+    }
+
+    async function deleteBloodPressureReading(readingId) {
+      const confirmed = await openConfirmDialog({ title: "刪除血壓記錄", message: "確定刪除呢一筆血壓記錄？", confirmLabel: "刪除" });
+      if (confirmed === null) return;
+      const res = await apiFetch(bloodPressureBaseUrl() + "/" + readingId, { method: "DELETE" });
+      if (res.ok) loadBloodPressureReadings(bloodPressurePatientSelect.value);
+      else bloodPressureMessage.textContent = "刪除失敗，請稍後再試。";
+    }
+
+    saveBloodPressureRetentionButton.addEventListener("click", async function () {
+      const patientId = encodeURIComponent(bloodPressurePatientSelect.value);
+      const res = await apiFetch("/api/me/linked-patients/" + patientId + "/blood-pressure-retention", {
+        method: "PUT", body: JSON.stringify({ retention_days: Number(bloodPressureRetentionSelect.value) }),
+      });
+      bloodPressureMessage.textContent = res.ok ? "已儲存自動刪除期限。" : "無法儲存期限。";
+      if (res.ok) loadBloodPressureReadings(bloodPressurePatientSelect.value);
+    });
+
+    exportBloodPressureButton.addEventListener("click", async function () {
+      const patientId = encodeURIComponent(bloodPressurePatientSelect.value);
+      const res = await apiFetch("/api/me/linked-patients/" + patientId + "/blood-pressure-export");
+      if (!res.ok) { bloodPressureMessage.textContent = "匯出失敗。"; return; }
+      const url = URL.createObjectURL(await res.blob());
+      const link = document.createElement("a"); link.href = url; link.download = "blood-pressure-readings.csv"; link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    deleteAllBloodPressureButton.addEventListener("click", async function () {
+      const phrase = "刪除全部血壓記錄";
+      const typed = await openConfirmDialog({ title: "刪除全部血壓記錄", message: "呢個操作無法復原。", confirmLabel: "全部刪除", requirePhrase: phrase });
+      if (typed === null) return;
+      const res = await apiFetch(bloodPressureBaseUrl(), { method: "DELETE", body: JSON.stringify({ confirmation: typed }) });
+      if (res.ok) loadBloodPressureReadings(bloodPressurePatientSelect.value);
+      else bloodPressureMessage.textContent = "刪除失敗。";
     });
 
     // ===== Monitoring settings (see the subsection's own HTML comment) =====

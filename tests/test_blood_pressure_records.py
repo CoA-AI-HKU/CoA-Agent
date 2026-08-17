@@ -11,6 +11,10 @@ from src.health.blood_pressure import (
     list_blood_pressure_readings,
     parse_blood_pressure,
     record_blood_pressure,
+    update_blood_pressure_reading,
+    delete_blood_pressure_reading,
+    get_blood_pressure_retention,
+    set_blood_pressure_retention,
 )
 from src import orchestrator
 from src.agents.types import AgentDecision
@@ -23,6 +27,7 @@ from src.agents.types import AgentDecision
         ("血壓 125/78", ParsedBloodPressure(125, 78)),
         ("BP 118 over 72", ParsedBloodPressure(118, 72)),
         ("上壓 132，下壓 84", ParsedBloodPressure(132, 84)),
+        ("血壓 128/79 脈搏 68 備註 晚飯後", ParsedBloodPressure(128, 79, 68, "晚飯後")),
     ],
 )
 def test_parse_blood_pressure_formats(message, expected):
@@ -73,6 +78,8 @@ def test_record_and_list_readings_are_isolated_by_patient():
                 "id": list_blood_pressure_readings(patient_a)[0]["id"],
                 "systolic": 130,
                 "diastolic": 80,
+                "pulse": None,
+                "notes": "",
                 "measured_at": "2026-08-17T08:30:00Z",
             }
         ]
@@ -80,6 +87,35 @@ def test_record_and_list_readings_are_isolated_by_patient():
     finally:
         delete_blood_pressure_readings(patient_a)
         delete_blood_pressure_readings(patient_b)
+
+
+def test_update_and_delete_require_matching_patient_owner():
+    patient_a = "pytest-bp-edit-a"
+    patient_b = "pytest-bp-edit-b"
+    delete_blood_pressure_readings(patient_a)
+    delete_blood_pressure_readings(patient_b)
+    try:
+        reading = record_blood_pressure(patient_a, ParsedBloodPressure(130, 80))
+        assert update_blood_pressure_reading(patient_b, reading.id, systolic=125, diastolic=75) is None
+        updated = update_blood_pressure_reading(
+            patient_a, reading.id, systolic=125, diastolic=75, pulse=68, notes="晚飯後",
+        )
+        assert updated is not None
+        assert (updated["systolic"], updated["diastolic"], updated["pulse"], updated["notes"]) == (125, 75, 68, "晚飯後")
+        assert delete_blood_pressure_reading(patient_b, reading.id) is False
+        assert delete_blood_pressure_reading(patient_a, reading.id) is True
+    finally:
+        delete_blood_pressure_readings(patient_a)
+        delete_blood_pressure_readings(patient_b)
+
+
+def test_retention_setting_is_isolated_by_patient():
+    patient_a = "pytest-bp-retention-a"
+    patient_b = "pytest-bp-retention-b"
+    set_blood_pressure_retention(patient_a, 30)
+    set_blood_pressure_retention(patient_b, 0)
+    assert get_blood_pressure_retention(patient_a) == 30
+    assert get_blood_pressure_retention(patient_b) == 0
 
 
 def test_caregiver_endpoint_uses_link_guard(monkeypatch):

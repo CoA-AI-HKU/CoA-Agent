@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+import csv
+import io
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from backend.services.account_profiles import (
@@ -21,7 +23,14 @@ from backend.services.account_profiles import (
 from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
 from backend.services.firebase_auth import FirebaseUser, delete_user, is_configured, verify_id_token
 from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags
-from src.health.blood_pressure import delete_blood_pressure_readings, list_blood_pressure_readings
+from src.health.blood_pressure import (
+    delete_blood_pressure_reading,
+    delete_blood_pressure_readings,
+    get_blood_pressure_retention,
+    list_blood_pressure_readings,
+    set_blood_pressure_retention,
+    update_blood_pressure_reading,
+)
 from src.user.monitoring_preferences import get_monitoring_preferences, set_monitoring_preferences
 from src.user.user_registry import (
     create_pairing_code,
@@ -424,6 +433,97 @@ def _resolve_linked_patient_sender_id(user: FirebaseUser, patient_user_id: str) 
     return sender_id
 
 
+def _own_blood_pressure_user_id(user: FirebaseUser) -> str:
+    return get_registry_user_id(user.uid) or user.uid
+
+
+class BloodPressureUpdateRequest(BaseModel):
+    systolic: int = Field(ge=50, le=260)
+    diastolic: int = Field(ge=30, le=160)
+    pulse: int | None = Field(default=None, ge=30, le=250)
+    notes: str = Field(default="", max_length=500)
+
+
+class BloodPressureRetentionRequest(BaseModel):
+    retention_days: int
+
+
+class DeleteBloodPressureRequest(BaseModel):
+    confirmation: str = Field(min_length=1, max_length=30)
+
+
+def _update_reading(patient_user_id: str, reading_id: int, payload: BloodPressureUpdateRequest) -> dict[str, object]:
+    try:
+        reading = update_blood_pressure_reading(patient_user_id, reading_id, **payload.model_dump())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if reading is None:
+        raise HTTPException(status_code=404, detail="blood pressure reading not found")
+    return reading
+
+
+def _delete_reading(patient_user_id: str, reading_id: int) -> dict[str, int]:
+    if not delete_blood_pressure_reading(patient_user_id, reading_id):
+        raise HTTPException(status_code=404, detail="blood pressure reading not found")
+    return {"removed": 1}
+
+
+def _export_readings(patient_user_id: str) -> Response:
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["measured_at", "systolic", "diastolic", "pulse", "notes"])
+    for reading in list_blood_pressure_readings(patient_user_id, limit=10000):
+        writer.writerow([reading["measured_at"], reading["systolic"], reading["diastolic"], reading["pulse"] or "", reading["notes"]])
+    return Response(
+        content="\ufeff" + output.getvalue(), media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="blood-pressure-readings.csv"'},
+    )
+
+
+def _set_retention(patient_user_id: str, retention_days: int) -> dict[str, int]:
+    try:
+        return {"retention_days": set_blood_pressure_retention(patient_user_id, retention_days)}
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@me_router.get("/api/me/blood-pressure")
+def get_own_blood_pressure(limit: int = Query(default=30, ge=1, le=90), user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    patient_user_id = _own_blood_pressure_user_id(user)
+    return {"patient_user_id": patient_user_id, "readings": list_blood_pressure_readings(patient_user_id, limit=limit),
+            "retention_days": get_blood_pressure_retention(patient_user_id)}
+
+
+@me_router.patch("/api/me/blood-pressure/{reading_id}")
+def patch_own_blood_pressure(reading_id: int, payload: BloodPressureUpdateRequest,
+                             user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, object]:
+    return _update_reading(_own_blood_pressure_user_id(user), reading_id, payload)
+
+
+@me_router.delete("/api/me/blood-pressure/{reading_id}")
+def delete_own_blood_pressure(reading_id: int, user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    return _delete_reading(_own_blood_pressure_user_id(user), reading_id)
+
+
+@me_router.get("/api/me/blood-pressure-export")
+def export_own_blood_pressure(user: FirebaseUser = Depends(require_firebase_user)) -> Response:
+    return _export_readings(_own_blood_pressure_user_id(user))
+
+
+@me_router.put("/api/me/blood-pressure-retention")
+def put_own_blood_pressure_retention(payload: BloodPressureRetentionRequest,
+                                     user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    return _set_retention(_own_blood_pressure_user_id(user), payload.retention_days)
+
+
+@me_router.delete("/api/me/blood-pressure")
+def delete_all_own_blood_pressure(payload: DeleteBloodPressureRequest,
+                                  user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    if payload.confirmation.strip() != "刪除全部血壓記錄":
+        raise HTTPException(status_code=422, detail="incorrect confirmation text")
+    return {"removed": delete_blood_pressure_readings(_own_blood_pressure_user_id(user))}
+
+
 @me_router.get("/api/me/linked-patients/{patient_user_id}/blood-pressure")
 def get_linked_patient_blood_pressure(
     patient_user_id: str,
@@ -435,7 +535,50 @@ def get_linked_patient_blood_pressure(
     return {
         "patient_user_id": patient_user_id,
         "readings": list_blood_pressure_readings(patient_user_id, limit=limit),
+        "retention_days": get_blood_pressure_retention(patient_user_id),
     }
+
+
+@me_router.patch("/api/me/linked-patients/{patient_user_id}/blood-pressure/{reading_id}")
+def patch_linked_patient_blood_pressure(patient_user_id: str, reading_id: int, payload: BloodPressureUpdateRequest,
+                                        user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, object]:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    return _update_reading(patient_user_id, reading_id, payload)
+
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}/blood-pressure/{reading_id}")
+def delete_linked_patient_blood_pressure(patient_user_id: str, reading_id: int,
+                                         user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    return _delete_reading(patient_user_id, reading_id)
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/blood-pressure-export")
+def export_linked_patient_blood_pressure(patient_user_id: str,
+                                         user: FirebaseUser = Depends(require_firebase_user)) -> Response:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    return _export_readings(patient_user_id)
+
+
+@me_router.put("/api/me/linked-patients/{patient_user_id}/blood-pressure-retention")
+def put_linked_patient_blood_pressure_retention(patient_user_id: str, payload: BloodPressureRetentionRequest,
+                                                user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    return _set_retention(patient_user_id, payload.retention_days)
+
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}/blood-pressure")
+def delete_all_linked_patient_blood_pressure(patient_user_id: str, payload: DeleteBloodPressureRequest,
+                                             user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, int]:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    if payload.confirmation.strip() != "刪除全部血壓記錄":
+        raise HTTPException(status_code=422, detail="incorrect confirmation text")
+    return {"removed": delete_blood_pressure_readings(patient_user_id)}
 
 
 @me_router.get("/api/me/linked-patients/{patient_user_id}/contacts", response_model=list[ContactResponse])
