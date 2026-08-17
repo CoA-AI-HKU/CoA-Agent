@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend.services.account_profiles import (
@@ -21,6 +21,7 @@ from backend.services.account_profiles import (
 from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
 from backend.services.firebase_auth import FirebaseUser, delete_user, is_configured, verify_id_token
 from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags
+from src.health.blood_pressure import delete_blood_pressure_readings, list_blood_pressure_readings
 from src.user.monitoring_preferences import get_monitoring_preferences, set_monitoring_preferences
 from src.user.user_registry import (
     create_pairing_code,
@@ -283,6 +284,7 @@ def delete_linked_patient_account(
         raise HTTPException(status_code=404, detail="patient not found or not linked to this account")
 
     sender_id, _ = get_user_record_by_user_id(patient_user_id)
+    delete_blood_pressure_readings(patient_user_id)
 
     # Local cleanup first: if Firebase deletion below fails, the account is
     # still left in a safe, self-healing state (a login with no profile
@@ -420,6 +422,20 @@ def _resolve_linked_patient_sender_id(user: FirebaseUser, patient_user_id: str) 
     if not sender_id:
         raise HTTPException(status_code=404, detail="patient has no resolvable account")
     return sender_id
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/blood-pressure")
+def get_linked_patient_blood_pressure(
+    patient_user_id: str,
+    limit: int = Query(default=30, ge=1, le=90),
+    user: FirebaseUser = Depends(require_firebase_user),
+) -> dict[str, Any]:
+    _require_permission(user, "caregiver_mode")
+    _resolve_linked_patient_sender_id(user, patient_user_id)
+    return {
+        "patient_user_id": patient_user_id,
+        "readings": list_blood_pressure_readings(patient_user_id, limit=limit),
+    }
 
 
 @me_router.get("/api/me/linked-patients/{patient_user_id}/contacts", response_model=list[ContactResponse])

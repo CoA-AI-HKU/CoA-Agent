@@ -394,6 +394,11 @@
     .subpage-section h2 { margin: 0 0 1rem; font-size: 1.4rem; color: #103b4a; }
 
     .contact-list, .pref-list { display: grid; gap: .7rem; margin: 1rem 0 0; padding: 0; list-style: none; }
+    .table-scroll { margin-top: 1rem; overflow-x: auto; }
+    .records-table { width: 100%; border-collapse: collapse; text-align: left; }
+    .records-table th, .records-table td { padding: .7rem .8rem; border-bottom: 1px solid #c8dadd; }
+    .records-table th { color: #103b4a; background: #eef6f6; font-weight: 700; }
+    .records-table td { color: #244d58; }
 
     .contact-item {
       display: flex;
@@ -765,6 +770,26 @@
         </div>
 
         <div class="subpage-section">
+          <h2>🩺 血壓記錄</h2>
+          <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
+            顯示照顧對象透過小安記下嘅血壓數值。呢啲記錄只作日常跟進，不代表醫療診斷。
+          </p>
+          <div class="form-field">
+            <label for="bloodPressurePatientSelect">照顧對象</label>
+            <select id="bloodPressurePatientSelect"></select>
+          </div>
+          <div class="table-scroll">
+            <table id="bloodPressureTable" class="records-table" aria-label="血壓記錄">
+              <thead>
+                <tr><th scope="col">記錄時間</th><th scope="col">上壓</th><th scope="col">下壓</th></tr>
+              </thead>
+              <tbody id="bloodPressureTableBody"></tbody>
+            </table>
+          </div>
+          <p id="bloodPressureMessage" class="form-message" aria-live="polite"></p>
+        </div>
+
+        <div class="subpage-section">
           <h2>🔗 連結照顧對象</h2>
           <p style="font-size:.95rem; color:#3a5a5f; margin:0 0 .8rem;">
             要連結一個由你照顧嘅人，請對方（喺呢個網頁或者 Telegram）產生一個配對碼，然後喺呢度輸入。
@@ -1029,6 +1054,10 @@
     const monitorCognitiveCheckbox = document.getElementById("monitorCognitiveCheckbox");
     const saveMonitoringButton = document.getElementById("saveMonitoringButton");
     const monitoringMessage = document.getElementById("monitoringMessage");
+    const bloodPressurePatientSelect = document.getElementById("bloodPressurePatientSelect");
+    const bloodPressureTable = document.getElementById("bloodPressureTable");
+    const bloodPressureTableBody = document.getElementById("bloodPressureTableBody");
+    const bloodPressureMessage = document.getElementById("bloodPressureMessage");
     const linkPatientForm = document.getElementById("linkPatientForm");
     const pairingCodeInput = document.getElementById("pairingCodeInput");
     const linkPatientMessage = document.getElementById("linkPatientMessage");
@@ -1852,10 +1881,76 @@
         renderLinkedPatients(patients);
         renderPatientContactSelect(patients);
         renderMonitoringPatientSelect(patients);
+        renderBloodPressurePatientSelect(patients);
       } catch (err) {
         linkPatientMessage.textContent = "無法載入已連結嘅照顧對象，請稍後再試。";
       }
     }
+
+    function renderBloodPressurePatientSelect(patients) {
+      const previousValue = bloodPressurePatientSelect.value;
+      bloodPressurePatientSelect.replaceChildren();
+      bloodPressureTableBody.replaceChildren();
+      if (!patients.length) {
+        bloodPressurePatientSelect.disabled = true;
+        bloodPressureTable.hidden = true;
+        bloodPressureMessage.textContent = "未有連結任何照顧對象。";
+        return;
+      }
+      bloodPressurePatientSelect.disabled = false;
+      bloodPressureTable.hidden = false;
+      patients.forEach(function (patient) {
+        const option = document.createElement("option");
+        option.value = patient.user_id;
+        option.textContent = patient.display_name;
+        bloodPressurePatientSelect.append(option);
+      });
+      const stillLinked = patients.some(function (patient) { return patient.user_id === previousValue; });
+      bloodPressurePatientSelect.value = stillLinked ? previousValue : patients[0].user_id;
+      loadBloodPressureReadings(bloodPressurePatientSelect.value);
+    }
+
+    function renderBloodPressureReadings(readings) {
+      bloodPressureTableBody.replaceChildren();
+      if (!readings.length) {
+        bloodPressureTable.hidden = true;
+        bloodPressureMessage.textContent = "暫時未有血壓記錄。";
+        return;
+      }
+      bloodPressureTable.hidden = false;
+      bloodPressureMessage.textContent = "";
+      readings.forEach(function (reading) {
+        const row = document.createElement("tr");
+        const when = document.createElement("td");
+        const systolic = document.createElement("td");
+        const diastolic = document.createElement("td");
+        when.textContent = new Date(reading.measured_at).toLocaleString("zh-HK");
+        systolic.textContent = reading.systolic;
+        diastolic.textContent = reading.diastolic;
+        row.append(when, systolic, diastolic);
+        bloodPressureTableBody.append(row);
+      });
+    }
+
+    async function loadBloodPressureReadings(patientUserId) {
+      if (!patientUserId) return;
+      bloodPressureMessage.textContent = "載入中…";
+      try {
+        const res = await apiFetch(
+          "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/blood-pressure?limit=30",
+        );
+        if (!res.ok) throw new Error("failed to load blood pressure readings");
+        renderBloodPressureReadings((await res.json()).readings || []);
+      } catch (err) {
+        bloodPressureTableBody.replaceChildren();
+        bloodPressureTable.hidden = true;
+        bloodPressureMessage.textContent = "無法載入血壓記錄，請稍後再試。";
+      }
+    }
+
+    bloodPressurePatientSelect.addEventListener("change", function () {
+      loadBloodPressureReadings(bloodPressurePatientSelect.value);
+    });
 
     // ===== Monitoring settings (see the subsection's own HTML comment) =====
     function renderMonitoringPatientSelect(patients) {

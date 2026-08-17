@@ -4,9 +4,7 @@ import os
 import sys
 import logging
 import json
-import re
 import uuid
-from datetime import datetime
 from typing import Any
 
 from .agents.coordinator_agent import coordinate_message
@@ -41,6 +39,7 @@ from .pipeline.rag_agent import answer_question, build_default_rag_config
 from .pipeline.query_normalization import log_string_diagnostic
 from .rag.execution_metrics import record_retrieval
 from .reminders.trace_logging import log_reminder_checkpoint
+from .health.blood_pressure import parse_blood_pressure, record_blood_pressure
 
 
 logger = logging.getLogger(__name__)
@@ -134,34 +133,32 @@ def handle_dementia_user_message(
             "debug": {"agent": "orchestrator_route_guide"},
         }
     elif decision.route == "blood_pressure":
-        numbers = re.findall(r'\b(\d{2,3})\b', message)
-        sys_val = numbers[0] if len(numbers) > 0 else "??"
-        dia_val = numbers[1] if len(numbers) > 1 else "??"
-
-        log_path = "data/private/health_logs.json"
-        entry = {
-            "user_id": user_id,
-            "type": "blood_pressure",
-            "systolic": sys_val,
-            "diastolic": dia_val,
-            "timestamp": datetime.now().isoformat(),
-        }
-        try:
-            os.makedirs(os.path.dirname(log_path), exist_ok=True)
-            with open(log_path, "a", encoding="utf-8") as f:
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        except Exception as e:
-            logger.warning(f"无法写入血压日志文件: {e}")
-
-        response_text = f"收到你嘅血壓紀錄！上壓 {sys_val}，下壓 {dia_val}。我幫你記低咗啦！聽日會提你再量一次。"
+        parsed = parse_blood_pressure(message)
+        if parsed is None:
+            response_text = "請問上壓同下壓分別係幾多？例如：血壓 130 80。"
+            safety_level = "blood_pressure_needs_values"
+            found = False
+            reading_id = None
+        else:
+            reading = record_blood_pressure(
+                str(user_id or sender_id), parsed, source_channel=channel,
+            )
+            response_text = (
+                "收到你嘅血壓記錄，已經幫你記低咗。"
+                f"上壓 {parsed.systolic}、下壓 {parsed.diastolic}。"
+            )
+            safety_level = "blood_pressure_recorded"
+            found = True
+            reading_id = reading.id
         result = {
             "answer": response_text,
             "intent": decision.intent,
-            "found": True,
+            "found": found,
             "sources": [],
             "rag_called": False,
             "route": "blood_pressure",
-            "debug": {"agent": "orchestrator_blood_pressure"},
+            "safety_level": safety_level,
+            "debug": {"agent": "orchestrator_blood_pressure", "reading_id": reading_id},
         }
     elif decision.route == "activity":
         result = handle_activity_request(message, user_id)

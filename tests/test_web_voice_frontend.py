@@ -243,6 +243,17 @@ def test_caregiver_mode_has_a_monitoring_settings_menu():
     assert "商量" in caregiver_section
 
 
+def test_caregiver_mode_has_blood_pressure_record_columns():
+    caregiver_section = INDEX[INDEX.index('<section id="caregiverMode"'):INDEX.index('<section id="developerMode"')]
+    assert 'id="bloodPressurePatientSelect"' in caregiver_section
+    assert 'id="bloodPressureTable"' in caregiver_section
+    assert 'id="bloodPressureTableBody"' in caregiver_section
+    assert '<th scope="col">記錄時間</th>' in caregiver_section
+    assert '<th scope="col">上壓</th>' in caregiver_section
+    assert '<th scope="col">下壓</th>' in caregiver_section
+    assert '"/blood-pressure?limit=30"' in INDEX
+
+
 def test_monitoring_settings_disabled_when_no_linked_patients():
     fn = INDEX[INDEX.index("function renderMonitoringPatientSelect"):INDEX.index("async function loadMonitoringPreferences")]
     assert "monitorSafetyCheckbox.disabled = true" in fn
