@@ -6,7 +6,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-from backend.api import auth, caregiver, chat, health, web_account, web_chat
+from backend.api import health, web_account, web_chat
 
 
 logger = logging.getLogger(__name__)
@@ -42,9 +42,6 @@ def create_app() -> FastAPI:
     app = FastAPI(title="CoA-Agent Web API", version="1.0.0")
     app.include_router(health.router)
     app.include_router(web_chat.router)
-    app.include_router(chat.router)
-    app.include_router(auth.router)
-    app.include_router(caregiver.router)
     app.include_router(web_account.router)
     app.include_router(web_account.me_router)
 

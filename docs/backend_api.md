@@ -10,40 +10,31 @@ caregiver-dashboard login. Start the backend on loopback with:
 uvicorn backend.main:app --host 127.0.0.1 --port 8081
 ```
 
-## Channel authentication API
+## Authentication and chat contract
 
-Register an account with `POST /v1/auth/register`, or create a session for an existing account with `POST /v1/auth/login`. Both return a 24-hour bearer token. Account tokens can send chat messages only for their own `sender_id`.
-
-Trusted transport adapters such as Telegram use a strong secret supplied as `COA_SERVICE_TOKEN` to the backend and adapter. A service token may relay messages for multiple platform user IDs; it must never be embedded in a browser or mobile app.
-
-## Chat contract
-
-`POST /v1/chat`:
+Browser requests use `POST /api/chat` with a verified Firebase ID token in the `Authorization: Bearer ...` header. The server derives the user ID from that verified token; clients cannot supply another user ID.
 
 ```json
 {
-  "user_id": "platform-user-id",
   "message": "Hello",
-  "platform": "web",
-  "metadata": {}
+  "session_id": "browser-session",
+  "input_mode": "text"
 }
 ```
 
-Response:
+The response contains only `reply`, `language`, and `session_id`. `GET /health` reports API availability. The former `/v1/auth`, `/v1/chat`, and `/v1/caregiver` routes have been retired; trusted channel adapters call the shared conversation service internally.
 
-```json
-{
-  "response": "...",
-  "tts": "...",
-  "events": [],
-  "metadata": {"role": "user", "route": "..."}
-}
+## Blood-pressure records
+
+When a patient sends a reading such as `我今日血壓130 80`, the shared conversation pipeline validates and stores the structured systolic and diastolic values under that patient's canonical user ID. It does not interpret the reading or provide a diagnosis.
+
+An authenticated caregiver can read up to 90 recent records for a linked patient with:
+
+```text
+GET /api/me/linked-patients/{patient_user_id}/blood-pressure?limit=30
 ```
 
-The modules under `/v1` remain available for trusted channel integrations but
-are not included in the dedicated browser app. The browser-safe `POST /api/chat`
-returns only `reply`, `language`, and `session_id`; `GET /health` reports API
-availability.
+The existing caregiver permission and patient-link checks apply. Unlinked patient IDs are not readable.
 
 Nginx is the single browser-facing origin and proxies `/api/chat` and
 `/health` to that one backend. See `deploy/nginx/coa-agent.conf`.
