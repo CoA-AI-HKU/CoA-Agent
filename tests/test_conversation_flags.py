@@ -159,3 +159,50 @@ def test_no_raw_message_text_is_ever_stored():
         assert "super-secret-detail-xyz" not in flags[0]["reason"]
     finally:
         _cleanup(sender_id)
+
+
+def test_sleep_signal_requires_both_request_and_patient_consent(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-sleep-consent"
+    monitoring_preferences.set_monitoring_preferences(sender_id, sleep=True)
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "我成晚瞓唔著", answer_callable=None)
+        assert conversation_flags.get_recent_flags(sender_id) == []
+        monitoring_preferences.set_patient_monitoring_consent(sender_id, sleep=True)
+        conversation_flags.maybe_flag_turn(sender_id, "我成晚瞓唔著", answer_callable=None)
+        flags = conversation_flags.get_recent_flags(sender_id)
+        assert len(flags) == 1
+        assert flags[0]["flag_type"] == "sleep"
+    finally:
+        _cleanup(sender_id)
+
+
+def test_daily_activity_and_routine_adherence_signals_are_recorded(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-activity-routine"
+    monitoring_preferences.set_monitoring_preferences(sender_id, daily_activity=True, routine_adherence=True)
+    monitoring_preferences.set_patient_monitoring_consent(sender_id, daily_activity=True, routine_adherence=True)
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "今日沖涼都做唔到", answer_callable=None)
+        conversation_flags.maybe_flag_turn(sender_id, "我唔記得食藥", answer_callable=None)
+        types = {flag["flag_type"] for flag in conversation_flags.get_recent_flags(sender_id)}
+        assert types == {"daily_activity", "routine_adherence"}
+    finally:
+        _cleanup(sender_id)
+
+
+def test_monitoring_history_returns_counts_and_threshold_status(tmp_path, monkeypatch):
+    monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
+    sender_id = "pytest-flag-history"
+    monitoring_preferences.set_monitoring_preferences(sender_id, sleep=True)
+    monitoring_preferences.set_patient_monitoring_consent(sender_id, sleep=True)
+    monitoring_preferences.set_monitoring_thresholds(sender_id, sleep=2)
+    try:
+        conversation_flags.maybe_flag_turn(sender_id, "我瞓唔著", answer_callable=None)
+        history = conversation_flags.get_monitoring_history(sender_id)
+        assert history["counts"]["sleep"] == 1
+        assert history["threshold_met"]["sleep"] is False
+        conversation_flags.maybe_flag_turn(sender_id, "今晚又失眠", answer_callable=None)
+        assert conversation_flags.get_monitoring_history(sender_id)["threshold_met"]["sleep"] is True
+    finally:
+        _cleanup(sender_id)

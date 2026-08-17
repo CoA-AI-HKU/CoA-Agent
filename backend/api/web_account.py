@@ -22,7 +22,7 @@ from backend.services.account_profiles import (
 )
 from backend.services.accounts_database import SessionLocal, WebAccountProfile, WebContact
 from backend.services.firebase_auth import FirebaseUser, delete_user, is_configured, verify_id_token
-from src.user.conversation_flags import delete_flags_for_sender, get_recent_flags
+from src.user.conversation_flags import delete_flags_for_sender, get_monitoring_history, get_recent_flags
 from src.health.blood_pressure import (
     delete_blood_pressure_reading,
     delete_blood_pressure_readings,
@@ -31,7 +31,13 @@ from src.health.blood_pressure import (
     set_blood_pressure_retention,
     update_blood_pressure_reading,
 )
-from src.user.monitoring_preferences import get_monitoring_preferences, set_monitoring_preferences
+from src.user.monitoring_preferences import (
+    get_monitoring_preferences,
+    set_monitoring_pause,
+    set_monitoring_preferences,
+    set_monitoring_thresholds,
+    set_patient_monitoring_consent,
+)
 from src.user.user_registry import (
     create_pairing_code,
     get_caregiver_records_for_user,
@@ -653,15 +659,63 @@ class MonitoringPreferencesRequest(BaseModel):
     # set_monitoring_preferences's partial-update semantics).
     safety: bool | None = None
     cognitive_decline: bool | None = None
+    sleep: bool | None = None
+    daily_activity: bool | None = None
+    routine_adherence: bool | None = None
+    thresholds: dict[str, int] | None = None
+    pause_until: str | None = None
+
+
+class MonitoringConsentRequest(BaseModel):
+    safety: bool | None = None
+    cognitive_decline: bool | None = None
+    sleep: bool | None = None
+    daily_activity: bool | None = None
+    routine_adherence: bool | None = None
+
+
+class MonitoringPauseRequest(BaseModel):
+    pause_until: str | None = None
+
+
+@me_router.get("/api/me/monitoring-consent")
+def get_own_monitoring_consent(user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    return get_monitoring_preferences(user.uid)
+
+
+@me_router.put("/api/me/monitoring-consent")
+def put_own_monitoring_consent(payload: MonitoringConsentRequest,
+                               user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    return set_patient_monitoring_consent(user.uid, **payload.model_dump())
+
+
+@me_router.put("/api/me/monitoring-pause")
+def put_own_monitoring_pause(payload: MonitoringPauseRequest,
+                             user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    return set_monitoring_pause(user.uid, payload.pause_until)
+
+
+@me_router.get("/api/me/monitoring-history")
+def get_own_monitoring_history(days: int = Query(default=14, ge=1, le=14),
+                               user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    return get_monitoring_history(user.uid, days=days)
 
 
 @me_router.get("/api/me/linked-patients/{patient_user_id}/monitoring")
 def get_linked_patient_monitoring(
     patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user),
-) -> dict[str, bool]:
+) -> dict[str, Any]:
     _require_permission(user, "caregiver_mode")
     sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
     return get_monitoring_preferences(sender_id)
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/monitoring-history")
+def get_linked_patient_monitoring_history(patient_user_id: str, days: int = Query(default=14, ge=1, le=14),
+                                          user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, Any]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    return get_monitoring_history(sender_id, days=days)
 
 
 @me_router.put("/api/me/linked-patients/{patient_user_id}/monitoring")
@@ -669,12 +723,21 @@ def put_linked_patient_monitoring(
     patient_user_id: str,
     payload: MonitoringPreferencesRequest,
     user: FirebaseUser = Depends(require_firebase_user),
-) -> dict[str, bool]:
-    # Which flag categories (see src/user/conversation_flags.py) get
-    # recorded for this one patient going forward — meant to be a decision
-    # the caregiver and patient make together (see the UI copy in
-    # web/index.html), operated from the caregiver's side since that's
-    # where the rest of the monitoring/alerts surface already lives.
+) -> dict[str, Any]:
+    # The caregiver selects requested categories; effective monitoring is
+    # still independently gated by the patient's own consent settings.
     _require_permission(user, "caregiver_mode")
     sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
-    return set_monitoring_preferences(sender_id, safety=payload.safety, cognitive_decline=payload.cognitive_decline)
+    preferences = set_monitoring_preferences(
+        sender_id, safety=payload.safety, cognitive_decline=payload.cognitive_decline,
+        sleep=payload.sleep, daily_activity=payload.daily_activity,
+        routine_adherence=payload.routine_adherence,
+    )
+    if payload.thresholds is not None:
+        try:
+            preferences = set_monitoring_thresholds(sender_id, **payload.thresholds)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if payload.pause_until is not None:
+        preferences = set_monitoring_pause(sender_id, payload.pause_until)
+    return preferences

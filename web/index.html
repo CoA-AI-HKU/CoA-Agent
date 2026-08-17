@@ -727,6 +727,26 @@
             <p id="companionPairingCodeMessage" class="form-message" aria-live="polite"></p>
           </div>
         </div>
+
+        <div class="subpage-section" aria-labelledby="gamePrivacyTitle">
+          <h2 id="gamePrivacyTitle">🎮 遊戲私隱</h2>
+          <p><strong>本網站內置：</strong>成語遊戲、2048、配對遊戲。</p>
+          <p><strong>第三方網站：</strong>麻雀（MahJongo）。開啟前會再次確認，對方可能使用 cookies 並收集裝置及使用資料。</p>
+          <p>CoA-Agent 唔會傳送你嘅帳戶、病人識別碼或對話內容，亦唔會記錄遊戲完成情況、分數或表現。遊戲只供消閒，唔係認知測試或醫療診斷。</p>
+        </div>
+
+        <div class="subpage-section" aria-labelledby="monitoringConsentTitle">
+          <h2 id="monitoringConsentTitle">🔐 我嘅監測同意</h2>
+          <p>每一項都由你自己決定。取消同意後，該類別會立即停止；唔會儲存完整對話。</p>
+          <div class="pref-row"><label for="consentMonitorSafety">安全提示</label><input id="consentMonitorSafety" type="checkbox"></div>
+          <div class="pref-row"><label for="consentMonitorCognitive">記憶／認知提示</label><input id="consentMonitorCognitive" type="checkbox"></div>
+          <div class="pref-row"><label for="consentMonitorSleep">睡眠問題</label><input id="consentMonitorSleep" type="checkbox"></div>
+          <div class="pref-row"><label for="consentMonitorDaily">日常活動</label><input id="consentMonitorDaily" type="checkbox"></div>
+          <div class="pref-row"><label for="consentMonitorRoutine">日常安排／用藥依從</label><input id="consentMonitorRoutine" type="checkbox"></div>
+          <div class="form-field"><label for="monitoringPauseUntil">暫停監測至</label><input id="monitoringPauseUntil" type="datetime-local"></div>
+          <button id="saveMonitoringConsentButton" class="action-button send-button" type="button">儲存我嘅決定</button>
+          <p id="monitoringConsentMessage" class="form-message" aria-live="polite"></p>
+        </div>
       </section>
 
       <!-- ===== Caregiver Mode ===== -->
@@ -765,7 +785,17 @@
             <label for="monitorCognitiveCheckbox">🧠 認知狀況提示（例如重複提問、對時間地點感到混亂）</label>
             <input id="monitorCognitiveCheckbox" type="checkbox">
           </div>
+          <div class="pref-row"><label for="monitorSleepCheckbox">😴 睡眠問題提示</label><input id="monitorSleepCheckbox" type="checkbox"></div>
+          <div class="pref-row"><label for="monitorDailyCheckbox">🚶 日常活動困難提示</label><input id="monitorDailyCheckbox" type="checkbox"></div>
+          <div class="pref-row"><label for="monitorRoutineCheckbox">🗓️ 日常安排／用藥依從提示</label><input id="monitorRoutineCheckbox" type="checkbox"></div>
+          <div class="form-field">
+            <label for="monitoringThreshold">通知門檻（14 日內同類提示次數）</label>
+            <input id="monitoringThreshold" type="number" min="1" max="10" value="1">
+          </div>
+          <div class="form-field"><label for="caregiverPauseUntil">暫停全部監測至</label><input id="caregiverPauseUntil" type="datetime-local"></div>
           <button id="saveMonitoringButton" class="action-button send-button" type="button">儲存設定</button>
+          <h3>近 14 日監測趨勢</h3>
+          <ul id="monitoringHistoryList" class="contact-list" aria-label="監測趨勢及歷史"></ul>
           <p id="monitoringMessage" class="form-message" aria-live="polite"></p>
         </div>
 
@@ -1064,8 +1094,22 @@
     const monitoringPatientSelect = document.getElementById("monitoringPatientSelect");
     const monitorSafetyCheckbox = document.getElementById("monitorSafetyCheckbox");
     const monitorCognitiveCheckbox = document.getElementById("monitorCognitiveCheckbox");
+    const monitorSleepCheckbox = document.getElementById("monitorSleepCheckbox");
+    const monitorDailyCheckbox = document.getElementById("monitorDailyCheckbox");
+    const monitorRoutineCheckbox = document.getElementById("monitorRoutineCheckbox");
+    const monitoringThreshold = document.getElementById("monitoringThreshold");
+    const caregiverPauseUntil = document.getElementById("caregiverPauseUntil");
+    const monitoringHistoryList = document.getElementById("monitoringHistoryList");
     const saveMonitoringButton = document.getElementById("saveMonitoringButton");
     const monitoringMessage = document.getElementById("monitoringMessage");
+    const consentMonitorSafety = document.getElementById("consentMonitorSafety");
+    const consentMonitorCognitive = document.getElementById("consentMonitorCognitive");
+    const consentMonitorSleep = document.getElementById("consentMonitorSleep");
+    const consentMonitorDaily = document.getElementById("consentMonitorDaily");
+    const consentMonitorRoutine = document.getElementById("consentMonitorRoutine");
+    const monitoringPauseUntil = document.getElementById("monitoringPauseUntil");
+    const saveMonitoringConsentButton = document.getElementById("saveMonitoringConsentButton");
+    const monitoringConsentMessage = document.getElementById("monitoringConsentMessage");
     const bloodPressurePatientSelect = document.getElementById("bloodPressurePatientSelect");
     const bloodPressureTable = document.getElementById("bloodPressureTable");
     const bloodPressureTableBody = document.getElementById("bloodPressureTableBody");
@@ -1199,6 +1243,7 @@
       renderModeSwitcher();
       if (mode === "caregiver") { loadContacts(); loadConversationFlags(); loadLinkedPatients(); }
       if (mode === "companion" || mode === "caregiver") { loadLinkedCaregivers(); }
+      if (mode === "companion") loadMonitoringConsent();
       if (mode === "developer") { devRecognitionLanguage.textContent = "辨識語言：" + currentRecognitionLanguage(); }
     }
 
@@ -1505,6 +1550,45 @@
     // pattern speak() below uses for the same reason.
     let companionListeningGeneration = 0;
 
+    const GAME_CATALOG = [
+      { name: "2048", keywords: ["2048"], url: "./games/2048.html", external: false },
+      { name: "配對遊戲", keywords: ["配對", "配对"], url: "./games/memory.html", external: false },
+      { name: "成語遊戲", keywords: ["成語", "成语"], url: "./games/idioms.html", external: false },
+      {
+        name: "麻雀（MahJongo）", keywords: ["打麻雀", "麻雀"], url: "https://mahjongo.com/zh-TW",
+        external: true, provider: "mahjongo.com", privacyUrl: "https://mahjongo.com/privacy",
+      },
+    ];
+
+    function findRequestedGame(text) {
+      return GAME_CATALOG.find(function (game) {
+        return game.keywords.some(function (keyword) { return text.includes(keyword); });
+      }) || null;
+    }
+
+    async function launchGameWithConsent(game) {
+      const message = game.external
+        ? "「" + game.name + "」係第三方網站（" + game.provider + "）。對方嘅私隱政策表示會使用 cookies，並可能收集瀏覽器、裝置、進入時間、來源頁面、點擊及使用資料；如你註冊，亦可能收集電郵。CoA-Agent 唔會將帳戶、病人識別碼、對話、分數或表現傳送過去。私隱政策：" + game.privacyUrl
+        : "「" + game.name + "」係本網站內置遊戲。CoA-Agent 唔會記錄你有冇完成、分數、步驟或表現。遊戲只供消閒，唔係認知測試，亦唔可以用作診斷。";
+      const confirmed = await openConfirmDialog({
+        title: game.external ? "開啟第三方遊戲？" : "開啟內置遊戲？",
+        message: message,
+        confirmLabel: game.external ? "同意並前往" : "開始遊戲",
+        danger: false,
+      });
+      if (confirmed === null) return;
+
+      const destination = new URL(game.url, window.location.origin);
+      // Never forward account/session/patient identifiers—or even the
+      // current CoA-Agent page as a referrer—to a third-party game.
+      if (game.external) {
+        destination.search = "";
+        destination.hash = "";
+      }
+      const opened = window.open(destination.toString(), "_blank", "noopener,noreferrer");
+      if (opened) opened.opener = null;
+    }
+
     function startCompanionListening() {
       playBeep();
       companionNoSpeechRetried = false;
@@ -1546,45 +1630,15 @@
           // pipeline (e.g. a misheard medication name).
           if (info && info.lowConfidence) { companionError("unclear-speech"); return; }
 
-          // ===== 前端拦截：用户想玩游戏（完全前端处理） =====
-          // 🆕 建立遊戲關鍵字與外部網址的對照表
-          const gameMap = {
-            "2048": "./games/2048.html",
-            "麻雀": "https://mahjongo.com/zh-TW",
-            "打麻雀": "https://mahjongo.com/zh-TW",
-            "配對": "./games/memory.html",
-            "配对": "./games/memory.html",
-            "成語": "./games/idioms.html",
-            "成语": "./games/idioms.html",
-            "益智": "https://www.ha365.com/tags/brain-games",
-            "益智遊戲": "https://www.ha365.com/tags/brain-games"
-          };
-          let targetGameUrl = null;
-          let gameName = "益智遊戲";
-
-          // 🆕 迴圈檢查使用者說的文字
-          for (const [keyword, url] of Object.entries(gameMap)) {
-            if (finalText.includes(keyword)) {
-              targetGameUrl = url;
-
-              // 🆕 針對語音辨識錯誤做修正
-              if (keyword === "成語" || keyword === "成语" || keyword === "益智" || keyword === "益智遊戲") {
-                gameName = "成語/益智遊戲";
-              } else {
-                gameName = keyword;
-              }
-              break;
-            }
-          }
-          if (targetGameUrl) {
-            // 🛠️ 核心修复：先强制停掉录音，解除卡死状态
+          // Game launches are handled entirely in the browser. CoA-Agent
+          // deliberately does not record starts, completion, scores, moves,
+          // or performance: these are leisure activities, not assessments.
+          const game = findRequestedGame(finalText);
+          if (game) {
             if (companionProvider) companionProvider.stop();
             setCompanionState("idle");
-
-            if (confirm(`🧠 你確定要玩「${gameName}」嗎？點擊「確定」會幫你打開新分頁喔！`)) {
-              window.open(targetGameUrl, "_blank");
-            }
-            return; // 不再发送到后端
+            launchGameWithConsent(game);
+            return;
           }
 
           // 非游戏意图，恢复原有后端流程
@@ -2050,6 +2104,61 @@
       else bloodPressureMessage.textContent = "刪除失敗。";
     });
 
+    async function loadMonitoringConsent() {
+      if (!firebaseIdToken) return;
+      try {
+        const res = await apiFetch("/api/me/monitoring-consent");
+        if (!res.ok) throw new Error("failed");
+        const preferences = await res.json();
+        const consent = preferences.consent || {};
+        consentMonitorSafety.checked = !!consent.safety;
+        consentMonitorCognitive.checked = !!consent.cognitive_decline;
+        consentMonitorSleep.checked = !!consent.sleep;
+        consentMonitorDaily.checked = !!consent.daily_activity;
+        consentMonitorRoutine.checked = !!consent.routine_adherence;
+        monitoringPauseUntil.value = preferences.pause_until ? preferences.pause_until.slice(0, 16) : "";
+      } catch (err) { monitoringConsentMessage.textContent = "無法載入監測同意設定。"; }
+    }
+
+    saveMonitoringConsentButton.addEventListener("click", async function () {
+      try {
+        const consentRes = await apiFetch("/api/me/monitoring-consent", { method: "PUT", body: JSON.stringify({
+          safety: consentMonitorSafety.checked, cognitive_decline: consentMonitorCognitive.checked,
+          sleep: consentMonitorSleep.checked, daily_activity: consentMonitorDaily.checked,
+          routine_adherence: consentMonitorRoutine.checked,
+        }) });
+        if (!consentRes.ok) throw new Error("consent failed");
+        const pauseRes = await apiFetch("/api/me/monitoring-pause", { method: "PUT", body: JSON.stringify({
+          pause_until: monitoringPauseUntil.value ? new Date(monitoringPauseUntil.value).toISOString() : "",
+        }) });
+        if (!pauseRes.ok) throw new Error("pause failed");
+        monitoringConsentMessage.textContent = "已儲存你嘅監測決定。";
+      } catch (err) { monitoringConsentMessage.textContent = "儲存失敗，請稍後再試。"; }
+    });
+
+    const MONITORING_LABELS = {
+      safety: "安全", cognitive_decline: "記憶／認知", sleep: "睡眠",
+      daily_activity: "日常活動", routine_adherence: "日常安排／用藥依從",
+    };
+
+    async function loadMonitoringHistory(patientUserId) {
+      monitoringHistoryList.replaceChildren();
+      try {
+        const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring-history?days=14");
+        if (!res.ok) throw new Error("history failed");
+        const data = await res.json();
+        Object.keys(MONITORING_LABELS).forEach(function (category) {
+          const item = document.createElement("li"); item.className = "contact-item";
+          item.textContent = MONITORING_LABELS[category] + "：" + (data.counts[category] || 0) + " 次" +
+            (data.threshold_met[category] ? "（已達通知門檻）" : "");
+          monitoringHistoryList.append(item);
+        });
+      } catch (err) {
+        const item = document.createElement("li"); item.className = "contact-item";
+        item.textContent = "無法載入監測趨勢。"; monitoringHistoryList.append(item);
+      }
+    }
+
     // ===== Monitoring settings (see the subsection's own HTML comment) =====
     function renderMonitoringPatientSelect(patients) {
       const previousValue = monitoringPatientSelect.value;
@@ -2057,6 +2166,9 @@
       if (!patients.length) {
         monitorSafetyCheckbox.disabled = true;
         monitorCognitiveCheckbox.disabled = true;
+        monitorSleepCheckbox.disabled = true;
+        monitorDailyCheckbox.disabled = true;
+        monitorRoutineCheckbox.disabled = true;
         saveMonitoringButton.disabled = true;
         monitoringMessage.textContent = "未有連結任何照顧對象，請先喺上面連結一位。";
         monitoringMessage.classList.remove("error-message");
@@ -2064,6 +2176,9 @@
       }
       monitorSafetyCheckbox.disabled = false;
       monitorCognitiveCheckbox.disabled = false;
+      monitorSleepCheckbox.disabled = false;
+      monitorDailyCheckbox.disabled = false;
+      monitorRoutineCheckbox.disabled = false;
       saveMonitoringButton.disabled = false;
       patients.forEach(function (patient) {
         const option = document.createElement("option");
@@ -2086,6 +2201,22 @@
         const preferences = await res.json();
         monitorSafetyCheckbox.checked = preferences.safety;
         monitorCognitiveCheckbox.checked = preferences.cognitive_decline;
+        monitorSleepCheckbox.checked = preferences.sleep;
+        monitorDailyCheckbox.checked = preferences.daily_activity;
+        monitorRoutineCheckbox.checked = preferences.routine_adherence;
+        monitoringThreshold.value = preferences.thresholds.sleep || 1;
+        caregiverPauseUntil.value = preferences.pause_until ? preferences.pause_until.slice(0, 16) : "";
+        const awaitingConsent = Object.keys(MONITORING_LABELS).filter(function (category) {
+          return preferences.requested[category] && !preferences.consent[category];
+        });
+        if (preferences.is_paused) {
+          monitoringMessage.textContent = "監測現正暫停，設定會保留。";
+        } else if (awaitingConsent.length) {
+          monitoringMessage.textContent = "等待照顧對象同意：" + awaitingConsent.map(function (category) {
+            return MONITORING_LABELS[category];
+          }).join("、");
+        }
+        loadMonitoringHistory(patientUserId);
       } catch (err) {
         monitoringMessage.textContent = "無法載入監測設定，請稍後再試。";
         monitoringMessage.classList.add("error-message");
@@ -2104,14 +2235,24 @@
           "/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring",
           {
             method: "PUT",
-            body: JSON.stringify({
-              safety: monitorSafetyCheckbox.checked,
-              cognitive_decline: monitorCognitiveCheckbox.checked,
-            }),
+          body: JSON.stringify({
+            safety: monitorSafetyCheckbox.checked,
+            cognitive_decline: monitorCognitiveCheckbox.checked,
+            sleep: monitorSleepCheckbox.checked,
+            daily_activity: monitorDailyCheckbox.checked,
+            routine_adherence: monitorRoutineCheckbox.checked,
+            thresholds: {
+              safety: Number(monitoringThreshold.value), cognitive_decline: Number(monitoringThreshold.value),
+              sleep: Number(monitoringThreshold.value), daily_activity: Number(monitoringThreshold.value),
+              routine_adherence: Number(monitoringThreshold.value),
+            },
+            pause_until: caregiverPauseUntil.value ? new Date(caregiverPauseUntil.value).toISOString() : "",
+          }),
           },
         );
         if (!res.ok) throw new Error("failed to save monitoring preferences");
         monitoringMessage.textContent = "監測設定已儲存。";
+        loadMonitoringHistory(patientUserId);
         monitoringMessage.classList.remove("error-message");
       } catch (err) {
         monitoringMessage.textContent = "儲存失敗，請稍後再試。";

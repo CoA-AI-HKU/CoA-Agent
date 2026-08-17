@@ -237,6 +237,12 @@ def test_caregiver_mode_has_a_monitoring_settings_menu():
     assert 'id="monitoringPatientSelect"' in caregiver_section
     assert 'id="monitorSafetyCheckbox"' in caregiver_section
     assert 'id="monitorCognitiveCheckbox"' in caregiver_section
+    assert 'id="monitorSleepCheckbox"' in caregiver_section
+    assert 'id="monitorDailyCheckbox"' in caregiver_section
+    assert 'id="monitorRoutineCheckbox"' in caregiver_section
+    assert 'id="monitoringThreshold"' in caregiver_section
+    assert 'id="caregiverPauseUntil"' in caregiver_section
+    assert 'id="monitoringHistoryList"' in caregiver_section
     assert 'id="saveMonitoringButton"' in caregiver_section
     # Framed as a joint decision, per the actual request — not a unilateral
     # caregiver-only setting.
@@ -271,6 +277,9 @@ def test_monitoring_settings_disabled_when_no_linked_patients():
     fn = INDEX[INDEX.index("function renderMonitoringPatientSelect"):INDEX.index("async function loadMonitoringPreferences")]
     assert "monitorSafetyCheckbox.disabled = true" in fn
     assert "monitorCognitiveCheckbox.disabled = true" in fn
+    assert "monitorSleepCheckbox.disabled = true" in fn
+    assert "monitorDailyCheckbox.disabled = true" in fn
+    assert "monitorRoutineCheckbox.disabled = true" in fn
     assert "saveMonitoringButton.disabled = true" in fn
 
 
@@ -279,14 +288,38 @@ def test_monitoring_preferences_load_for_the_selected_patient():
     assert '"/api/me/linked-patients/" + encodeURIComponent(patientUserId) + "/monitoring"' in fn
     assert "monitorSafetyCheckbox.checked = preferences.safety" in fn
     assert "monitorCognitiveCheckbox.checked = preferences.cognitive_decline" in fn
+    assert "monitorSleepCheckbox.checked = preferences.sleep" in fn
+    assert "monitorDailyCheckbox.checked = preferences.daily_activity" in fn
+    assert "monitorRoutineCheckbox.checked = preferences.routine_adherence" in fn
 
 
-def test_saving_monitoring_preferences_sends_both_checkbox_states():
+def test_saving_monitoring_preferences_sends_all_categories_and_controls():
     start = INDEX.index("saveMonitoringButton.addEventListener")
-    fn = INDEX[start : start + 900]
+    fn = INDEX[start : start + 1800]
     assert 'method: "PUT"' in fn
     assert "safety: monitorSafetyCheckbox.checked" in fn
     assert "cognitive_decline: monitorCognitiveCheckbox.checked" in fn
+    assert "sleep: monitorSleepCheckbox.checked" in fn
+    assert "daily_activity: monitorDailyCheckbox.checked" in fn
+    assert "routine_adherence: monitorRoutineCheckbox.checked" in fn
+    assert "thresholds:" in fn
+    assert "pause_until:" in fn
+
+
+def test_companion_controls_monitoring_consent_and_pause():
+    companion_section = INDEX[INDEX.index('<section id="companionMode"'):INDEX.index('<section id="caregiverMode"')]
+    assert 'id="consentMonitorSleep"' in companion_section
+    assert 'id="consentMonitorDaily"' in companion_section
+    assert 'id="consentMonitorRoutine"' in companion_section
+    assert 'id="monitoringPauseUntil"' in companion_section
+    assert '"/api/me/monitoring-consent"' in INDEX
+    assert '"/api/me/monitoring-pause"' in INDEX
+
+
+def test_monitoring_history_is_loaded_for_selected_patient():
+    assert '"/monitoring-history"' in INDEX
+    assert "MONITORING_LABELS" in INDEX
+    assert "threshold_met" in INDEX
 
 
 def test_caregiver_mode_has_a_patient_specific_contacts_section():
@@ -482,3 +515,31 @@ def test_frontend_does_not_store_or_log_conversation_or_embed_secrets():
     assert "console.log(message" not in INDEX
     assert "localStorage.setItem" not in INDEX
     assert "sessionStorage.setItem" not in INDEX
+
+
+def test_game_launcher_labels_internal_and_external_games_and_requires_confirmation():
+    assert 'external: true, provider: "mahjongo.com"' in INDEX
+    assert 'external: false' in INDEX
+    assert 'title: game.external ? "開啟第三方遊戲？" : "開啟內置遊戲？"' in INDEX
+    assert "await openConfirmDialog(" in INDEX[INDEX.index("async function launchGameWithConsent"):]
+    assert "confirm(`🧠" not in INDEX
+    assert 'name: "成語遊戲", keywords: ["成語", "成语"]' in INDEX
+    assert '"益智遊戲"' not in INDEX
+    assert '"益智"' not in INDEX
+
+
+def test_external_game_launch_does_not_forward_identifiers_or_referrer():
+    fn = INDEX[INDEX.index("async function launchGameWithConsent"):INDEX.index("function startCompanionListening")]
+    assert 'destination.search = ""' in fn
+    assert 'destination.hash = ""' in fn
+    assert '"noopener,noreferrer"' in fn
+    assert "firebaseIdToken" not in fn
+    assert "sessionId" not in fn
+
+
+def test_game_performance_is_not_recorded_or_presented_as_diagnosis():
+    assert "唔會記錄遊戲完成情況、分數或表現" in INDEX
+    assert "唔係認知測試或醫療診斷" in INDEX
+    fn = INDEX[INDEX.index("async function launchGameWithConsent"):INDEX.index("function startCompanionListening")]
+    assert "apiFetch(" not in fn
+    assert "localStorage" not in fn

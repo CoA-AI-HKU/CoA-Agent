@@ -91,12 +91,23 @@ def maybe_flag_turn(
 
     try:
         preferences = get_monitoring_preferences(sender_id)
-        red_flags = detect_red_flags(message) if preferences["safety"] else []
+        active = preferences["effective"]
+        red_flags = detect_red_flags(message) if active["safety"] else []
         if red_flags:
             _record(sender_id, "safety", f"提及：{'、'.join(red_flags[:3])}")
             return  # a safety flag already covers this turn; skip the decline check
 
-        if preferences["cognitive_decline"] and answer_callable is not None:
+        normalized = message.lower()
+        deterministic_signals = {
+            "sleep": (("瞓唔著", "失眠", "睡不著", "成晚冇瞓", "夜晚醒", "insomnia", "can't sleep"), "提及持續或明顯睡眠困難"),
+            "daily_activity": (("沖涼都做唔到", "著衫都做唔到", "煮飯都做唔到", "行路困難", "無法洗澡", "無法穿衣", "can't bathe", "can't get dressed"), "提及日常活動出現困難"),
+            "routine_adherence": (("唔記得食藥", "漏咗食藥", "忘記吃藥", "忘記食藥", "missed my medicine", "forgot my medication"), "提及未能依照原定用藥或日常安排"),
+        }
+        for category, (terms, reason) in deterministic_signals.items():
+            if active[category] and any(term in normalized for term in terms):
+                _record(sender_id, category, reason)
+
+        if active["cognitive_decline"] and answer_callable is not None:
             reason = _classify_decline_signs(message, context, answer_callable)
             if reason:
                 _record(sender_id, "cognitive_decline", reason)
@@ -145,3 +156,21 @@ def delete_flags_for_sender(sender_id: str) -> None:
         db.commit()
     finally:
         db.close()
+
+
+def get_monitoring_history(sender_id: str, days: int = RETENTION_DAYS) -> dict[str, Any]:
+    preferences = get_monitoring_preferences(sender_id)
+    flags = get_recent_flags(sender_id, days=days)
+    counts = {category: 0 for category in preferences["effective"]}
+    for flag in flags:
+        if flag["flag_type"] in counts:
+            counts[flag["flag_type"]] += 1
+    return {
+        "days": days,
+        "counts": counts,
+        "threshold_met": {
+            category: count >= preferences["thresholds"][category]
+            for category, count in counts.items()
+        },
+        "history": flags,
+    }

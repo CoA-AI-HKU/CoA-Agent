@@ -1153,7 +1153,7 @@ def test_adding_a_contact_for_a_non_linked_patient_is_rejected(monkeypatch, tmp_
         _cleanup(uid)
 
 
-def test_monitoring_preferences_default_to_both_enabled(monkeypatch, tmp_path):
+def test_monitoring_preferences_preserve_existing_defaults(monkeypatch, tmp_path):
     monkeypatch.setenv("USER_REGISTRY_PATH", str(tmp_path / "registry.json"))
     monkeypatch.setenv("MONITORING_PREFERENCES_PATH", str(tmp_path / "monitoring.json"))
     patient_uid, caregiver_uid = "pytest-monitoring-default-patient", "pytest-monitoring-default-caregiver"
@@ -1165,7 +1165,12 @@ def test_monitoring_preferences_default_to_both_enabled(monkeypatch, tmp_path):
             f"/api/me/linked-patients/{patient_user_id}/monitoring", headers={"Authorization": "Bearer caregiver"},
         )
         assert response.status_code == 200
-        assert response.json() == {"safety": True, "cognitive_decline": True}
+        body = response.json()
+        assert body["safety"] is True
+        assert body["cognitive_decline"] is True
+        assert body["sleep"] is False
+        assert body["daily_activity"] is False
+        assert body["routine_adherence"] is False
     finally:
         _cleanup(patient_uid)
         _cleanup(caregiver_uid)
@@ -1185,11 +1190,14 @@ def test_caregiver_can_toggle_a_linked_patients_monitoring_preferences(monkeypat
             f"/api/me/linked-patients/{patient_user_id}/monitoring", json={"cognitive_decline": False}, headers=headers,
         )
         assert response.status_code == 200
-        assert response.json() == {"safety": True, "cognitive_decline": False}
+        body = response.json()
+        assert body["safety"] is True
+        assert body["cognitive_decline"] is False
 
         # Persisted, and a partial update doesn't clobber the other category.
         listing = client.get(f"/api/me/linked-patients/{patient_user_id}/monitoring", headers=headers)
-        assert listing.json() == {"safety": True, "cognitive_decline": False}
+        assert listing.json()["safety"] is True
+        assert listing.json()["cognitive_decline"] is False
     finally:
         _cleanup(patient_uid)
         _cleanup(caregiver_uid)
@@ -1211,7 +1219,8 @@ def test_monitoring_preferences_are_scoped_to_that_one_patient(monkeypatch, tmp_
         client.put(f"/api/me/linked-patients/{patient_a_user_id}/monitoring", json={"safety": False}, headers=headers)
 
         listing_b = client.get(f"/api/me/linked-patients/{patient_b_user_id}/monitoring", headers=headers)
-        assert listing_b.json() == {"safety": True, "cognitive_decline": True}
+        assert listing_b.json()["safety"] is True
+        assert listing_b.json()["cognitive_decline"] is True
     finally:
         _cleanup(patient_a_uid)
         _cleanup(patient_b_uid)
