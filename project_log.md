@@ -250,8 +250,8 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Replaced hard-coded hospital link with structured, consent-gated Google Maps navigation. Distinguishes current location, nearby search, and named destination requests.
 - Built privacy-safe URL launching: restricted to HTTPS, `google.com/maps`, `noopener/noreferrer`, with no user identifiers appended. CoA-Agent does not request or store background location data.
 
-**Patient Home Address & Lost-Way Assistance (2026-08-18)**
-- Added patient-owned home-address storage with caregiver-mode selection for a specific linked patient; multiple patients and caregivers remain isolated by server-side relationship checks.
+### Patient Home Address & Lost-Way Assistance (2026-08-18) 
+- Added patient-owned home-address storage with caregiver-mode selection for a specific linked patient; multiple patients and caregivers remain isolated by server-side relationship checks.s
 - Added 「我蕩失路」, 「我迷路」, 「我唔知點返屋企」 and 「我唔知自己而家係邊」 routing to a consent-gated current-location Maps action.
 - Added explicit caregiver-call confirmation and a larger 「聯絡照顧者（需要幫手？）」 button only during lost-way assistance; it resets to the normal button afterward.
 - Added address editing/deletion safeguards and regression coverage; relevant tests passed.
