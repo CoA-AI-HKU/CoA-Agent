@@ -269,7 +269,8 @@ COGNITIVE_CONCERN_SCREENING_TERMS = [
     "我會不會有認知障礙",
     "我會唔會有認知障礙",
     "我最近成日唔記得嘢",
-    "我最近記性差咗",
+    "我最近記性差咗",sudo install -m 644 /home/hannah/CoA-Agent/web/games/2048.html /opt/coa/CoA-Agent/web/games/2048.html
+    
     "我媽媽是不是有腦退化症",
     "我媽媽是不是有認知障礙",
     "我媽媽最近成日唔記得嘢",
