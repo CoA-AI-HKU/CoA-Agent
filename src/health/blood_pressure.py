@@ -26,7 +26,7 @@ _LABELED_PATTERN = re.compile(
 )
 _PAIR_PATTERN = re.compile(
     r"(?:血壓|血压|blood\s*pressure|\bbp\b)\D{0,20}"
-    r"(?P<systolic>\d{2,3})\s*(?:/|\\|、|,|，|over|\s)\s*"
+    r"(?P<systolic>\d{2,3})\s*(?:/|\\|、|,|，|度|同|和|至|到|over|\s)\s*"
     r"(?P<diastolic>\d{2,3})",
     re.IGNORECASE,
 )

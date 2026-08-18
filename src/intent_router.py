@@ -382,6 +382,10 @@ REMINDER_TERMS = [
     "remind",
     "reminder",
     "appointment",
+    "叫我",
+    "到時",
+    "到時提我",
+    "唔好唔記得",
 ]
 
 # Phrases asking to cancel/clear/delete existing reminders — checked as its

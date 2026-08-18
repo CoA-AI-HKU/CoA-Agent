@@ -1595,18 +1595,18 @@
     let companionListeningGeneration = 0;
 
     const GAME_CATALOG = [
-      { name: "2048", keywords: ["2048"], url: "./games/2048.html", external: false },
-      { name: "配對遊戲", keywords: ["配對", "配对"], url: "./games/memory.html", external: false },
-      { name: "成語遊戲", keywords: ["成語", "成语"], url: "./games/idioms.html", external: false },
+      { name: "2048", keywords: ["2048"] , aliases: ["二零四八", "二千零四十八"], url: "./games/2048.html", external: false },
+      { name: "配對遊戲", keywords: ["配對", "配对"], aliases: ["配對遊戲", "配对游戏", "玩吓配對", "玩下配對"], url: "./games/memory.html", external: false },
+      { name: "成語遊戲", keywords: ["成語", "成语"], aliases: ["成語遊戲", "成语游戏", "玩吓成語", "玩下成語"], url: "./games/idioms.html", external: false },
       {
-        name: "麻雀（MahJongo）", keywords: ["打麻雀", "麻雀"], url: "https://mahjongo.com/zh-TW",
+        name: "麻雀（MahJongo）", keywords: ["打麻雀", "麻雀"], aliases: ["麻雀遊戲", "玩麻雀"], url: "https://mahjongo.com/zh-TW",
         external: true, provider: "mahjongo.com", privacyUrl: "https://mahjongo.com/privacy",
       },
     ];
 
     function findRequestedGame(text) {
       return GAME_CATALOG.find(function (game) {
-        return game.keywords.some(function (keyword) { return text.includes(keyword); });
+        return game.keywords.concat(game.aliases || []).some(function (keyword) { return text.includes(keyword); });
       }) || null;
     }
 
