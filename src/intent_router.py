@@ -440,6 +440,8 @@ CANCEL_REMINDER_TERMS = [
 # patterns allow a short run of arbitrary characters in between instead of
 # requiring an exact phrase.
 _CANCEL_REMINDER_PATTERN = re.compile(r"(取消|清除|清空|刪除|删除|停止).{0,10}(提醒|提我|鬧鐘|闹钟)")
+_CANCEL_REMINDER_CANTONESE_PATTERN = re.compile(r"(?:唔使|唔駛|唔需要|唔好再).{0,8}(?:叫我|提我|提醒|鬧鐘)")
+_CANCEL_REMINDER_CANTONESE_AFTER_PATTERN = re.compile(r"(?:提醒|鬧鐘|提我).{0,8}(?:唔要|唔使|唔駛|唔需要|唔好)")
 _CANCEL_REMINDER_ENGLISH_PATTERN = re.compile(
     r"\bcancel\b.{0,20}\b(reminder|alarm)s?\b"
     r"|\b(clear|delete|remove|turn off)\b.{0,20}\b(reminder|alarm)s?\b"
@@ -718,6 +720,8 @@ def classify_intent(message: str) -> IntentResult:
     if (
         cancel_reminder_matches
         or _CANCEL_REMINDER_PATTERN.search(normalized)
+        or _CANCEL_REMINDER_CANTONESE_PATTERN.search(normalized)
+        or _CANCEL_REMINDER_CANTONESE_AFTER_PATTERN.search(normalized)
         or _CANCEL_REMINDER_ENGLISH_PATTERN.search(normalized)
     ):
         return IntentResult(
