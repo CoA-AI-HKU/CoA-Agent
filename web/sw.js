@@ -19,9 +19,11 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((names) =>
-      Promise.all(names.filter((name) => name !== CACHE_NAME).map((name) => caches.delete(name))),
+      Promise.all(names.map((name) => caches.delete(name))),
     ),
   );
+  // This worker was only a temporary offline experiment. Remove it and its cache.
+  event.waitUntil(self.registration.unregister());
   self.clients.claim();
 });
 

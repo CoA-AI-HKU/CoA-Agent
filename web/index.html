@@ -1022,6 +1022,19 @@
     </div>
   </div>
 
+  <div id="lostHelpOverlay" class="modal-overlay" hidden>
+    <div id="lostHelpDialog" class="modal" role="dialog" aria-modal="true" aria-labelledby="lostHelpTitle" aria-describedby="lostHelpMessage">
+      <h2 id="lostHelpTitle">需要幫手？</h2>
+      <p id="lostHelpMessage">請選擇你想做嘅事情：</p>
+      <div style="display:grid;gap:.7rem;">
+        <button id="lostHelpLocationButton" class="action-button send-button" type="button">📍 顯示目前位置</button>
+        <button id="lostHelpHomeButton" class="action-button send-button" type="button">🏠 導航返屋企</button>
+        <button id="lostHelpCaregiverButton" class="action-button send-button" type="button">📞 聯絡照顧者</button>
+        <button id="lostHelpCancelButton" class="action-button secondary-button" type="button">取消</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     "use strict";
     /*
@@ -1184,6 +1197,11 @@
     const confirmDialogError = document.getElementById("confirmDialogError");
     const confirmDialogCancelButton = document.getElementById("confirmDialogCancelButton");
     const confirmDialogConfirmButton = document.getElementById("confirmDialogConfirmButton");
+    const lostHelpOverlay = document.getElementById("lostHelpOverlay");
+    const lostHelpLocationButton = document.getElementById("lostHelpLocationButton");
+    const lostHelpHomeButton = document.getElementById("lostHelpHomeButton");
+    const lostHelpCaregiverButton = document.getElementById("lostHelpCaregiverButton");
+    const lostHelpCancelButton = document.getElementById("lostHelpCancelButton");
 
     // ===== Global auth/session/preferences state =====
     // firebaseIdToken is set only via window.__setFirebaseIdToken, called
@@ -1201,14 +1219,12 @@
 
     function isAuthenticated() { return !!firebaseIdToken; }
 
-    // ===== 2. AUTHENTICATED API CALLS =====
     async function apiFetch(path, options) {
       options = options || {};
       const headers = Object.assign({}, options.headers || {}, { Authorization: "Bearer " + firebaseIdToken });
       if (options.body && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
       return fetch(API_BASE_URL + path, Object.assign({}, options, { headers: headers }));
     }
-
     async function loadMe() {
       const res = await apiFetch("/api/me");
       if (!res.ok) throw new Error("failed to load /api/me");
@@ -1627,6 +1643,25 @@
       launchMapWithConsent({ kind: "home_directions", url: url, title: "確認返屋企", message: "要唔要開啟 Google 地圖返屋企？Google 可能會使用你部手機嘅位置。", confirm_label: "開始導航", external: true });
     }
 
+    function openLostHelpChoices() {
+      lostHelpOverlay.hidden = false;
+      lostHelpLocationButton.focus();
+      return new Promise(function (resolve) {
+        function finish(choice) { lostHelpOverlay.hidden = true; lostHelpLocationButton.onclick = null; lostHelpHomeButton.onclick = null; lostHelpCaregiverButton.onclick = null; lostHelpCancelButton.onclick = null; resolve(choice); }
+        lostHelpLocationButton.onclick = function () { finish("location"); };
+        lostHelpHomeButton.onclick = function () { finish("home"); };
+        lostHelpCaregiverButton.onclick = function () { finish("caregiver"); };
+        lostHelpCancelButton.onclick = function () { finish(null); };
+      });
+    }
+
+    async function handleLostHelpAction(action) {
+      const choice = await openLostHelpChoices();
+      if (choice === "location") return launchMapWithConsent(action);
+      if (choice === "home") return launchHomeNavigation();
+      if (choice === "caregiver") return handleCallCaregiver();
+    }
+
     function resetLostHelpCallButton() {
       callCaregiverButton.classList.remove("lost-help-call");
       callCaregiverButton.textContent = "📞 聯絡照顧者";
@@ -1745,7 +1780,8 @@
             callCaregiverButton.classList.add("lost-help-call");
             callCaregiverButton.textContent = "📞 聯絡照顧者（需要幫手？）";
           }
-          launchMapWithConsent(payload.map_action);
+          if (payload.map_action.kind === "lost_help") handleLostHelpAction(payload.map_action);
+          else launchMapWithConsent(payload.map_action);
         }
       } catch (err) {
         companionError("chat-failed");
