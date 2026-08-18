@@ -55,6 +55,7 @@ SELF_SERVICE_ROLES = ("companion", "caregiver")
 PREFERENCE_FIELDS = (
     "default_mode", "recognition_language", "talk_mode", "speech_speed",
     "voice_name", "auto_speak", "transcript_visible", "high_contrast_mode", "auto_send",
+    "home_address",
 )
 
 
@@ -242,6 +243,7 @@ def profile_to_me_response(profile: WebAccountProfile) -> dict[str, Any]:
             "transcript_visible": profile.transcript_visible,
             "high_contrast_mode": profile.high_contrast_mode,
             "auto_send": profile.auto_send,
+            "home_address": profile.home_address,
         },
     }
 
@@ -320,6 +322,11 @@ def update_preferences(firebase_uid: str, updates: dict[str, Any]) -> WebAccount
             profile.high_contrast_mode = bool(updates["high_contrast_mode"])
         if "auto_send" in updates:
             profile.auto_send = bool(updates["auto_send"])
+        if "home_address" in updates:
+            address = str(updates["home_address"] or "").strip()
+            if len(address) > 300:
+                raise PreferenceValidationError("home_address must be at most 300 characters")
+            profile.home_address = address or None
 
         db.commit()
         db.refresh(profile)

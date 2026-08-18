@@ -94,6 +94,7 @@ class PreferencesUpdateRequest(BaseModel):
     transcript_visible: bool | None = None
     high_contrast_mode: bool | None = None
     auto_send: bool | None = None
+    home_address: str | None = Field(default=None, max_length=300)
 
 
 @me_router.get("/api/me")
@@ -364,6 +365,10 @@ def _linked_patients(caregiver_uid: str) -> list[dict[str, str | None]]:
     return patients
 
 
+class HomeAddressRequest(BaseModel):
+    address: str = Field(default="", max_length=300)
+
+
 class ContactRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     detail: str = Field(min_length=1, max_length=200)
@@ -452,6 +457,48 @@ def _resolve_linked_patient_sender_id(user: FirebaseUser, patient_user_id: str) 
     if not sender_id:
         raise HTTPException(status_code=404, detail="patient has no resolvable account")
     return sender_id
+
+
+@me_router.get("/api/me/linked-patients/{patient_user_id}/home-address")
+def get_linked_patient_home_address(patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, str | None]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == sender_id).first()
+        return {"home_address": profile.home_address if profile else None}
+    finally:
+        db.close()
+
+@me_router.put("/api/me/linked-patients/{patient_user_id}/home-address")
+def put_linked_patient_home_address(patient_user_id: str, payload: HomeAddressRequest, user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, str | None]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    address = payload.address.strip()
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == sender_id).first()
+        if profile is None:
+            raise HTTPException(status_code=404, detail="patient web profile not found")
+        profile.home_address = address or None
+        db.commit()
+        return {"home_address": profile.home_address}
+    finally:
+        db.close()
+
+@me_router.delete("/api/me/linked-patients/{patient_user_id}/home-address")
+def delete_linked_patient_home_address(patient_user_id: str, user: FirebaseUser = Depends(require_firebase_user)) -> dict[str, None]:
+    _require_permission(user, "caregiver_mode")
+    sender_id = _resolve_linked_patient_sender_id(user, patient_user_id)
+    db = SessionLocal()
+    try:
+        profile = db.query(WebAccountProfile).filter(WebAccountProfile.firebase_uid == sender_id).first()
+        if profile is not None:
+            profile.home_address = None
+            db.commit()
+        return {"home_address": None}
+    finally:
+        db.close()
 
 
 def _own_blood_pressure_user_id(user: FirebaseUser) -> str:

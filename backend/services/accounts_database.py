@@ -65,6 +65,8 @@ class WebAccountProfile(Base):
     # user (or, in practice, mainly the developer role) to check before it's
     # actually sent to the chat pipeline.
     auto_send = Column(Boolean, nullable=False, default=True)
+    # Patient-owned destination for optional "返屋企" navigation.
+    home_address = Column(String, nullable=True)
     # NULL = has not agreed to the consent form yet. Set once, the first
     # time an account agrees (see backend/api/web_account.py's
     # POST /api/me/consent) — never cleared automatically, so an already-
@@ -127,6 +129,7 @@ def _migrate_add_missing_columns() -> None:
             "transcript_visible": "BOOLEAN NOT NULL DEFAULT 1",
             "high_contrast_mode": "BOOLEAN NOT NULL DEFAULT 0",
             "auto_send": "BOOLEAN NOT NULL DEFAULT 1",
+            "home_address": "VARCHAR",
             "consent_accepted_at": "DATETIME",
             "identity_confirmed": "BOOLEAN NOT NULL DEFAULT 0",
             "name": "VARCHAR",

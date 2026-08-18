@@ -860,6 +860,17 @@
           <ul id="contactList" class="contact-list" aria-label="已加入的聯絡人"></ul>
         </div>
 
+        <div class="subpage-section">
+          <h2>照顧對象嘅返屋企地址</h2>
+          <p>請先選擇一位照顧對象；地址只會儲存喺該位照顧對象嘅帳戶。</p>
+          <div class="form-field"><label for="homePatientSelect">照顧對象</label><select id="homePatientSelect"></select></div>
+          <div class="form-field"><label for="patientHomeAddressInput">屋企地址或地標</label><input id="patientHomeAddressInput" maxlength="300" autocomplete="street-address"></div>
+          <button id="loadPatientHomeAddressButton" class="action-button secondary-button" type="button">載入地址</button>
+          <button id="savePatientHomeAddressButton" class="action-button send-button" type="button">儲存地址</button>
+          <button id="deletePatientHomeAddressButton" class="action-button danger-button" type="button">刪除地址</button>
+          <p id="patientHomeAddressMessage" class="form-message" aria-live="polite"></p>
+        </div>
+
         <!-- ===== Patient-specific contacts =====
              Distinct from the "📞 聯絡人" section above, which is the
              caregiver's own shared list — every linked patient reads it
@@ -933,6 +944,15 @@
           <div class="pref-row">
             <label for="prefHighContrastMode">高對比度/大字</label>
             <input id="prefHighContrastMode" type="checkbox">
+          </div>
+          <div class="subpage-section" style="margin-top:1rem;">
+            <h3>🏠 返屋企設定</h3>
+            <p>只會儲存喺你自己嘅帳戶，照顧者唔會睇到。請輸入地址或地標，導航前仍然會再確認。</p>
+            <label for="homeAddressInput">屋企地址或地標</label>
+            <input id="homeAddressInput" type="text" maxlength="300" autocomplete="street-address" placeholder="例如：香港薄扶林……">
+            <button id="saveHomeAddressButton" class="action-button send-button" type="button">儲存屋企地址</button>
+            <button id="deleteHomeAddressButton" class="action-button secondary-button" type="button">刪除屋企地址</button>
+            <p id="homeAddressMessage" class="form-message" aria-live="polite"></p>
           </div>
           <button id="savePreferencesButton" class="action-button send-button" type="button">儲存設定</button>
           <p id="preferencesMessage" class="form-message" aria-live="polite"></p>
@@ -1119,6 +1139,12 @@
     const pairingCodeInput = document.getElementById("pairingCodeInput");
     const linkPatientMessage = document.getElementById("linkPatientMessage");
     const linkedPatientsList = document.getElementById("linkedPatientsList");
+    const homePatientSelect = document.getElementById("homePatientSelect");
+    const patientHomeAddressInput = document.getElementById("patientHomeAddressInput");
+    const loadPatientHomeAddressButton = document.getElementById("loadPatientHomeAddressButton");
+    const savePatientHomeAddressButton = document.getElementById("savePatientHomeAddressButton");
+    const deletePatientHomeAddressButton = document.getElementById("deletePatientHomeAddressButton");
+    const patientHomeAddressMessage = document.getElementById("patientHomeAddressMessage");
 
     const prefDefaultMode = document.getElementById("prefDefaultMode");
     const prefRecognitionLanguage = document.getElementById("prefRecognitionLanguage");
@@ -1129,6 +1155,10 @@
     const prefHighContrastMode = document.getElementById("prefHighContrastMode");
     const savePreferencesButton = document.getElementById("savePreferencesButton");
     const preferencesMessage = document.getElementById("preferencesMessage");
+    const homeAddressInput = document.getElementById("homeAddressInput");
+    const saveHomeAddressButton = document.getElementById("saveHomeAddressButton");
+    const deleteHomeAddressButton = document.getElementById("deleteHomeAddressButton");
+    const homeAddressMessage = document.getElementById("homeAddressMessage");
 
     const devRecognitionLanguage = document.getElementById("devRecognitionLanguage");
     const devInterimTranscript = document.getElementById("devInterimTranscript");
@@ -1586,6 +1616,16 @@
       if (opened) opened.opener = null;
     }
 
+    async function launchHomeNavigation() {
+      const address = (meProfile && meProfile.preferences && meProfile.preferences.home_address || "").trim();
+      if (!address) {
+        companionAnswer.textContent = "你未設定屋企地址。請先喺偏好設定輸入地址或地標。";
+        return;
+      }
+      const url = "https://www.google.com/maps/dir/?" + new URLSearchParams({ api: "1", destination: address, dir_action: "navigate" }).toString();
+      launchMapWithConsent({ kind: "home_directions", url: url, title: "確認返屋企", message: "要唔要開啟 Google 地圖返屋企？Google 可能會使用你部手機嘅位置。", confirm_label: "開始導航", external: true });
+    }
+
     async function launchMapWithConsent(action) {
       if (!action || action.external !== true || typeof action.url !== "string") return;
       let destination;
@@ -1652,6 +1692,13 @@
           // Game launches are handled entirely in the browser. CoA-Agent
           // deliberately does not record starts, completion, scores, moves,
           // or performance: these are leisure activities, not assessments.
+          if (finalText.includes("返屋企") || finalText.includes("回家")) {
+            if (companionProvider) companionProvider.stop();
+            setCompanionState("idle");
+            launchHomeNavigation();
+            return;
+          }
+
           const game = findRequestedGame(finalText);
           if (game) {
             if (companionProvider) companionProvider.stop();
@@ -1973,10 +2020,36 @@
         renderPatientContactSelect(patients);
         renderMonitoringPatientSelect(patients);
         renderBloodPressurePatientSelect(patients);
+        renderHomePatientSelect(patients);
       } catch (err) {
         linkPatientMessage.textContent = "無法載入已連結嘅照顧對象，請稍後再試。";
       }
     }
+
+    function renderHomePatientSelect(patients) {
+      const previous = homePatientSelect.value; homePatientSelect.replaceChildren();
+      patients.forEach(function (patient) { const option = document.createElement("option"); option.value = patient.user_id; option.textContent = patient.display_name; homePatientSelect.append(option); });
+      homePatientSelect.disabled = !patients.length;
+      if (patients.length) homePatientSelect.value = patients.some(function (p) { return p.user_id === previous; }) ? previous : patients[0].user_id;
+      loadLinkedPatientHomeAddress();
+    }
+
+    async function loadLinkedPatientHomeAddress() {
+      const patientId = homePatientSelect.value; if (!patientId) return;
+      try { const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientId) + "/home-address"); if (!res.ok) throw new Error("load failed"); const body = await res.json(); patientHomeAddressInput.value = body.home_address || ""; patientHomeAddressMessage.textContent = ""; } catch (err) { patientHomeAddressMessage.textContent = "無法載入呢位照顧對象嘅地址。"; }
+    }
+
+    homePatientSelect.addEventListener("change", loadLinkedPatientHomeAddress);
+    loadPatientHomeAddressButton.addEventListener("click", loadLinkedPatientHomeAddress);
+    savePatientHomeAddressButton.addEventListener("click", async function () {
+      const patientId = homePatientSelect.value; const address = patientHomeAddressInput.value.trim();
+      if (!patientId || !address) { patientHomeAddressMessage.textContent = "請選擇照顧對象並輸入地址。"; return; }
+      try { const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientId) + "/home-address", { method: "PUT", body: JSON.stringify({ address: address }) }); if (!res.ok) throw new Error("save failed"); patientHomeAddressMessage.textContent = "已儲存呢位照顧對象嘅屋企地址。"; } catch (err) { patientHomeAddressMessage.textContent = "儲存失敗，請稍後再試。"; }
+    });
+    deletePatientHomeAddressButton.addEventListener("click", async function () {
+      const patientId = homePatientSelect.value; if (!patientId) return; const confirmed = await openConfirmDialog({ title: "刪除地址？", message: "只會刪除所選照顧對象嘅屋企地址。", confirmLabel: "刪除", danger: true }); if (confirmed === null) return;
+      try { const res = await apiFetch("/api/me/linked-patients/" + encodeURIComponent(patientId) + "/home-address", { method: "DELETE" }); if (!res.ok) throw new Error("delete failed"); patientHomeAddressInput.value = ""; patientHomeAddressMessage.textContent = "已刪除呢位照顧對象嘅屋企地址。"; } catch (err) { patientHomeAddressMessage.textContent = "刪除失敗，請稍後再試。"; }
+    });
 
     function renderBloodPressurePatientSelect(patients) {
       const previousValue = bloodPressurePatientSelect.value;
@@ -2592,6 +2665,7 @@
       prefHighContrastMode.checked = !!preferences.high_contrast_mode;
       applyHighContrastMode(prefHighContrastMode.checked);
       devAutoSend.checked = !preferences.auto_send; // "review before send" is the inverse of auto_send
+      homeAddressInput.value = preferences.home_address || "";
       const modes = availableModes();
       prefDefaultMode.replaceChildren();
       modes.forEach(function (mode) {
@@ -2611,6 +2685,20 @@
       applyHighContrastMode(prefHighContrastMode.checked);
     });
 
+    saveHomeAddressButton.addEventListener("click", async function () {
+      const address = homeAddressInput.value.trim();
+      if (!address) { homeAddressMessage.textContent = "請先輸入屋企地址或地標。"; return; }
+      try { await saveMePreferences({ home_address: address }); homeAddressMessage.textContent = "屋企地址已儲存。"; }
+      catch (err) { homeAddressMessage.textContent = "儲存失敗，請稍後再試。"; }
+    });
+
+    deleteHomeAddressButton.addEventListener("click", async function () {
+      const confirmed = await openConfirmDialog({ title: "刪除屋企地址？", message: "刪除後，講「我想返屋企」將唔會再有已儲存目的地。", confirmLabel: "刪除", danger: true });
+      if (confirmed === null) return;
+      try { await saveMePreferences({ home_address: "" }); homeAddressInput.value = ""; homeAddressMessage.textContent = "屋企地址已刪除。"; }
+      catch (err) { homeAddressMessage.textContent = "刪除失敗，請稍後再試。"; }
+    });
+
     savePreferencesButton.addEventListener("click", async function () {
       try {
         await saveMePreferences({
@@ -2622,6 +2710,7 @@
           transcript_visible: prefTranscriptVisible.checked,
           high_contrast_mode: prefHighContrastMode.checked,
           auto_send: !devAutoSend.checked,
+          home_address: homeAddressInput.value.trim(),
         });
         preferencesMessage.textContent = "設定已儲存。";
       } catch (err) {
