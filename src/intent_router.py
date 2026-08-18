@@ -828,7 +828,7 @@ def classify_intent(message: str) -> IntentResult:
     # ==================== 强制拦截路线查询（新增） ====================
     # 「最近」 usually means "recently", not "nearest". Concrete destination
     # terms still catch requests such as 「最近嘅醫院」 through 「醫院」.
-    LOCATION_QUERY_TERMS = ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "附近"]
+    LOCATION_QUERY_TERMS = ["醫院", "诊所", "診所", "點去", "去邊", "邊度", "點行", "地址", "巴士站", "地鐵站", "點樣去", "怎麼去", "附近", "蕩失路", "荡失路", "迷路", "唔知點返屋企", "不知怎樣回家", "唔知自己而家係邊", "唔知自己喺邊"]
     loc_matches = _matched_terms(normalized, LOCATION_QUERY_TERMS)
     if loc_matches:
         return IntentResult(

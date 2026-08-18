@@ -9,6 +9,7 @@ _CURRENT_LOCATION_PATTERNS = (
     "我而家係邊", "我而家喺邊", "我現在在哪", "我現在在那", "我的位置",
     "current location", "where am i",
 )
+_LOST_LOCATION_PATTERNS = ("蕩失路", "荡失路", "迷路", "唔知點返屋企", "不知怎樣回家", "唔知自己而家係邊", "唔知自己喺邊")
 _NEARBY_MARKERS = ("最近", "附近", "nearest", "nearby", "closest")
 _PLACE_CATEGORIES = {
     "醫院": "醫院", "医院": "醫院", "診所": "診所", "诊所": "診所",
@@ -29,6 +30,14 @@ def build_maps_action(message: str) -> tuple[str, dict[str, Any]]:
     """Return a Cantonese reply and a safe, identifier-free Google Maps action."""
     text = " ".join(str(message or "").strip().split())
     lowered = text.lower()
+
+    if any(pattern in lowered for pattern in _LOST_LOCATION_PATTERNS):
+        return (
+            "聽到你話唔知方向。你可以先開啟地圖睇目前位置；如果需要，我亦可以幫你聯絡照顧者。開啟前會先問你確認。",
+            _action("lost_help", "https://www.google.com/maps/@?api=1&map_action=map",
+                    "顯示目前位置？", "Google 地圖可能會要求使用你部手機嘅位置。CoA-Agent唔會儲存你嘅位置。",
+                    confirm_label="顯示位置"),
+        )
 
     if any(pattern in lowered for pattern in _CURRENT_LOCATION_PATTERNS):
         return (

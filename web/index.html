@@ -379,6 +379,7 @@
 
     .companion-controls .action-button { min-height: 68px; font-size: 1.1rem; }
     .companion-controls .action-button.full-width { grid-column: 1 / -1; }
+    .companion-controls .lost-help-call { min-height: 86px; font-size: 1.25rem; border-width: 3px; }
 
     /* ===== Caregiver / Developer modes ===== */
     .subpage-section {
@@ -1626,6 +1627,11 @@
       launchMapWithConsent({ kind: "home_directions", url: url, title: "確認返屋企", message: "要唔要開啟 Google 地圖返屋企？Google 可能會使用你部手機嘅位置。", confirm_label: "開始導航", external: true });
     }
 
+    function resetLostHelpCallButton() {
+      callCaregiverButton.classList.remove("lost-help-call");
+      callCaregiverButton.textContent = "📞 聯絡照顧者";
+    }
+
     async function launchMapWithConsent(action) {
       if (!action || action.external !== true || typeof action.url !== "string") return;
       let destination;
@@ -1722,6 +1728,7 @@
       setCompanionState("thinking");
       try {
         const payload = await sendChatMessage(message);
+        resetLostHelpCallButton();
         lastAnswer = payload.reply;
         lastAnswerLanguage = payload.language || "zh-HK";
         const showText = !meProfile || !meProfile.preferences || meProfile.preferences.transcript_visible !== false;
@@ -1733,7 +1740,13 @@
         } else {
           setCompanionState("idle");
         }
-        if (payload.map_action) launchMapWithConsent(payload.map_action);
+        if (payload.map_action) {
+          if (payload.map_action.kind === "lost_help") {
+            callCaregiverButton.classList.add("lost-help-call");
+            callCaregiverButton.textContent = "📞 聯絡照顧者（需要幫手？）";
+          }
+          launchMapWithConsent(payload.map_action);
+        }
       } catch (err) {
         companionError("chat-failed");
       }
@@ -1816,6 +1829,7 @@
       if (!message) return;
       try {
         const payload = await sendChatMessage(message);
+        resetLostHelpCallButton();
         lastAnswer = payload.reply;
         lastAnswerLanguage = payload.language || "zh-HK";
         devReplyOutput.textContent = payload.reply;
@@ -2743,6 +2757,8 @@
     tryAgainButton.addEventListener("click", function () { setCompanionState("idle"); });
 
     async function handleCallCaregiver() {
+      const confirmed = await openConfirmDialog({ title: "聯絡照顧者？", message: "即將撥打你已設定嘅照顧者電話。CoA-Agent 唔會自動分享你嘅位置。", confirmLabel: "確認撥打", danger: false });
+      if (confirmed === null) return;
       // The dedicated emergency contact (collected on the info gate) is
       // always tried first — it's an explicit, single, always-known number
       // rather than a guess from a general contact list. Falls back to the
