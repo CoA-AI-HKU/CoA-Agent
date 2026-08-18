@@ -255,3 +255,4 @@ Outcome: reminders now work across the phrasings that were actually breaking in 
 - Added 「我蕩失路」, 「我迷路」, 「我唔知點返屋企」 and 「我唔知自己而家係邊」 routing to a consent-gated current-location Maps action.
 - Added explicit caregiver-call confirmation and a larger 「聯絡照顧者（需要幫手？）」 button only during lost-way assistance; it resets to the normal button afterward.
 - Added address editing/deletion safeguards and regression coverage; relevant tests passed.
+- Building internal games to replace the external ones to avoid copyright issues.

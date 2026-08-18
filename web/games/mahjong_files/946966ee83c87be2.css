@@ -1,1 +1,0 @@
-.game{position:absolute;left:-48px;transition:left 1s ease}.game.left-slided{left:0}@media (max-width:1024px){.hide{display:none}.mob{display:block}}@media (min-width:1024px){.hide{display:block}.mob{display:none}}@media (max-width:1024px){.pgame{padding:0}}@media (min-width:1024px){.pgame{padding:5px}}
